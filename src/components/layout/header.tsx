@@ -4,8 +4,11 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import Link from "next/link"
 import Logo from "../logo"
+import { PlaceHolderImages } from "@/lib/placeholder-images"
 
 export function Header() {
+  const userAvatar = PlaceHolderImages.find(p => p.id === 'avatar-user');
+
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
       <SidebarTrigger className="md:hidden" />
@@ -23,7 +26,7 @@ export function Header() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-9 w-9 rounded-full">
               <Avatar className="h-9 w-9">
-                <AvatarImage src="https://picsum.photos/seed/user/100/100" alt="@user" data-ai-hint="person avatar" />
+                <AvatarImage src={userAvatar?.imageUrl} alt="@user" data-ai-hint={userAvatar?.imageHint} />
                 <AvatarFallback>U</AvatarFallback>
               </Avatar>
             </Button>

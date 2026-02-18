@@ -5,8 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 export default function AccountPage() {
+  const userAvatar = PlaceHolderImages.find(p => p.id === 'avatar-user');
+  
   return (
     <div className="space-y-8 max-w-3xl mx-auto">
       <header>
@@ -22,7 +25,7 @@ export default function AccountPage() {
         <CardContent className="space-y-4">
           <div className="flex items-center space-x-4">
             <Avatar className="h-20 w-20">
-              <AvatarImage src="https://picsum.photos/seed/user/100/100" alt="@user" data-ai-hint="person avatar" />
+              <AvatarImage src={userAvatar?.imageUrl} alt="@user" data-ai-hint={userAvatar?.imageHint} />
               <AvatarFallback>U</AvatarFallback>
             </Avatar>
             <Button variant="outline">Change Photo</Button>

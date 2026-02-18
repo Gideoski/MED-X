@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import { BookCopy, FileText, Presentation, Laptop, Scroll, Mic, PenTool, Lightbulb, FolderKanban, Users } from "lucide-react";
+import { PlaceHolderImages } from "./placeholder-images";
 
 export interface Service {
   title: string;
@@ -106,14 +107,14 @@ export interface EBook {
 }
 
 export const ebooks: EBook[] = [
-  { id: '101', title: "Intro to Human Anatomy", description: "A foundational text covering the basics of human anatomy.", author: "Dr. Ada Okoro", level: 100, isPremium: false, coverImage: "https://picsum.photos/seed/101/600/800", imageHint: "anatomy textbook" },
-  { id: '102', title: "Medical Biochemistry Basics", description: "Understanding the chemical processes within living organisms.", author: "Prof. Ben Eze", level: 100, isPremium: true, coverImage: "https://picsum.photos/seed/102/600/800", imageHint: "science laboratory" },
-  { id: '103', title: "Physiology for Beginners", description: "Explore the functions and mechanisms of the human body.", author: "Dr. Funmi Adebayo", level: 100, isPremium: false, coverImage: "https://picsum.photos/seed/103/600/800", imageHint: "medical chart" },
-  { id: '104', title: "Cell Biology & Genetics", description: "A deep dive into the world of cells and heredity.", author: "Dr. Chidi Nwosu", level: 100, isPremium: true, coverImage: "https://picsum.photos/seed/104/600/800", imageHint: "dna strand" },
-  { id: '201', title: "Advanced Pharmacology", description: "In-depth study of drug actions and their effects on the body.", author: "Prof. Fatima Bello", level: 200, isPremium: true, coverImage: "https://picsum.photos/seed/201/600/800", imageHint: "pills medication" },
-  { id: '202', title: "Pathology: A Comprehensive Guide", description: "Understanding the causes and effects of diseases.", author: "Dr. Ken Saro", level: 200, isPremium: false, coverImage: "https://picsum.photos/seed/202/600/800", imageHint: "microscope slide" },
-  { id: '203', title: "Clinical Diagnosis", description: "A practical guide to diagnosing common medical conditions.", author: "Dr. Zainab Aliyu", level: 200, isPremium: true, coverImage: "https://picsum.photos/seed/203/600/800", imageHint: "doctor patient" },
-  { id: '204', title: "Surgical Principles", description: "Core concepts and techniques in modern surgery.", author: "Prof. Emeka Okafor", level: 200, isPremium: true, coverImage: "https://picsum.photos/seed/204/600/800", imageHint: "operating room" },
+  { id: '101', title: "Intro to Human Anatomy", description: "A foundational text covering the basics of human anatomy.", author: "Dr. Ada Okoro", level: 100, isPremium: false, coverImage: PlaceHolderImages.find(p => p.id === 'ebook-cover-1')!.imageUrl, imageHint: "anatomy textbook" },
+  { id: '102', title: "Medical Biochemistry Basics", description: "Understanding the chemical processes within living organisms.", author: "Prof. Ben Eze", level: 100, isPremium: true, coverImage: PlaceHolderImages.find(p => p.id === 'ebook-cover-2')!.imageUrl, imageHint: "science laboratory" },
+  { id: '103', title: "Physiology for Beginners", description: "Explore the functions and mechanisms of the human body.", author: "Dr. Funmi Adebayo", level: 100, isPremium: false, coverImage: PlaceHolderImages.find(p => p.id === 'ebook-cover-3')!.imageUrl, imageHint: "medical chart" },
+  { id: '104', title: "Cell Biology & Genetics", description: "A deep dive into the world of cells and heredity.", author: "Dr. Chidi Nwosu", level: 100, isPremium: true, coverImage: PlaceHolderImages.find(p => p.id === 'ebook-cover-4')!.imageUrl, imageHint: "dna strand" },
+  { id: '201', title: "Advanced Pharmacology", description: "In-depth study of drug actions and their effects on the body.", author: "Prof. Fatima Bello", level: 200, isPremium: true, coverImage: PlaceHolderImages.find(p => p.id === 'ebook-cover-5')!.imageUrl, imageHint: "pills medication" },
+  { id: '202', title: "Pathology: A Comprehensive Guide", description: "Understanding the causes and effects of diseases.", author: "Dr. Ken Saro", level: 200, isPremium: false, coverImage: PlaceHolderImages.find(p => p.id === 'ebook-cover-6')!.imageUrl, imageHint: "microscope slide" },
+  { id: '203', title: "Clinical Diagnosis", description: "A practical guide to diagnosing common medical conditions.", author: "Dr. Zainab Aliyu", level: 200, isPremium: true, coverImage: PlaceHolderImages.find(p => p.id === 'ebook-cover-7')!.imageUrl, imageHint: "doctor patient" },
+  { id: '204', title: "Surgical Principles", description: "Core concepts and techniques in modern surgery.", author: "Prof. Emeka Okafor", level: 200, isPremium: true, coverImage: PlaceHolderImages.find(p => p.id === 'ebook-cover-8')!.imageUrl, imageHint: "operating room" },
 ];
 
 export interface Creator {
@@ -130,7 +131,7 @@ export const creators: Creator[] = [
         id: "c1",
         name: "Denzel",
         title: "Founder & Study Designer",
-        avatar: "https://picsum.photos/seed/denzel/200/200",
+        avatar: PlaceHolderImages.find(p => p.id === 'avatar-denzel')!.imageUrl,
         imageHint: "man portrait",
         bio: "A med-student turned study-designer, Denzel founded MED-X with the goal of helping students study smarter, not harder. His focus is on creating clear, concise, and beautifully formatted study materials."
     },
@@ -138,7 +139,7 @@ export const creators: Creator[] = [
         id: "c2",
         name: "Dr. Ada Okoro",
         title: "Anatomy Content Lead",
-        avatar: "https://picsum.photos/seed/ada/200/200",
+        avatar: PlaceHolderImages.find(p => p.id === 'avatar-ada')!.imageUrl,
         imageHint: "woman portrait",
         bio: "With over 10 years of experience teaching anatomy, Dr. Okoro ensures all anatomical content is accurate, easy to understand, and aligned with current medical school curriculums."
     },
@@ -146,7 +147,7 @@ export const creators: Creator[] = [
         id: "c3",
         name: "Ben Eze",
         title: "Creative Director",
-        avatar: "https://picsum.photos/seed/ben/200/200",
+        avatar: PlaceHolderImages.find(p => p.id === 'avatar-ben')!.imageUrl,
         imageHint: "man glasses",
         bio: "Ben is the creative force behind MED-X's visual identity. He specializes in turning complex information into beautiful, engaging e-books and presentation slides."
     }
