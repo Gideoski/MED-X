@@ -6,7 +6,7 @@ export default function FeedbackHelpPage() {
   return (
     <div className="space-y-8">
        <header className="text-center">
-        <h1 className="text-4xl font-bold tracking-tight">Feedback &amp; Help</h1>
+        <h1 className="text-4xl font-bold tracking-tight">Feedback & Help</h1>
         <p className="mt-2 text-lg text-muted-foreground">
           We're here to help and listen to your feedback.
         </p>

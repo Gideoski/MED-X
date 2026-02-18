@@ -129,7 +129,7 @@ export const creators: Creator[] = [
     {
         id: "c1",
         name: "Denzel",
-        title: "Founder &amp; Study Designer",
+        title: "Founder & Study Designer",
         avatar: "https://picsum.photos/seed/denzel/200/200",
         imageHint: "man portrait",
         bio: "A med-student turned study-designer, Denzel founded MED-X with the goal of helping students study smarter, not harder. His focus is on creating clear, concise, and beautifully formatted study materials."

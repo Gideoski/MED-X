@@ -54,7 +54,7 @@ export default function HomePage() {
                 </div>
             </div>
             <div>
-                <h3 className="mb-6 text-center text-2xl font-semibold">✍️ Creative &amp; Non-Academic Services</h3>
+                <h3 className="mb-6 text-center text-2xl font-semibold">✍️ Creative & Non-Academic Services</h3>
                  <div className="space-y-6">
                     {creativeServices.map((service) => (
                         <Card key={service.title}>

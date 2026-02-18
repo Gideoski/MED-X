@@ -27,7 +27,7 @@
  const bottomNavItems = [
     { href: "/account", icon: User, label: "Account" },
     { href: "/settings", icon: Settings, label: "Settings" },
-    { href: "/feedback-help", icon: HelpCircle, label: "Feedback &amp; Help" },
+    { href: "/feedback-help", icon: HelpCircle, label: "Feedback & Help" },
  ]
  
  export function SidebarNav() {

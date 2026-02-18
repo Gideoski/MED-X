@@ -34,7 +34,7 @@ export default function PremiumPage() {
               <Check className="mr-2 h-4 w-4 text-primary" /> Download premium materials.
             </li>
             <li className="flex items-center">
-              <Check className="mr-2 h-4 w-4 text-primary" /> Access to exclusive Q&amp;A packs.
+              <Check className="mr-2 h-4 w-4 text-primary" /> Access to exclusive Q&A packs.
             </li>
             <li className="flex items-center">
               <Check className="mr-2 h-4 w-4 text-primary" /> Priority support.
