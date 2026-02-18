@@ -5,7 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Med-X Hub',
+  title: 'MED-X',
   description: 'A professional, responsive e-learning website for university students to access school materials.',
 };
 
