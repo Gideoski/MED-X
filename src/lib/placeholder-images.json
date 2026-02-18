@@ -1,3 +1,76 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "ebook-cover-1",
+      "description": "Anatomy textbook cover",
+      "imageUrl": "https://images.unsplash.com/photo-1761081478943-25e4f4b6354c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxhbmF0b215JTIwdGV4dGJvb2t8ZW58MHx8fHwxNzcxNDI2NzI0fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "anatomy textbook"
+    },
+    {
+      "id": "ebook-cover-2",
+      "description": "Science laboratory",
+      "imageUrl": "https://images.unsplash.com/photo-1562411403-f583472c8e87?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxzY2llbmNlJTIwbGFib3JhdG9yeXxlbnwwfHx8fDE3NzEzNTY0MTN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "science laboratory"
+    },
+    {
+      "id": "ebook-cover-3",
+      "description": "Medical chart",
+      "imageUrl": "https://images.unsplash.com/photo-1758691463569-66de91d76452?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8bWVkaWNhbCUyMGNoYXJ0fGVufDB8fHx8MTc3MTM4MDk5Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "medical chart"
+    },
+    {
+      "id": "ebook-cover-4",
+      "description": "DNA strand",
+      "imageUrl": "https://images.unsplash.com/photo-1681911046064-e663d5192921?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxkbmElMjBzdHJhbmR8ZW58MHx8fHwxNzcxNDI2NzI0fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "dna strand"
+    },
+    {
+      "id": "ebook-cover-5",
+      "description": "Pills and medication",
+      "imageUrl": "https://images.unsplash.com/photo-1622147459102-8a0f3727e4c4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxwaWxscyUyMG1lZGljYXRpb258ZW58MHx8fHwxNzcxNDI2NzI1fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "pills medication"
+    },
+    {
+      "id": "ebook-cover-6",
+      "description": "Microscope slide",
+      "imageUrl": "https://images.unsplash.com/photo-1758573466927-87ba2f725c7e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxtaWNyb3Njb3BlJTIwc2xpZGV8ZW58MHx8fHwxNzcxNDI2NzI0fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "microscope slide"
+    },
+    {
+      "id": "ebook-cover-7",
+      "description": "Doctor with patient",
+      "imageUrl": "https://images.unsplash.com/photo-1638202993928-7267aad84c31?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxkb2N0b3IlMjBwYXRpZW50fGVufDB8fHx8MTc3MTMyMDU0Nnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "doctor patient"
+    },
+    {
+      "id": "ebook-cover-8",
+      "description": "Operating room",
+      "imageUrl": "https://images.unsplash.com/photo-1640876777012-bdb00a6323e2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxvcGVyYXRpbmclMjByb29tfGVufDB8fHx8MTc3MTQyNDI4NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "operating room"
+    },
+    {
+      "id": "avatar-denzel",
+      "description": "Portrait of Denzel",
+      "imageUrl": "https://images.unsplash.com/photo-1624395213043-fa2e123b2656?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxtYW4lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NzEzODIxMzJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man portrait"
+    },
+    {
+      "id": "avatar-ada",
+      "description": "Portrait of Ada",
+      "imageUrl": "https://images.unsplash.com/photo-1580489944761-15a19d654956?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3b21hbiUyMHBvcnRyYWl0fGVufDB8fHx8MTc3MTM0MTI2N3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman portrait"
+    },
+    {
+      "id": "avatar-ben",
+      "description": "Portrait of Ben",
+      "imageUrl": "https://images.unsplash.com/photo-1684853884851-00f0d8667f58?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8bWFuJTIwZ2xhc3Nlc3xlbnwwfHx8fDE3NzEzOTU3OTZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man glasses"
+    },
+    {
+      "id": "avatar-user",
+      "description": "User avatar",
+      "imageUrl": "https://images.unsplash.com/photo-1724435811349-32d27f4d5806?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxwZXJzb24lMjBhdmF0YXJ8ZW58MHx8fHwxNzcxMzM0MTE1fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person avatar"
+    }
+  ]
 }
