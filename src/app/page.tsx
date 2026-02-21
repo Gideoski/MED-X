@@ -1,8 +1,26 @@
+'use client';
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/logo';
+import { useUser } from '@/firebase';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function WelcomePage() {
+  const { user, isUserLoading } = useUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (user && !isUserLoading) {
+      router.replace('/home');
+    }
+  }, [user, isUserLoading, router]);
+
+  if (isUserLoading || user) {
+    return <div className="flex h-screen w-full items-center justify-center">Loading...</div>;
+  }
+  
   return (
     <div className="relative flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-background">
       <div className="absolute inset-0 z-0">

@@ -1,11 +1,64 @@
+'use client';
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Logo from "@/components/logo";
+import { useState, useEffect, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth, useUser } from "@/firebase";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { useToast } from "@/hooks/use-toast";
 
 export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isPending, startTransition] = useTransition();
+  const auth = useAuth();
+  const { user, isUserLoading } = useUser();
+  const router = useRouter();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (user && !isUserLoading) {
+      router.replace("/home");
+    }
+  }, [user, isUserLoading, router]);
+
+  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!email || !password) {
+        toast({
+            title: "Login Failed",
+            description: "Please enter both email and password.",
+            variant: "destructive",
+        });
+        return;
+    }
+    startTransition(() => {
+        signInWithEmailAndPassword(auth, email, password)
+            .catch((error) => {
+                let errorMessage = "An unknown error occurred.";
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                    errorMessage = "Invalid email or password. Please try again.";
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = "Please enter a valid email address.";
+                }
+                toast({
+                    title: "Login Failed",
+                    description: errorMessage,
+                    variant: "destructive",
+                });
+            });
+    });
+  };
+
+  if (isUserLoading || user) {
+    return <div className="flex h-screen w-full items-center justify-center">Loading...</div>;
+  }
+
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-background px-4">
       <Card className="mx-auto max-w-sm w-full">
@@ -17,32 +70,37 @@ export default function LoginPage() {
           <CardDescription>Enter your email below to login to your account</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="m@example.com"
-                required
-              />
-            </div>
-            <div className="grid gap-2">
-              <div className="flex items-center">
-                <Label htmlFor="password">Password</Label>
-                <Link
-                  href="#"
-                  className="ml-auto inline-block text-sm underline"
-                >
-                  Forgot your password?
-                </Link>
+          <form onSubmit={handleLogin}>
+            <div className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="m@example.com"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isPending}
+                />
               </div>
-              <Input id="password" type="password" required />
+              <div className="grid gap-2">
+                <div className="flex items-center">
+                  <Label htmlFor="password">Password</Label>
+                  <Link
+                    href="#"
+                    className="ml-auto inline-block text-sm underline"
+                  >
+                    Forgot your password?
+                  </Link>
+                </div>
+                <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} disabled={isPending} />
+              </div>
+              <Button type="submit" className="w-full" disabled={isPending}>
+                {isPending ? "Logging in..." : "Login"}
+              </Button>
             </div>
-            <Button type="submit" className="w-full">
-              Login
-            </Button>
-          </div>
+          </form>
           <div className="mt-4 text-center text-sm">
             Don&apos;t have an account?{" "}
             <Link href="/signup" className="underline">

@@ -13,6 +13,9 @@
  import Logo from "../logo"
  import Link from "next/link"
  import { usePathname } from "next/navigation"
+ import { useAuth } from "@/firebase"
+ import { signOut } from "firebase/auth"
+ import { useRouter } from "next/navigation"
  
  const navItems = [
    { href: "/home", icon: Home, label: "Home" },
@@ -31,6 +34,13 @@
  
  export function SidebarNav() {
    const pathname = usePathname()
+   const auth = useAuth();
+   const router = useRouter();
+
+   const handleLogout = () => {
+     signOut(auth);
+     router.push('/login');
+   };
  
    return (
      <Sidebar>
@@ -77,7 +87,7 @@
               </SidebarMenuItem>
            ))}
             <SidebarMenuItem>
-                <SidebarMenuButton tooltip={{ children: 'Log Out' }}>
+                <SidebarMenuButton tooltip={{ children: 'Log Out' }} onClick={handleLogout}>
                     <LogOut />
                     <span>Log Out</span>
                 </SidebarMenuButton>
