@@ -24,8 +24,7 @@ service cloud.firestore {
      * - Admin access is granted globally via an `exists()` check on the `/roles_admin` collection.
      * - Read access to content is determined by the collection path: `_free` collections are public,
      *   while `_premium` collections require a `get()` to the user's profile to verify their `isPremium` status.
-     * - Write access for materials is restricted to administrators or the document's owner, who must also have
-     *   a verified profile in `/creator_profiles`.
+     * - Write access for materials is restricted to administrators or the document's owner.
      *
      * Denormalization for Authorization
      * - A user's premium status (`isPremium`) is denormalized onto their `/users/{userId}` document to allow
@@ -73,6 +72,7 @@ service cloud.firestore {
     }
 
     /**
+     * (This function is currently not used in the active rules below but is kept for future implementation of a verification system)
      * Checks if a given creator has been verified by an admin.
      * Requires a 'get' call to the creator's public profile.
      */
@@ -153,10 +153,10 @@ service cloud.firestore {
      *              The collection name dictates access (e.g., /materials_100lvl_free, /materials_200lvl_premium).
      * @path /{collectionId}/{materialId} where `collectionId` matches `materials_.*_free` or `materials_.*_premium`
      * @allow (get, list) Free materials are public. Premium materials require `isPremium: true` or admin status.
-     * @allow (create) A verified creator or an admin can upload new materials.
-     * @allow (update, delete) An admin or the verified owner of the material can modify/delete.
+     * @allow (create) Any authenticated user or an admin can upload new materials.
+     * @allow (update, delete) An admin or the owner of the material can modify/delete.
      * @principle Distinguishes free (public) vs. premium (subscriber-only) reads based on collection name.
-     *            Writes are restricted to verified owners or admins.
+     *            Writes are restricted to owners or admins.
      */
     match /{collectionId}/{materialId} {
       // Helper functions for this specific match block
@@ -167,12 +167,14 @@ service cloud.firestore {
         return collectionId.matches("materials_.*_premium");
       }
       function isMaterialCreator() {
-        // For new documents (create), check request.resource
-        return isSignedIn() && request.resource.data.creatorId == request.auth.uid && isVerifiedCreator(request.auth.uid);
+        // For new documents (create), check request.resource.
+        // The creator must be the signed-in user.
+        return isSignedIn() && request.resource.data.creatorId == request.auth.uid;
       }
       function isMaterialOwner(creatorId) {
-        // For existing documents (update/delete), check resource.data
-        return isSignedIn() && isOwner(creatorId) && isVerifiedCreator(creatorId);
+        // For existing documents (update/delete), check resource.data.
+        // The owner must be the signed-in user.
+        return isSignedIn() && isOwner(creatorId);
       }
 
       // Read access:
@@ -183,7 +185,7 @@ service cloud.firestore {
 
       // Create access:
       // Only allow creation in recognized material collections (free or premium).
-      // Only admins or verified creators can create.
+      // Only admins or the creator can create.
       allow create: if (isFreeMaterialCollection() || isPremiumMaterialCollection()) &&
                        (isAdmin() || isMaterialCreator());
 
@@ -191,7 +193,7 @@ service cloud.firestore {
       // Only allow updates in recognized material collections.
       // Document must exist (`resource != null`).
       // `creatorId` field must be immutable.
-      // Only admins or the verified owner of the material can update.
+      // Only admins or the owner of the material can update.
       allow update: if (isFreeMaterialCollection() || isPremiumMaterialCollection()) &&
                        resource != null &&
                        request.resource.data.creatorId == resource.data.creatorId &&
@@ -200,7 +202,7 @@ service cloud.firestore {
       // Delete access:
       // Only allow deletion in recognized material collections.
       // Document must exist (`resource != null`).
-      // Only admins or the verified owner of the material can delete.
+      // Only admins or the owner of the material can delete.
       allow delete: if (isFreeMaterialCollection() || isPremiumMaterialCollection()) &&
                        resource != null &&
                        (isAdmin() || isMaterialOwner(resource.data.creatorId));
