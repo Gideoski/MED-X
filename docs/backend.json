@@ -1,0 +1,373 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user account on the Med-X platform, including students, creators, and administrators.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's unique email address used for login.",
+          "format": "email"
+        },
+        "firstName": {
+          "type": "string",
+          "description": "The first name of the user."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "The last name of the user."
+        },
+        "role": {
+          "type": "string",
+          "description": "The role of the user within the system, determining their permissions and access levels.",
+          "format": "enum",
+          "items": {
+            "type": "string"
+          }
+        },
+        "isPremium": {
+          "type": "boolean",
+          "description": "Indicates if the user has an active premium subscription, granting access to exclusive content."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the user account was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the user account was last updated.",
+          "format": "date-time"
+        },
+        "lastLoginAt": {
+          "type": "string",
+          "description": "Timestamp indicating the user's last successful login.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "role",
+        "isPremium",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Material": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Material",
+      "type": "object",
+      "description": "Represents an educational item such as an e-book, summary, or Q&A pack available on Med-X.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Material entity."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the educational material."
+        },
+        "description": {
+          "type": "string",
+          "description": "A comprehensive description of the material's content and purpose."
+        },
+        "type": {
+          "type": "string",
+          "description": "The category or type of the educational material.",
+          "format": "enum",
+          "items": {
+            "type": "string"
+          }
+        },
+        "level": {
+          "type": "string",
+          "description": "The academic level or target audience for which the material is designed.",
+          "format": "enum",
+          "items": {
+            "type": "string"
+          }
+        },
+        "filePath": {
+          "type": "string",
+          "description": "The URI path to the actual digital file of the educational material (e.g., PDF).",
+          "format": "uri"
+        },
+        "thumbnailPath": {
+          "type": "string",
+          "description": "The URI path to a thumbnail or cover image for the material.",
+          "format": "uri"
+        },
+        "isPremiumContent": {
+          "type": "boolean",
+          "description": "Indicates if this material is part of the premium subscription content."
+        },
+        "isDownloadable": {
+          "type": "boolean",
+          "description": "Indicates if the material can be downloaded by users (potentially for an extra fee)."
+        },
+        "downloadPrice": {
+          "type": "number",
+          "description": "The price in local currency required to download the material, if 'isDownloadable' is true and not free."
+        },
+        "creatorId": {
+          "type": "string",
+          "description": "Reference to the User (creator) who uploaded or authored this material. (Relationship: User 1:N Material)"
+        },
+        "uploadDate": {
+          "type": "string",
+          "description": "Timestamp indicating when the material was first uploaded to the platform.",
+          "format": "date-time"
+        },
+        "lastUpdateDate": {
+          "type": "string",
+          "description": "Timestamp indicating when the material's details or file were last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "description",
+        "type",
+        "level",
+        "filePath",
+        "isPremiumContent",
+        "isDownloadable",
+        "creatorId",
+        "uploadDate",
+        "lastUpdateDate"
+      ]
+    },
+    "CreatorProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CreatorProfile",
+      "type": "object",
+      "description": "Stores public-facing profile information for users who are creators on the Med-X platform.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the CreatorProfile entity, matching the associated User's ID."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User account associated with this creator profile. (Relationship: User 1:1 CreatorProfile)"
+        },
+        "bio": {
+          "type": "string",
+          "description": "A short biographical description of the creator, highlighting their expertise or background."
+        },
+        "profilePictureUrl": {
+          "type": "string",
+          "description": "The URI path to the creator's profile picture.",
+          "format": "uri"
+        },
+        "socialMediaLinks": {
+          "type": "array",
+          "description": "An array of URIs linking to the creator's social media profiles or personal website.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "verifiedByAdmin": {
+          "type": "boolean",
+          "description": "Indicates if this creator's profile has been officially verified by an administrator."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "verifiedByAdmin"
+      ]
+    },
+    "Feedback": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Feedback",
+      "type": "object",
+      "description": "Captures feedback submissions from users, which can be reviewed and managed by administrators.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Feedback entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who submitted the feedback, if they were logged in. (Relationship: User 1:N Feedback)"
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address provided by the user if they were not logged in or preferred to use a different email.",
+          "format": "email"
+        },
+        "message": {
+          "type": "string",
+          "description": "The actual content of the feedback message from the user."
+        },
+        "submittedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the feedback was submitted.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current processing status of the feedback (e.g., New, Reviewed, Archived).",
+          "format": "enum",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "message",
+        "submittedAt",
+        "status"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores private user profile information and account details. The document ID (`userId`) matches the Firebase Authentication UID, making it directly accessible by the user themselves or by administrators. Includes the 'isPremium' status, which is crucial for determining access to premium content. This structure supports path-based ownership.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user, corresponding to their Firebase Authentication UID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_admin/{adminId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "A dedicated collection for Database Access Control (DBAC). The existence of a document at `/roles_admin/{adminId}` indicates that the associated user (`adminId`) has administrator privileges. This allows for simple `exists()` checks in security rules to grant admin permissions. Only administrators can create or delete documents in this collection.",
+          "params": [
+            {
+              "name": "adminId",
+              "description": "The unique identifier of a user who is an administrator, corresponding to their Firebase Authentication UID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/creator_profiles/{userId}",
+        "definition": {
+          "entityName": "CreatorProfile",
+          "schema": {
+            "$ref": "#/backend/entities/CreatorProfile"
+          },
+          "description": "Stores public-facing profile information for users who are designated creators. The document ID (`userId`) matches the associated User's ID, ensuring a 1:1 relationship. This collection is publicly readable for all users to browse creator descriptions. Write access is restricted to the associated creator or administrators. Includes the 'verifiedByAdmin' field, which is critical for authorizing content upload privileges.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who owns this creator profile, matching their Firebase Authentication UID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/feedback/{feedbackId}",
+        "definition": {
+          "entityName": "Feedback",
+          "schema": {
+            "$ref": "#/backend/entities/Feedback"
+          },
+          "description": "Captures user feedback submissions. Writable by any authenticated user (or potentially anonymous users if the 'userId' field is null). Readable and manageable exclusively by administrators, ensuring privacy and controlled processing.",
+          "params": [
+            {
+              "name": "feedbackId",
+              "description": "The unique identifier for a specific feedback submission."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/materials_100lvl_free/{materialId}",
+        "definition": {
+          "entityName": "Material",
+          "schema": {
+            "$ref": "#/backend/entities/Material"
+          },
+          "description": "Stores 100-level educational materials that are designated as free content. All documents within this collection are fully readable by all users (authenticated or not), supporting efficient and secure list queries (QAPs). Writable by verified creators (as indicated by 'creatorId' and 'CreatorProfile.verifiedByAdmin') or administrators.",
+          "params": [
+            {
+              "name": "materialId",
+              "description": "The unique identifier for a specific 100-level free material."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/materials_100lvl_premium/{materialId}",
+        "definition": {
+          "entityName": "Material",
+          "schema": {
+            "$ref": "#/backend/entities/Material"
+          },
+          "description": "Stores 100-level educational materials that require a premium subscription. All documents within this collection are fully readable only by users with an active premium subscription, supporting efficient and secure list queries (QAPs). Writable by verified creators (as indicated by 'creatorId' and 'CreatorProfile.verifiedByAdmin') or administrators.",
+          "params": [
+            {
+              "name": "materialId",
+              "description": "The unique identifier for a specific 100-level premium material."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/materials_200lvl_free/{materialId}",
+        "definition": {
+          "entityName": "Material",
+          "schema": {
+            "$ref": "#/backend/entities/Material"
+          },
+          "description": "Stores 200-level educational materials that are designated as free content. All documents within this collection are fully readable by all users (authenticated or not), supporting efficient and secure list queries (QAPs). Writable by verified creators (as indicated by 'creatorId' and 'CreatorProfile.verifiedByAdmin') or administrators.",
+          "params": [
+            {
+              "name": "materialId",
+              "description": "The unique identifier for a specific 200-level free material."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/materials_200lvl_premium/{materialId}",
+        "definition": {
+          "entityName": "Material",
+          "schema": {
+            "$ref": "#/backend/entities/Material"
+          },
+          "description": "Stores 200-level educational materials that require a premium subscription. All documents within this collection are fully readable only by users with an active premium subscription, supporting efficient and secure list queries (QAPs). Writable by verified creators (as indicated by 'creatorId' and 'CreatorProfile.verifiedByAdmin') or administrators.",
+          "params": [
+            {
+              "name": "materialId",
+              "description": "The unique identifier for a specific 200-level premium material."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure for Med-X Hub prioritizes security, scalability, and debuggability by strictly adhering to the core design principles. The most critical aspect, **Authorization Independence**, is primarily achieved through **Structural Segregation (Mandate B)** and careful denormalization.\n\nFor `User` and `CreatorProfile` entities, **Private Data** and **Hierarchical Paths for User-Owned Data (Mandate C)** are used. `/users/{userId}` ensures that each user's data is stored in a path directly tied to their authentication UID, simplifying ownership-based rules (e.g., `allow read, write: if request.auth.uid == userId`). Similarly, `/creator_profiles/{userId}` uses the user's ID as the document ID, creating a clear 1:1 relationship for creators to manage their public profiles while also allowing public read access.\n\n**Global Roles (DBAC - Mandate C)** are managed via **Existence over Content**. The `/roles_admin/{adminId}` collection is a flat list where the presence of a document signifies administrative privileges for that user ID. This allows for simple and efficient rule checks (e.g., `allow read, write: if exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid))`).\n\nThe most significant application of **Authorization Independence** and support for **QAPs (Rules are not Filters)** comes with the `Material` entities. Instead of a single collection (`/materials`) requiring complex rules to differentiate between 100-level vs. 200-level and free vs. premium content (which would likely involve inefficient `get()` calls for hierarchical authorization or break QAPs by making rules act as filters), the `Material` entity is strategically split into four distinct top-level collections:\n1.  `/materials_100lvl_free/{materialId}`\n2.  `/materials_100lvl_premium/{materialId}`\n3.  `/materials_200lvl_free/{materialId}`\n4.  `/materials_200lvl_premium/{materialId}`\n\nThis **Structural Segregation** ensures that all documents within any given collection share a **Homogeneous Security Posture**. For example:\n*   Documents in `_free` collections can simply have a `allow read: if true;` rule (or `if request.auth.uid != null` for authenticated-only basic access).\n*   Documents in `_premium` collections require a `allow read: if request.auth.uid != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isPremium == true;` rule. While this rule includes a `get()`, it is a `get()` on the *requesting user's own profile* to check a global attribute (`isPremium`). This is not a hierarchical dependency that causes atomicity issues or debuggability problems with parent-child data relationships. This design enables efficient `list` operations for each category (e.g., a premium user can list all 100-level premium materials, and all returned documents are fully accessible), thus fully supporting **QAPs**.\n\n**Data Clarity and Predictability (Mandate D)** is maintained through explicit state modeling (e.g., `Feedback.status`), consistent naming conventions (`userId`, `materialId`), and linking schemas via `$ref`. The `creatorId` field in `Material` entities directly denormalizes the creator's ownership, allowing for simple rules like `allow write: if request.auth.uid == resource.data.creatorId || exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));`.\n\nThis architecture minimizes complexity in security rules, makes authorization intent explicit, and promotes scalability by leveraging Firestore's collection-based security model efficiently."
+  }
+}

@@ -1,0 +1,209 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * Core Philosophy
+     * This ruleset enforces a security model based on structural segregation and explicit roles.
+     * Free and premium content are separated into distinct collections to enable fast, secure queries
+     * (Query-Ahead Performance or QAP). User-specific data is protected via path-based ownership,
+     * ensuring users can only access their own information. A dedicated `/roles_admin` collection
+     * provides a clear, efficient mechanism for granting global administrator privileges.
+     *
+     * Data Structure
+     * - `/users/{userId}`: Private user data, keyed by the user's auth UID.
+     * - `/creator_profiles/{userId}`: Publicly readable profiles for content creators.
+     * - `/roles_admin/{adminId}`: An index of admin UIDs. Document existence grants admin rights.
+     * - `/materials_*_free/`: Collections for free content, publicly readable.
+     * - `/materials_*_premium/`: Collections for premium content, readable only by subscribers.
+     * - `/feedback/{feedbackId}`: A collection for user feedback, writable by users but readable only by admins.
+     *
+     * Key Security Decisions
+     * - User data in `/users` is strictly private to the owner and admins. User listing is disabled.
+     * - Admin access is granted globally via an `exists()` check on the `/roles_admin` collection.
+     * - Read access to content is determined by the collection path: `_free` collections are public,
+     *   while `_premium` collections require a `get()` to the user's profile to verify their `isPremium` status.
+     * - Write access for materials is restricted to administrators or the document's owner, who must also have
+     *   a verified profile in `/creator_profiles`.
+     *
+     * Denormalization for Authorization
+     * - A user's premium status (`isPremium`) is denormalized onto their `/users/{userId}` document to allow
+     *   for an efficient `get()` check for premium content access.
+     * - A material's creator (`creatorId`) is denormalized onto the material document itself, enabling simple
+     *   ownership checks for updates and deletes without costly joins.
+     *
+     * Structural Segregation
+     * - Instead of a single `/materials` collection with complex filtering rules, content is segregated into four
+     *   collections (e.g., `/materials_100lvl_free`, `/materials_100lvl_premium`). This guarantees that all
+     *   documents within a collection share the same security posture, making list queries secure and performant.
+     */
+
+    // ------------------------------------------------------------------
+    // Helper Functions
+    // ------------------------------------------------------------------
+
+    /**
+     * Checks if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the authenticated user's UID matches the provided userId.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Checks if the authenticated user has an admin role by verifying
+     * the existence of their UID in the roles_admin collection.
+     */
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
+    /**
+     * Checks if the user is a premium subscriber by reading their own user profile.
+     */
+    function isPremiumUser() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isPremium == true;
+    }
+
+    /**
+     * Checks if a given creator has been verified by an admin.
+     * Requires a 'get' call to the creator's public profile.
+     */
+    function isVerifiedCreator(creatorId) {
+      return get(/databases/$(database)/documents/creator_profiles/$(creatorId)).data.verifiedByAdmin == true;
+    }
+
+    // ------------------------------------------------------------------
+    // Collection Rules
+    // ------------------------------------------------------------------
+
+    /**
+     * @description Stores private user data like email and subscription status.
+     * @path /users/{userId}
+     * @allow (get, update) A user can read or update their own document.
+     * @allow (create) A new user can create their own user document.
+     * @deny (list) Another user cannot list all users in the system.
+     * @deny (get) Another user cannot read a user's private data.
+     * @principle Restricts access to a user's own data tree.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if false;
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if (isOwner(userId) || isAdmin()) && resource != null && request.resource.data.id == resource.data.id;
+      allow delete: if (isOwner(userId) || isAdmin()) && resource != null;
+    }
+
+    /**
+     * @description Manages admin privileges. Document existence grants admin rights.
+     * @path /roles_admin/{adminId}
+     * @allow (get, list, create, delete) An admin can view and manage the list of other admins.
+     * @deny (get, list, create, delete) A non-admin user cannot access or modify this collection.
+     * @principle Enforces global role-based access control (RBAC) for administrators.
+     */
+    match /roles_admin/{adminId} {
+      allow get: if isAdmin();
+      allow list: if isAdmin();
+      allow create: if isAdmin();
+      allow update: if isAdmin() && resource != null;
+      allow delete: if isAdmin() && resource != null;
+    }
+
+    /**
+     * @description Stores public-facing profiles for content creators.
+     * @path /creator_profiles/{userId}
+     * @allow (get, list) Anyone can read creator profiles to browse content authors.
+     * @allow (create, update) A creator can manage their own profile.
+     * @deny (update) A user cannot update another creator's profile.
+     * @principle Implements public-read access with owner-only writes.
+     */
+    match /creator_profiles/{userId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if (isOwner(userId) || isAdmin()) && resource != null && request.resource.data.userId == resource.data.userId;
+      allow delete: if (isOwner(userId) || isAdmin()) && resource != null;
+    }
+
+    /**
+     * @description Captures user feedback submissions.
+     * @path /feedback/{feedbackId}
+     * @allow (create) Any signed-in user can submit feedback.
+     * @deny (get, list) A user cannot read feedback submitted by others.
+     * @deny (update, delete) A user cannot modify or delete any feedback.
+     * @principle Allows broad create access while restricting reads and modifications to administrators.
+     */
+    match /feedback/{feedbackId} {
+      allow get: if isAdmin();
+      allow list: if isAdmin();
+      allow create: if isSignedIn() && (request.resource.data.userId == null || request.resource.data.userId == request.auth.uid);
+      allow update: if isAdmin() && resource != null;
+      allow delete: if isAdmin() && resource != null;
+    }
+
+    /**
+     * @description Handles both free and premium educational materials.
+     *              The collection name dictates access (e.g., /materials_100lvl_free, /materials_200lvl_premium).
+     * @path /{collectionId}/{materialId} where `collectionId` matches `materials_.*_free` or `materials_.*_premium`
+     * @allow (get, list) Free materials are public. Premium materials require `isPremium: true` or admin status.
+     * @allow (create) A verified creator or an admin can upload new materials.
+     * @allow (update, delete) An admin or the verified owner of the material can modify/delete.
+     * @principle Distinguishes free (public) vs. premium (subscriber-only) reads based on collection name.
+     *            Writes are restricted to verified owners or admins.
+     */
+    match /{collectionId}/{materialId} {
+      // Helper functions for this specific match block
+      function isFreeMaterialCollection() {
+        return collectionId.matches("materials_.*_free");
+      }
+      function isPremiumMaterialCollection() {
+        return collectionId.matches("materials_.*_premium");
+      }
+      function isMaterialCreator() {
+        // For new documents (create), check request.resource
+        return isSignedIn() && request.resource.data.creatorId == request.auth.uid && isVerifiedCreator(request.auth.uid);
+      }
+      function isMaterialOwner(creatorId) {
+        // For existing documents (update/delete), check resource.data
+        return isSignedIn() && isOwner(creatorId) && isVerifiedCreator(creatorId);
+      }
+
+      // Read access:
+      // Free materials are publicly readable.
+      // Premium materials require premium status or admin role.
+      allow get, list: if (isFreeMaterialCollection() && true) ||
+                          (isPremiumMaterialCollection() && (isPremiumUser() || isAdmin()));
+
+      // Create access:
+      // Only allow creation in recognized material collections (free or premium).
+      // Only admins or verified creators can create.
+      allow create: if (isFreeMaterialCollection() || isPremiumMaterialCollection()) &&
+                       (isAdmin() || isMaterialCreator());
+
+      // Update access:
+      // Only allow updates in recognized material collections.
+      // Document must exist (`resource != null`).
+      // `creatorId` field must be immutable.
+      // Only admins or the verified owner of the material can update.
+      allow update: if (isFreeMaterialCollection() || isPremiumMaterialCollection()) &&
+                       resource != null &&
+                       request.resource.data.creatorId == resource.data.creatorId &&
+                       (isAdmin() || isMaterialOwner(resource.data.creatorId));
+
+      // Delete access:
+      // Only allow deletion in recognized material collections.
+      // Document must exist (`resource != null`).
+      // Only admins or the verified owner of the material can delete.
+      allow delete: if (isFreeMaterialCollection() || isPremiumMaterialCollection()) &&
+                       resource != null &&
+                       (isAdmin() || isMaterialOwner(resource.data.creatorId));
+    }
+  }
+}
