@@ -9,14 +9,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {Avatar, AvatarFallback, AvatarImage} from '@/components/ui/avatar';
+import {Avatar, AvatarFallback} from '@/components/ui/avatar';
 import Link from 'next/link';
 import Logo from '../logo';
 import {Button} from '../ui/button';
 import {useAuth, useUser} from '@/firebase';
 import {signOut} from 'firebase/auth';
 import {useRouter} from 'next/navigation';
-import { Menu } from 'lucide-react';
 
 export function Header() {
   const {user} = useUser();
@@ -30,13 +29,11 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
-      <SidebarTrigger>
-        <Menu />
-      </SidebarTrigger>
+      <SidebarTrigger className="md:hidden" />
       <div className="hidden md:block">
         <Link href="/home" className="flex items-center gap-2">
           <Logo className="h-8 w-8 text-primary" />
-          <span className="text-xl font-bold tracking-tighter text-primary whitespace-nowrap">
+          <span className="whitespace-nowrap text-xl font-bold tracking-tighter text-primary">
             <em className="not-italic">MED-X</em>
           </span>
         </Link>
@@ -51,10 +48,6 @@ export function Header() {
                 className="relative h-9 w-9 rounded-full"
               >
                 <Avatar className="h-9 w-9">
-                  <AvatarImage
-                    src={user.photoURL || ''}
-                    alt={user.displayName || ''}
-                  />
                   <AvatarFallback>
                     {user.email ? user.email.charAt(0).toUpperCase() : 'U'}
                   </AvatarFallback>
