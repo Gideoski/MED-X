@@ -7,18 +7,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import Link from "next/link"
 import Logo from "../logo"
 import { PlaceHolderImages } from "@/lib/placeholder-images"
-import { Menu } from "lucide-react"
 
 export function Header() {
   const userAvatar = PlaceHolderImages.find(p => p.id === 'avatar-user');
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
-      <SidebarTrigger asChild className="md:hidden">
-        <Button variant="ghost" size="icon">
-          <Menu className="h-6 w-6" />
-        </Button>
-      </SidebarTrigger>
+      <SidebarTrigger className="md:hidden" />
       <div className="hidden md:block">
         <Link href="/home" className="flex items-center gap-2">
             <Logo className="h-8 w-8 text-primary" />
