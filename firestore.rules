@@ -71,15 +71,6 @@ service cloud.firestore {
       return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isPremium == true;
     }
 
-    /**
-     * (This function is currently not used in the active rules below but is kept for future implementation of a verification system)
-     * Checks if a given creator has been verified by an admin.
-     * Requires a 'get' call to the creator's public profile.
-     */
-    function isVerifiedCreator(creatorId) {
-      return get(/databases/$(database)/documents/creator_profiles/$(creatorId)).data.verifiedByAdmin == true;
-    }
-
     // ------------------------------------------------------------------
     // Collection Rules
     // ------------------------------------------------------------------
@@ -174,6 +165,10 @@ service cloud.firestore {
         allow create: if true;
         allow update: if (isAdmin() || isOwner(resource.data.creatorId)) && resource != null && request.resource.data.creatorId == resource.data.creatorId;
         allow delete: if (isAdmin() || isOwner(resource.data.creatorId)) && resource != null;
+    }
+
+    match /debug_uploads/{debugId} {
+      allow read, write: if true;
     }
   }
 }

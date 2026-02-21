@@ -65,7 +65,7 @@ export default function CreatorsPage() {
 
     startTransition(() => {
       // NOTE: File upload to storage is not implemented. We are creating metadata in Firestore.
-      const collectionName = `materials_${level}lvl_${contentType}`;
+      const collectionName = "debug_uploads";
       const collectionRef = collection(firestore, collectionName);
 
       const newEbookData = {
