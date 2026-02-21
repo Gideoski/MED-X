@@ -13,7 +13,8 @@ import { useState, useTransition } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { useUser, useFirestore } from "@/firebase";
-import { collection, addDoc } from "firebase/firestore";
+import { collection } from "firebase/firestore";
+import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 
 export default function CreatorsPage() {
@@ -54,7 +55,7 @@ export default function CreatorsPage() {
       });
       return;
     }
-    if (!user) {
+    if (!user || !firestore) {
         toast({
             title: "Authentication Required",
             description: "You must be logged in to upload content.",
@@ -63,7 +64,7 @@ export default function CreatorsPage() {
         return;
     }
 
-    startTransition(async () => {
+    startTransition(() => {
       const collectionName = `materials_${level}lvl_${contentType === 'premium' ? 'premium' : 'free'}`;
       const collectionRef = collection(firestore, collectionName);
 
@@ -83,29 +84,21 @@ export default function CreatorsPage() {
           type: 'E-Book',
       };
       
-      try {
-        await addDoc(collectionRef, newEbookData);
-        toast({
-          title: "Upload Successful",
-          description: `"${title}" has been submitted and will appear on the site shortly.`,
-        });
+      addDocumentNonBlocking(collectionRef, newEbookData);
 
-        // Reset form
-        setTitle('');
-        setDescription('');
-        setLevel('');
-        setContentType('free');
-        setFile(null);
-        if (e.target instanceof HTMLFormElement) {
-          e.target.reset();
-        }
-      } catch (error) {
-          console.error("Firestore error:", error);
-          toast({
-              title: "Upload Failed",
-              description: (error as Error).message || "Could not save content to the database. Please check your connection or permissions.",
-              variant: "destructive",
-          });
+      toast({
+        title: "Upload Submitted",
+        description: `"${title}" has been submitted and will appear on the site shortly.`,
+      });
+
+      // Reset form
+      setTitle('');
+      setDescription('');
+      setLevel('');
+      setContentType('free');
+      setFile(null);
+      if (e.target instanceof HTMLFormElement) {
+        e.target.reset();
       }
     });
   };
