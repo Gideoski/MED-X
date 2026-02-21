@@ -1,0 +1,11 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // WARNING: This allows any user to read and write to your storage bucket.
+    // This is for development purposes only and is not secure.
+    match /{allPaths=**} {
+      allow read, write: if true;
+    }
+  }
+}
