@@ -36,15 +36,18 @@ export default function Level100Page() {
   const { data: freeEbooks, isLoading: isLoadingFree } = useCollection<EBookData>(freeCollectionRef);
   const { data: premiumEbooks, isLoading: isLoadingPremium } = useCollection<EBookData>(premiumCollectionRef);
   
-  const [allEbooks, setAllEbooks] = useState<EBook[]>([]);
+  const [allEbooks, setAllEbooks] = useState<(EBook & { collection: string })[]>([]);
 
   useEffect(() => {
+    const freeWithCollection = freeEbooks ? freeEbooks.map(ebook => ({ ...ebook, collection: 'materials_100lvl_free' })) : [];
+    const premiumWithCollection = premiumEbooks && isPremium ? premiumEbooks.map(ebook => ({ ...ebook, collection: 'materials_100lvl_premium' })) : [];
+    
     const combined = [
-        ...(freeEbooks || []),
-        ...(premiumEbooks || [])
+        ...freeWithCollection,
+        ...premiumWithCollection
     ];
-    setAllEbooks(combined);
-  }, [freeEbooks, premiumEbooks]);
+    setAllEbooks(combined as (EBook & { collection: string })[]);
+  }, [freeEbooks, premiumEbooks, isPremium]);
 
 
   const filteredEbooks = allEbooks.filter(
@@ -54,7 +57,7 @@ export default function Level100Page() {
       (ebook.author && ebook.author.toLowerCase().includes(searchQuery.toLowerCase()))
   );
   
-  const isLoading = isUserLoading || isProfileLoading || isLoadingFree || isLoadingPremium;
+  const isLoading = isUserLoading || isProfileLoading || isLoadingFree || (isPremium && isLoadingPremium);
 
   return (
     <div className="space-y-8">
@@ -83,7 +86,7 @@ export default function Level100Page() {
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         {filteredEbooks.map((ebook) => (
-          <EBookCard key={ebook.id} ebook={ebook} />
+          <EBookCard key={ebook.id} ebook={ebook as EBook} collection={ebook.collection} />
         ))}
       </div>
     </div>

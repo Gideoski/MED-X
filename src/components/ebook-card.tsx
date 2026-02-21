@@ -4,8 +4,9 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import type { EBook } from "@/lib/data";
 import { Badge } from "./ui/badge";
 import { Download, Eye, Lock } from "lucide-react";
+import Link from "next/link";
 
-export function EBookCard({ ebook }: { ebook: EBook }) {
+export function EBookCard({ ebook, collection }: { ebook: EBook; collection: string }) {
   return (
     <Card className="flex flex-col overflow-hidden">
       <CardHeader className="p-0">
@@ -31,8 +32,10 @@ export function EBookCard({ ebook }: { ebook: EBook }) {
         <p className="mt-2 text-sm">{ebook.description}</p>
       </CardContent>
       <CardFooter className="flex gap-2 p-4 pt-0">
-        <Button className="w-full">
-          <Eye className="mr-2 h-4 w-4" /> Read Online
+        <Button className="w-full" asChild>
+          <Link href={`/ebooks/${ebook.id}?collection=${collection}`}>
+            <Eye className="mr-2 h-4 w-4" /> Read Online
+          </Link>
         </Button>
         <Button variant="outline" className="w-full" disabled={ebook.isPremium}>
           <Download className="mr-2 h-4 w-4" /> Download
