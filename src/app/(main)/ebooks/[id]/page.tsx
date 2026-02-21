@@ -14,6 +14,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 type QuizQuestion = AiQuizGeneratorOutput['quiz'][0];
 
@@ -96,13 +97,17 @@ export default function EbookReaderPage() {
                     </CardHeader>
                     <CardContent>
                          {ebook.filePath ? (
-                            <iframe 
-                                src={ebook.filePath}
-                                className="w-full h-[800px] border-none rounded-lg"
-                                title={ebook.title}
-                            ></iframe>
+                            <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg bg-muted/50 min-h-[200px]">
+                                <FileText className="h-12 w-12 text-muted-foreground" />
+                                <p className="mt-4 text-muted-foreground">This e-book is available as a PDF.</p>
+                                <Button asChild className="mt-4">
+                                    <Link href={ebook.filePath} target="_blank" rel="noopener noreferrer">
+                                        Open PDF Reader
+                                    </Link>
+                                </Button>
+                            </div>
                          ) : (
-                             <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg bg-muted/50">
+                            <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg bg-muted/50 min-h-[200px]">
                                 <FileText className="h-12 w-12 text-muted-foreground" />
                                 <p className="mt-4 text-muted-foreground">PDF content is not available for this e-book.</p>
                              </div>
