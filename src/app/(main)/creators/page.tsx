@@ -1,3 +1,5 @@
+'use client';
+
 import { creators } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Upload } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 export default function CreatorsPage() {
   return (
@@ -40,11 +44,40 @@ export default function CreatorsPage() {
             <CardTitle>Creator Content Upload</CardTitle>
             <CardDescription>Verified creators can upload new PDF content here.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="title">E-Book Title</Label>
               <Input id="title" placeholder="e.g. Intro to Human Anatomy" />
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                    <Label htmlFor="level">Level</Label>
+                    <Select>
+                        <SelectTrigger id="level">
+                            <SelectValue placeholder="Select a level" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="100">100 Level</SelectItem>
+                            <SelectItem value="200">200 Level</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="space-y-2">
+                    <Label>Content Type</Label>
+                    <RadioGroup defaultValue="free" className="flex items-center pt-2 space-x-4">
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="free" id="free" />
+                            <Label htmlFor="free" className="font-normal">Free</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="premium" id="premium" />
+                            <Label htmlFor="premium" className="font-normal">Premium</Label>
+                        </div>
+                    </RadioGroup>
+                </div>
+            </div>
+
              <div className="space-y-2">
               <Label htmlFor="pdf-upload">PDF File</Label>
               <Input id="pdf-upload" type="file" accept=".pdf" />
