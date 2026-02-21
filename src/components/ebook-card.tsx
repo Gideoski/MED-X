@@ -29,7 +29,7 @@ export function EBookCard({ ebook, collection }: { ebook: EBook; collection: str
       <CardContent className="flex-grow p-4">
         <CardTitle className="mb-1 text-lg">{ebook.title}</CardTitle>
         <p className="text-sm text-muted-foreground">by {ebook.author}</p>
-        <p className="mt-2 text-sm">{ebook.description}</p>
+        <p className="mt-2 text-sm line-clamp-4">{ebook.description}</p>
       </CardContent>
       <CardFooter className="p-4 pt-0">
         <Button className="w-full" asChild>
