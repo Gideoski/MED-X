@@ -8,9 +8,45 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { useUser } from "@/firebase";
+import { useState, useTransition, useEffect } from "react";
+import { updateProfile } from "firebase/auth";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AccountPage() {
   const { user, isUserLoading } = useUser();
+  const { toast } = useToast();
+  const [isPending, startTransition] = useTransition();
+
+  const [name, setName] = useState('');
+
+  useEffect(() => {
+    if (user) {
+      setName(user.displayName || '');
+    }
+  }, [user]);
+
+  const handleProfileUpdate = () => {
+    if (!user) return;
+
+    startTransition(async () => {
+      try {
+        await updateProfile(user, {
+          displayName: name,
+        });
+        toast({
+          title: "Success",
+          description: "Your profile has been updated.",
+        });
+      } catch (error) {
+        console.error("Profile update error:", error);
+        toast({
+          title: "Error",
+          description: "Failed to update your profile. Please try again.",
+          variant: "destructive",
+        });
+      }
+    });
+  };
 
   if (isUserLoading) {
     return <div className="flex h-screen w-full items-center justify-center">Loading...</div>;
@@ -39,19 +75,27 @@ export default function AccountPage() {
               <AvatarImage src={user.photoURL || ''} alt={user.displayName || ''} />
               <AvatarFallback>{user.email ? user.email.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
             </Avatar>
-            <Button variant="outline">Change Photo</Button>
+            <Button variant="outline" disabled>Change Photo</Button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
-              <Input id="name" defaultValue={user.displayName || ''} placeholder="Your name" />
+              <Input 
+                id="name" 
+                value={name} 
+                onChange={(e) => setName(e.target.value)} 
+                placeholder="Your name" 
+                disabled={isPending}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" defaultValue={user.email || ''} disabled />
             </div>
           </div>
-          <Button>Save Changes</Button>
+          <Button onClick={handleProfileUpdate} disabled={isPending}>
+            {isPending ? 'Saving...' : 'Save Changes'}
+          </Button>
         </CardContent>
       </Card>
 
