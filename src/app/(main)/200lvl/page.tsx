@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { EBookCard } from "@/components/ebook-card";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 import type { EBook } from '@/lib/data';
 
 type EBookData = Omit<EBook, 'id'>;
@@ -13,6 +13,15 @@ type EBookData = Omit<EBook, 'id'>;
 export default function Level200Page() {
   const [searchQuery, setSearchQuery] = useState('');
   const firestore = useFirestore();
+  const { user, isUserLoading } = useUser();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<{ isPremium: boolean }>(userDocRef);
+  const isPremium = userProfile?.isPremium ?? false;
 
   const freeCollectionRef = useMemoFirebase(() => {
       if (!firestore) return null;
@@ -20,9 +29,9 @@ export default function Level200Page() {
   }, [firestore]);
 
   const premiumCollectionRef = useMemoFirebase(() => {
-      if (!firestore) return null;
+      if (!firestore || !isPremium) return null;
       return collection(firestore, 'materials_200lvl_premium');
-  }, [firestore]);
+  }, [firestore, isPremium]);
 
   const { data: freeEbooks, isLoading: isLoadingFree } = useCollection<EBookData>(freeCollectionRef);
   const { data: premiumEbooks, isLoading: isLoadingPremium } = useCollection<EBookData>(premiumCollectionRef);
@@ -45,7 +54,7 @@ export default function Level200Page() {
       (ebook.author && ebook.author.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const isLoading = isLoadingFree || isLoadingPremium;
+  const isLoading = isUserLoading || isProfileLoading || isLoadingFree || isLoadingPremium;
 
   return (
     <div className="space-y-8">
