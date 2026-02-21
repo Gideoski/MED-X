@@ -1,6 +1,6 @@
 "use client";
 
-import { useFormState, useFormStatus } from "react-dom";
+import { useActionState, useFormStatus } from "react";
 import { submitFeedback } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,7 +15,7 @@ function SubmitButton() {
 
 export function FeedbackForm() {
   const initialState = { message: null, errors: {} };
-  const [state, dispatch] = useFormState(submitFeedback, initialState);
+  const [state, dispatch] = useActionState(submitFeedback, initialState);
   const { toast } = useToast();
 
   useEffect(() => {
