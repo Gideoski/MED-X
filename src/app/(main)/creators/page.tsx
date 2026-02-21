@@ -64,25 +64,23 @@ export default function CreatorsPage() {
 
     startTransition(async () => {
       const collectionName = `materials_${level}lvl_${contentType === 'premium' ? 'premium' : 'free'}`;
-      const collectionRef = collection(firestore, collectionName);
-
-      const newEbookData = {
-          title,
-          description,
-          author: user.displayName || 'Anonymous Creator',
-          level: parseInt(level),
-          isPremium: contentType === 'premium',
-          coverImage: `https://picsum.photos/seed/${Math.random().toString().slice(2)}/300/400`,
-          imageHint: "book cover abstract",
-          creatorId: user.uid,
-          uploadDate: new Date().toISOString(),
-          lastUpdateDate: new Date().toISOString(),
-          filePath: '', // Placeholder, file is not actually uploaded.
-          isDownloadable: contentType !== 'premium',
-          type: 'E-Book',
-      };
       
       try {
+        const collectionRef = collection(firestore, collectionName);
+        const newEbookData = {
+            title,
+            description,
+            author: user.displayName || 'Anonymous Creator',
+            level: parseInt(level),
+            isPremium: contentType === 'premium',
+            coverImage: `https://picsum.photos/seed/${Math.random().toString().slice(2)}/300/400`,
+            imageHint: "book cover abstract",
+            creatorId: user.uid,
+            uploadDate: new Date().toISOString(),
+            lastUpdateDate: new Date().toISOString(),
+            filePath: '', // Placeholder, file is not actually uploaded.
+            type: 'E-Book',
+        };
         await addDoc(collectionRef, newEbookData);
         toast({
           title: "Upload Submitted",

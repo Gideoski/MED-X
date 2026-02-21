@@ -98,7 +98,7 @@ export default function EbookReaderPage() {
                          <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg bg-muted/50">
                             <FileText className="h-12 w-12 text-muted-foreground" />
                             <p className="mt-4 text-muted-foreground">The full PDF content viewer will be available here soon.</p>
-                            <p className="text-sm text-muted-foreground">For now, you can download the file if available from the library page.</p>
+                            <p className="text-sm text-muted-foreground">Online PDF reading is a feature currently in development.</p>
                          </div>
                     </CardContent>
                 </Card>

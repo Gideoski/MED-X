@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import type { EBook } from "@/lib/data";
 import { Badge } from "./ui/badge";
-import { Download, Eye, Lock } from "lucide-react";
+import { Eye, Lock } from "lucide-react";
 import Link from "next/link";
 
 export function EBookCard({ ebook, collection }: { ebook: EBook; collection: string }) {
@@ -31,14 +31,11 @@ export function EBookCard({ ebook, collection }: { ebook: EBook; collection: str
         <p className="text-sm text-muted-foreground">by {ebook.author}</p>
         <p className="mt-2 text-sm">{ebook.description}</p>
       </CardContent>
-      <CardFooter className="flex gap-2 p-4 pt-0">
+      <CardFooter className="p-4 pt-0">
         <Button className="w-full" asChild>
           <Link href={`/ebooks/${ebook.id}?collection=${collection}`}>
             <Eye className="mr-2 h-4 w-4" /> Read Online
           </Link>
-        </Button>
-        <Button variant="outline" className="w-full" disabled={ebook.isPremium}>
-          <Download className="mr-2 h-4 w-4" /> Download
         </Button>
       </CardFooter>
     </Card>
