@@ -98,7 +98,7 @@ export default function EbookReaderPage() {
                     </CardHeader>
                     <CardContent>
                         <Button asChild className="w-full">
-                          <Link href="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" target="_blank" rel="noopener noreferrer">
+                          <Link href={ebook.filePath} target="_blank" rel="noopener noreferrer">
                             <FileText className="mr-2 h-4 w-4" />
                             Open PDF in Reader
                           </Link>

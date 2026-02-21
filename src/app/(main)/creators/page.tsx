@@ -12,30 +12,33 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useState, useTransition } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
-import { useUser, useFirestore } from "@/firebase";
+import { useUser, useFirestore, useStorage } from "@/firebase";
 import { collection, addDoc } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export default function CreatorsPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [level, setLevel] = useState('');
   const [contentType, setContentType] = useState('free');
+  const [file, setFile] = useState<File | null>(null);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
+  const storage = useStorage();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!title || !level || !description) {
+    if (!title || !level || !description || !file) {
       toast({
         title: "Incomplete Form",
-        description: "Please fill out title, level, and description fields.",
+        description: "Please fill out all fields and select a PDF file.",
         variant: "destructive",
       });
       return;
     }
-    if (!user || !firestore) {
+    if (!user || !firestore || !storage) {
         toast({
             title: "Authentication Required",
             description: "You must be logged in to upload content.",
@@ -45,9 +48,12 @@ export default function CreatorsPage() {
     }
 
     startTransition(async () => {
-      const collectionName = `materials_${level}lvl_${contentType === 'premium' ? 'premium' : 'free'}`;
-      
       try {
+        const storageRef = ref(storage, `materials/${Date.now()}_${file.name}`);
+        await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(storageRef);
+
+        const collectionName = `materials_${level}lvl_${contentType === 'premium' ? 'premium' : 'free'}`;
         const collectionRef = collection(firestore, collectionName);
         const newEbookData = {
             title,
@@ -60,13 +66,13 @@ export default function CreatorsPage() {
             creatorId: user.uid,
             uploadDate: new Date().toISOString(),
             lastUpdateDate: new Date().toISOString(),
-            filePath: `/sample.pdf`, // Placeholder file path
+            filePath: downloadURL,
             type: 'E-Book',
         };
         await addDoc(collectionRef, newEbookData);
         toast({
-          title: "Upload Submitted",
-          description: `"${title}" has been submitted and will appear on the site shortly.`,
+          title: "Upload Successful",
+          description: `"${title}" has been submitted and is now available.`,
         });
 
         // Reset form
@@ -74,11 +80,12 @@ export default function CreatorsPage() {
         setDescription('');
         setLevel('');
         setContentType('free');
+        setFile(null);
         if (e.target instanceof HTMLFormElement) {
           e.target.reset();
         }
       } catch (error) {
-        console.error("Firestore Upload Error:", error);
+        console.error("Upload Error:", error);
         toast({
           title: "Upload Failed",
           description: "An unexpected error occurred while uploading. Please check the console.",
@@ -181,6 +188,18 @@ export default function CreatorsPage() {
                           </div>
                       </RadioGroup>
                   </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="file">PDF File</Label>
+                <Input
+                  id="file"
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(e) => setFile(e.target.files ? e.target.files[0] : null)}
+                  disabled={isPending}
+                  required
+                />
               </div>
               
               <Button type="submit" className="w-full" disabled={!user || isPending}>
