@@ -88,30 +88,20 @@ export default function EbookReaderPage() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-muted-foreground">{ebook.description}</p>
+                        <p className="text-muted-foreground">The full content of this e-book is available for reading below. You can test your knowledge with the AI quiz on the right.</p>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader>
                         <CardTitle>E-Book Content</CardTitle>
+                        <CardDescription>Scroll down to read the material.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                         {ebook.filePath ? (
-                            <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg bg-muted/50 min-h-[200px]">
-                                <FileText className="h-12 w-12 text-muted-foreground" />
-                                <p className="mt-4 text-muted-foreground">This e-book is available as a PDF.</p>
-                                <Button asChild className="mt-4">
-                                    <Link href={ebook.filePath} target="_blank" rel="noopener noreferrer">
-                                        Open PDF Reader
-                                    </Link>
-                                </Button>
-                            </div>
-                         ) : (
-                            <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg bg-muted/50 min-h-[200px]">
-                                <FileText className="h-12 w-12 text-muted-foreground" />
-                                <p className="mt-4 text-muted-foreground">PDF content is not available for this e-book.</p>
-                             </div>
-                         )}
+                         <ScrollArea className="h-[70vh] rounded-md border p-4">
+                           <p className="whitespace-pre-wrap text-sm text-foreground leading-relaxed">
+                             {ebook.description}
+                           </p>
+                        </ScrollArea>
                     </CardContent>
                 </Card>
             </div>
@@ -120,7 +110,7 @@ export default function EbookReaderPage() {
                  <Card>
                     <CardHeader>
                         <CardTitle>AI Practice Quiz</CardTitle>
-                        <CardDescription>Test your knowledge based on the e-book's description.</CardDescription>
+                        <CardDescription>Test your knowledge based on the e-book's content.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         {!quiz && !isQuizLoading && (
