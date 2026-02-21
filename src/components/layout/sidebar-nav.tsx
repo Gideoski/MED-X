@@ -8,6 +8,7 @@
    SidebarMenuItem,
    SidebarMenuButton,
    SidebarFooter,
+   useSidebar,
  } from "@/components/ui/sidebar"
  import { Home, Book, GraduationCap, Pencil, Shield, Users, User, Settings, HelpCircle, LogOut } from "lucide-react"
  import Logo from "../logo"
@@ -36,16 +37,24 @@
    const pathname = usePathname()
    const auth = useAuth();
    const router = useRouter();
+   const { setOpen, setOpenMobile } = useSidebar();
 
+   const handleLinkClick = () => {
+     // This will close the off-canvas sidebar on both mobile and desktop.
+     setOpen(false);
+     setOpenMobile(false);
+   }
+ 
    const handleLogout = () => {
      signOut(auth);
      router.push('/login');
+     handleLinkClick();
    };
  
    return (
      <Sidebar collapsible="offcanvas">
        <SidebarHeader>
-         <Link href="/home" className="flex items-center gap-2.5">
+         <Link href="/home" className="flex items-center gap-2.5" onClick={handleLinkClick}>
            <Logo className="h-8 w-8 text-primary" />
            <h1 className="text-xl font-bold tracking-tighter text-primary whitespace-nowrap">
              <em className="not-italic">MED-X</em>
@@ -61,7 +70,7 @@
                  isActive={pathname === item.href}
                  tooltip={{ children: item.label }}
                >
-                 <Link href={item.href}>
+                 <Link href={item.href} onClick={handleLinkClick}>
                    <item.icon />
                    <span>{item.label}</span>
                  </Link>
@@ -79,7 +88,7 @@
                    isActive={pathname === item.href}
                    tooltip={{ children: item.label }}
                  >
-                   <Link href={item.href}>
+                   <Link href={item.href} onClick={handleLinkClick}>
                      <item.icon />
                      <span>{item.label}</span>
                    </Link>
