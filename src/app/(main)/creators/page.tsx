@@ -9,11 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Upload } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { useUser, useFirestore } from "@/firebase";
 import { collection, addDoc } from "firebase/firestore";
+import * as pdfjs from 'pdfjs-dist';
 
 export default function CreatorsPage() {
   const [title, setTitle] = useState('');
@@ -26,10 +27,14 @@ export default function CreatorsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
 
+  useEffect(() => {
+    pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.mjs`;
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      if (e.target.files[0].type !== 'application/pdf') {
+      const selectedFile = e.target.files[0];
+      if (selectedFile.type !== 'application/pdf') {
         toast({
           title: "Invalid File Type",
           description: "Please upload a PDF file.",
@@ -37,18 +42,54 @@ export default function CreatorsPage() {
         });
         e.target.value = ''; // Reset the input
         setFile(null);
+        setDescription('');
       } else {
-        setFile(e.target.files[0]);
+        setFile(selectedFile);
+        toast({
+          title: "Processing PDF",
+          description: "Extracting text content. This may take a moment...",
+        });
+
+        const fileReader = new FileReader();
+        fileReader.onload = async function() {
+            try {
+                if (this.result) {
+                    const typedArray = new Uint8Array(this.result as ArrayBuffer);
+                    const pdf = await pdfjs.getDocument({ data: typedArray }).promise;
+                    let fullText = '';
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        const page = await pdf.getPage(i);
+                        const textContent = await page.getTextContent();
+                        const pageText = textContent.items.map(item => 'str' in item ? item.str : '').join(' ');
+                        fullText += pageText + '\n\n';
+                    }
+                    setDescription(fullText.trim());
+                    toast({
+                        title: "Success",
+                        description: "PDF content has been extracted into the description field.",
+                    });
+                }
+            } catch (error) {
+                console.error("Error parsing PDF:", error);
+                toast({
+                    title: "PDF Parsing Error",
+                    description: "Could not extract text from the PDF. Please copy and paste the content manually.",
+                    variant: "destructive",
+                });
+                setDescription(''); // Clear description on error
+            }
+        };
+        fileReader.readAsArrayBuffer(selectedFile);
       }
     }
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!title || !level || !description || !file) {
+    if (!title || !level || !description) {
       toast({
         title: "Incomplete Form",
-        description: "Please fill out all fields and select a PDF file to upload.",
+        description: "Please fill out title, level, and description fields.",
         variant: "destructive",
       });
       return;
@@ -78,7 +119,7 @@ export default function CreatorsPage() {
             creatorId: user.uid,
             uploadDate: new Date().toISOString(),
             lastUpdateDate: new Date().toISOString(),
-            filePath: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+            filePath: '', // Content is now in description
             type: 'E-Book',
         };
         await addDoc(collectionRef, newEbookData);
@@ -153,15 +194,27 @@ export default function CreatorsPage() {
                 />
               </div>
 
+               <div className="space-y-2">
+                <Label htmlFor="pdf-upload">PDF File (optional)</Label>
+                <Input 
+                  id="pdf-upload" 
+                  type="file" 
+                  accept=".pdf" 
+                  onChange={handleFileChange}
+                  disabled={isPending}
+                />
+                 <p className="text-xs text-muted-foreground">Select a PDF to auto-fill the content below.</p>
+              </div>
+
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description">E-Book Content</Label>
                 <Textarea 
                   id="description" 
-                  placeholder="A brief summary of the e-book's content." 
+                  placeholder="Paste e-book content here, or select a PDF file to automatically extract its text." 
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   disabled={isPending}
-                  rows={4}
+                  rows={8}
                 />
               </div>
 
@@ -201,17 +254,7 @@ export default function CreatorsPage() {
                       </RadioGroup>
                   </div>
               </div>
-
-               <div className="space-y-2">
-                <Label htmlFor="pdf-upload">PDF File</Label>
-                <Input 
-                  id="pdf-upload" 
-                  type="file" 
-                  accept=".pdf" 
-                  onChange={handleFileChange}
-                  disabled={isPending}
-                />
-              </div>
+              
               <Button type="submit" className="w-full" disabled={!user || isPending}>
                 {isPending ? 'Uploading...' : (
                   <>
