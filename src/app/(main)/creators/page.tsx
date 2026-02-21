@@ -13,9 +13,7 @@ import { useState, useTransition } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { useUser, useFirestore } from "@/firebase";
-import { collection } from "firebase/firestore";
-import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
-
+import { collection, addDoc } from "firebase/firestore";
 
 export default function CreatorsPage() {
   const [title, setTitle] = useState('');
@@ -64,7 +62,7 @@ export default function CreatorsPage() {
         return;
     }
 
-    startTransition(() => {
+    startTransition(async () => {
       const collectionName = `materials_${level}lvl_${contentType === 'premium' ? 'premium' : 'free'}`;
       const collectionRef = collection(firestore, collectionName);
 
@@ -84,21 +82,29 @@ export default function CreatorsPage() {
           type: 'E-Book',
       };
       
-      addDocumentNonBlocking(collectionRef, newEbookData);
+      try {
+        await addDoc(collectionRef, newEbookData);
+        toast({
+          title: "Upload Submitted",
+          description: `"${title}" has been submitted and will appear on the site shortly.`,
+        });
 
-      toast({
-        title: "Upload Submitted",
-        description: `"${title}" has been submitted and will appear on the site shortly.`,
-      });
-
-      // Reset form
-      setTitle('');
-      setDescription('');
-      setLevel('');
-      setContentType('free');
-      setFile(null);
-      if (e.target instanceof HTMLFormElement) {
-        e.target.reset();
+        // Reset form
+        setTitle('');
+        setDescription('');
+        setLevel('');
+        setContentType('free');
+        setFile(null);
+        if (e.target instanceof HTMLFormElement) {
+          e.target.reset();
+        }
+      } catch (error) {
+        console.error("Firestore Upload Error:", error);
+        toast({
+          title: "Upload Failed",
+          description: "An unexpected error occurred while uploading. Please check the console.",
+          variant: "destructive"
+        });
       }
     });
   };
