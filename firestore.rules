@@ -83,8 +83,8 @@ service cloud.firestore {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if false;
       allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if (isOwner(userId) || isAdmin()) && resource != null && request.resource.data.id == resource.data.id;
-      allow delete: if (isOwner(userId) || isAdmin()) && resource != null;
+      allow update: if (isOwner(userId) || isAdmin()) && request.resource.data.id == resource.data.id;
+      allow delete: if isOwner(userId) || isAdmin();
     }
 
     /**
@@ -95,8 +95,8 @@ service cloud.firestore {
       allow get: if isAdmin();
       allow list: if isAdmin();
       allow create: if isAdmin();
-      allow update: if isAdmin() && resource != null;
-      allow delete: if isAdmin() && resource != null;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
 
     /**
@@ -107,8 +107,8 @@ service cloud.firestore {
       allow get: if true;
       allow list: if true;
       allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if (isOwner(userId) || isAdmin()) && resource != null && request.resource.data.userId == resource.data.userId;
-      allow delete: if (isOwner(userId) || isAdmin()) && resource != null;
+      allow update: if (isOwner(userId) || isAdmin()) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isOwner(userId) || isAdmin();
     }
 
     /**
@@ -119,8 +119,8 @@ service cloud.firestore {
       allow get: if isAdmin();
       allow list: if isAdmin();
       allow create: if isSignedIn() && (request.resource.data.userId == null || request.resource.data.userId == request.auth.uid);
-      allow update: if isAdmin() && resource != null;
-      allow delete: if isAdmin() && resource != null;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
 
     /**
@@ -130,8 +130,8 @@ service cloud.firestore {
     match /materials_100lvl_free/{materialId} {
         allow get, list: if true;
         allow create: if true;
-        allow update: if (isAdmin() || isOwner(resource.data.creatorId)) && resource != null && request.resource.data.creatorId == resource.data.creatorId;
-        allow delete: if (isAdmin() || isOwner(resource.data.creatorId)) && resource != null;
+        allow update: if (isAdmin() || isOwner(resource.data.creatorId)) && request.resource.data.creatorId == resource.data.creatorId;
+        allow delete: if isAdmin() || isOwner(resource.data.creatorId);
     }
 
     /**
@@ -141,8 +141,8 @@ service cloud.firestore {
     match /materials_100lvl_premium/{materialId} {
         allow get, list: if isPremiumUser() || isAdmin();
         allow create: if true;
-        allow update: if (isAdmin() || isOwner(resource.data.creatorId)) && resource != null && request.resource.data.creatorId == resource.data.creatorId;
-        allow delete: if (isAdmin() || isOwner(resource.data.creatorId)) && resource != null;
+        allow update: if (isAdmin() || isOwner(resource.data.creatorId)) && request.resource.data.creatorId == resource.data.creatorId;
+        allow delete: if isAdmin() || isOwner(resource.data.creatorId);
     }
     
     /**
@@ -152,8 +152,8 @@ service cloud.firestore {
     match /materials_200lvl_free/{materialId} {
         allow get, list: if true;
         allow create: if true;
-        allow update: if (isAdmin() || isOwner(resource.data.creatorId)) && resource != null && request.resource.data.creatorId == resource.data.creatorId;
-        allow delete: if (isAdmin() || isOwner(resource.data.creatorId)) && resource != null;
+        allow update: if (isAdmin() || isOwner(resource.data.creatorId)) && request.resource.data.creatorId == resource.data.creatorId;
+        allow delete: if isAdmin() || isOwner(resource.data.creatorId);
     }
     
     /**
@@ -163,12 +163,8 @@ service cloud.firestore {
     match /materials_200lvl_premium/{materialId} {
         allow get, list: if isPremiumUser() || isAdmin();
         allow create: if true;
-        allow update: if (isAdmin() || isOwner(resource.data.creatorId)) && resource != null && request.resource.data.creatorId == resource.data.creatorId;
-        allow delete: if (isAdmin() || isOwner(resource.data.creatorId)) && resource != null;
-    }
-
-    match /debug_uploads/{debugId} {
-      allow read, write: if true;
+        allow update: if (isAdmin() || isOwner(resource.data.creatorId)) && request.resource.data.creatorId == resource.data.creatorId;
+        allow delete: if isAdmin() || isOwner(resource.data.creatorId);
     }
   }
 }

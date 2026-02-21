@@ -12,8 +12,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useState, useTransition } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
-import { useUser, useFirestore, addDocumentNonBlocking } from "@/firebase";
-import { collection } from "firebase/firestore";
+import { useUser, useFirestore } from "@/firebase";
+import { collection, addDoc } from "firebase/firestore";
 
 
 export default function CreatorsPage() {
@@ -63,9 +63,8 @@ export default function CreatorsPage() {
         return;
     }
 
-    startTransition(() => {
-      // NOTE: File upload to storage is not implemented. We are creating metadata in Firestore.
-      const collectionName = "debug_uploads";
+    startTransition(async () => {
+      const collectionName = `materials_${level}lvl_${contentType === 'premium' ? 'premium' : 'free'}`;
       const collectionRef = collection(firestore, collectionName);
 
       const newEbookData = {
@@ -83,32 +82,31 @@ export default function CreatorsPage() {
           isDownloadable: contentType !== 'premium',
           type: 'E-Book',
       };
-
-      addDocumentNonBlocking(collectionRef, newEbookData)
-        .then(() => {
-            toast({
-              title: "Upload Successful",
-              description: `"${title}" has been submitted and will appear on the site shortly.`,
-            });
-
-            // Reset form
-            setTitle('');
-            setDescription('');
-            setLevel('');
-            setContentType('free');
-            setFile(null);
-            if (e.target instanceof HTMLFormElement) {
-              e.target.reset();
-            }
-        })
-        .catch((error) => {
-            console.error("Firestore error:", error);
-            toast({
-                title: "Upload Failed",
-                description: "Could not save content to the database. Please check your connection or permissions.",
-                variant: "destructive",
-            });
+      
+      try {
+        await addDoc(collectionRef, newEbookData);
+        toast({
+          title: "Upload Successful",
+          description: `"${title}" has been submitted and will appear on the site shortly.`,
         });
+
+        // Reset form
+        setTitle('');
+        setDescription('');
+        setLevel('');
+        setContentType('free');
+        setFile(null);
+        if (e.target instanceof HTMLFormElement) {
+          e.target.reset();
+        }
+      } catch (error) {
+          console.error("Firestore error:", error);
+          toast({
+              title: "Upload Failed",
+              description: (error as Error).message || "Could not save content to the database. Please check your connection or permissions.",
+              variant: "destructive",
+          });
+      }
     });
   };
 
