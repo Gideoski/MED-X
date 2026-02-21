@@ -1,3 +1,5 @@
+'use client';
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,10 +7,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
+import { useUser } from "@/firebase";
 
 export default function AccountPage() {
-  const userAvatar = PlaceHolderImages.find(p => p.id === 'avatar-user');
+  const { user, isUserLoading } = useUser();
+
+  if (isUserLoading) {
+    return <div className="flex h-screen w-full items-center justify-center">Loading...</div>;
+  }
+
+  if (!user) {
+    // Or redirect to login page
+    return <div className="flex h-screen w-full items-center justify-center">Please log in to view your account details.</div>;
+  }
   
   return (
     <div className="space-y-8 max-w-3xl mx-auto">
@@ -25,19 +36,19 @@ export default function AccountPage() {
         <CardContent className="space-y-4">
           <div className="flex items-center space-x-4">
             <Avatar className="h-20 w-20">
-              <AvatarImage src={userAvatar?.imageUrl} alt="@user" data-ai-hint={userAvatar?.imageHint} />
-              <AvatarFallback>U</AvatarFallback>
+              <AvatarImage src={user.photoURL || ''} alt={user.displayName || ''} />
+              <AvatarFallback>{user.email ? user.email.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
             </Avatar>
             <Button variant="outline">Change Photo</Button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
-              <Input id="name" defaultValue="Medical Student" />
+              <Input id="name" defaultValue={user.displayName || ''} placeholder="Your name" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" defaultValue="student@medx.com" disabled />
+              <Input id="email" type="email" defaultValue={user.email || ''} disabled />
             </div>
           </div>
           <Button>Save Changes</Button>
