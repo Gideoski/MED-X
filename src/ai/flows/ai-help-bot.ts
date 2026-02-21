@@ -27,7 +27,6 @@ export async function aiHelpBot(input: AiHelpBotInput): Promise<AiHelpBotOutput>
 const helpBotPrompt = ai.definePrompt({
   name: 'aiHelpBotPrompt',
   input: {schema: AiHelpBotInputSchema},
-  output: {schema: AiHelpBotOutputSchema},
   prompt: `You are MED-X, an AI-powered help bot designed to assist university students using the MED-X e-learning platform.
 Your purpose is to provide quick and helpful answers to questions regarding:
 1. The MED-X platform's features, navigation, and services (e.g., how to use the search bar, what are premium subscriptions, where to find 100lvl materials, how to submit feedback, what is the request custom e-book page).
@@ -45,7 +44,7 @@ const aiHelpBotFlow = ai.defineFlow(
     outputSchema: AiHelpBotOutputSchema,
   },
   async input => {
-    const {output} = await helpBotPrompt(input);
-    return output!;
+    const response = await helpBotPrompt(input);
+    return response.text;
   }
 );
