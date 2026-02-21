@@ -79,13 +79,6 @@ service cloud.firestore {
     function isVerifiedCreator(creatorId) {
       return get(/databases/$(database)/documents/creator_profiles/$(creatorId)).data.verifiedByAdmin == true;
     }
-    
-    /**
-     * Checks if the user is the owner of a material.
-     */
-    function isMaterialOwner(creatorId) {
-      return isOwner(creatorId);
-    }
 
     // ------------------------------------------------------------------
     // Collection Rules
@@ -146,8 +139,8 @@ service cloud.firestore {
     match /materials_100lvl_free/{materialId} {
         allow get, list: if true;
         allow create: if true;
-        allow update: if (isAdmin() || isMaterialOwner(resource.data.creatorId)) && resource != null && request.resource.data.creatorId == resource.data.creatorId;
-        allow delete: if (isAdmin() || isMaterialOwner(resource.data.creatorId)) && resource != null;
+        allow update: if (isAdmin() || isOwner(resource.data.creatorId)) && resource != null && request.resource.data.creatorId == resource.data.creatorId;
+        allow delete: if (isAdmin() || isOwner(resource.data.creatorId)) && resource != null;
     }
 
     /**
@@ -157,8 +150,8 @@ service cloud.firestore {
     match /materials_100lvl_premium/{materialId} {
         allow get, list: if isPremiumUser() || isAdmin();
         allow create: if true;
-        allow update: if (isAdmin() || isMaterialOwner(resource.data.creatorId)) && resource != null && request.resource.data.creatorId == resource.data.creatorId;
-        allow delete: if (isAdmin() || isMaterialOwner(resource.data.creatorId)) && resource != null;
+        allow update: if (isAdmin() || isOwner(resource.data.creatorId)) && resource != null && request.resource.data.creatorId == resource.data.creatorId;
+        allow delete: if (isAdmin() || isOwner(resource.data.creatorId)) && resource != null;
     }
     
     /**
@@ -168,8 +161,8 @@ service cloud.firestore {
     match /materials_200lvl_free/{materialId} {
         allow get, list: if true;
         allow create: if true;
-        allow update: if (isAdmin() || isMaterialOwner(resource.data.creatorId)) && resource != null && request.resource.data.creatorId == resource.data.creatorId;
-        allow delete: if (isAdmin() || isMaterialOwner(resource.data.creatorId)) && resource != null;
+        allow update: if (isAdmin() || isOwner(resource.data.creatorId)) && resource != null && request.resource.data.creatorId == resource.data.creatorId;
+        allow delete: if (isAdmin() || isOwner(resource.data.creatorId)) && resource != null;
     }
     
     /**
@@ -179,8 +172,8 @@ service cloud.firestore {
     match /materials_200lvl_premium/{materialId} {
         allow get, list: if isPremiumUser() || isAdmin();
         allow create: if true;
-        allow update: if (isAdmin() || isMaterialOwner(resource.data.creatorId)) && resource != null && request.resource.data.creatorId == resource.data.creatorId;
-        allow delete: if (isAdmin() || isMaterialOwner(resource.data.creatorId)) && resource != null;
+        allow update: if (isAdmin() || isOwner(resource.data.creatorId)) && resource != null && request.resource.data.creatorId == resource.data.creatorId;
+        allow delete: if (isAdmin() || isOwner(resource.data.creatorId)) && resource != null;
     }
   }
 }
