@@ -145,7 +145,7 @@ service cloud.firestore {
      */
     match /materials_100lvl_free/{materialId} {
         allow get, list: if true;
-        allow create: if isSignedIn() && request.resource.data.creatorId == request.auth.uid;
+        allow create: if isSignedIn();
         allow update: if (isAdmin() || isMaterialOwner(resource.data.creatorId)) && resource != null && request.resource.data.creatorId == resource.data.creatorId;
         allow delete: if (isAdmin() || isMaterialOwner(resource.data.creatorId)) && resource != null;
     }
@@ -156,7 +156,7 @@ service cloud.firestore {
      */
     match /materials_100lvl_premium/{materialId} {
         allow get, list: if isPremiumUser() || isAdmin();
-        allow create: if isSignedIn() && request.resource.data.creatorId == request.auth.uid;
+        allow create: if isSignedIn();
         allow update: if (isAdmin() || isMaterialOwner(resource.data.creatorId)) && resource != null && request.resource.data.creatorId == resource.data.creatorId;
         allow delete: if (isAdmin() || isMaterialOwner(resource.data.creatorId)) && resource != null;
     }
@@ -167,7 +167,7 @@ service cloud.firestore {
      */
     match /materials_200lvl_free/{materialId} {
         allow get, list: if true;
-        allow create: if isSignedIn() && request.resource.data.creatorId == request.auth.uid;
+        allow create: if isSignedIn();
         allow update: if (isAdmin() || isMaterialOwner(resource.data.creatorId)) && resource != null && request.resource.data.creatorId == resource.data.creatorId;
         allow delete: if (isAdmin() || isMaterialOwner(resource.data.creatorId)) && resource != null;
     }
@@ -178,7 +178,7 @@ service cloud.firestore {
      */
     match /materials_200lvl_premium/{materialId} {
         allow get, list: if isPremiumUser() || isAdmin();
-        allow create: if isSignedIn() && request.resource.data.creatorId == request.auth.uid;
+        allow create: if isSignedIn();
         allow update: if (isAdmin() || isMaterialOwner(resource.data.creatorId)) && resource != null && request.resource.data.creatorId == resource.data.creatorId;
         allow delete: if (isAdmin() || isMaterialOwner(resource.data.creatorId)) && resource != null;
     }
