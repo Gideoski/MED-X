@@ -8,15 +8,17 @@ import { Label } from "@/components/ui/label";
 import Logo from "@/components/logo";
 import { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth, useUser } from "@/firebase";
+import { useAuth, useUser, useFirestore } from "@/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isPending, startTransition] = useTransition();
   const auth = useAuth();
+  const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
@@ -39,6 +41,28 @@ export default function LoginPage() {
     }
     startTransition(() => {
         signInWithEmailAndPassword(auth, email, password)
+            .then(async (userCredential) => {
+              const loggedInUser = userCredential.user;
+              const userDocRef = doc(firestore, 'users', loggedInUser.uid);
+              const userDoc = await getDoc(userDocRef);
+
+              if (!userDoc.exists()) {
+                  // User document doesn't exist, create it.
+                  const userProfile = {
+                      id: loggedInUser.uid,
+                      email: loggedInUser.email,
+                      role: "student",
+                      isPremium: false,
+                      createdAt: new Date().toISOString(),
+                      updatedAt: new Date().toISOString(),
+                      lastLoginAt: new Date().toISOString()
+                  };
+                  await setDoc(userDocRef, userProfile);
+              } else {
+                  // Optional: update last login time
+                  await setDoc(userDocRef, { lastLoginAt: new Date().toISOString() }, { merge: true });
+              }
+            })
             .catch((error) => {
                 let errorMessage = "An unknown error occurred.";
                 if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {

@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import Logo from "@/components/logo";
 import { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth, useUser } from "@/firebase";
+import { useAuth, useUser, useFirestore } from "@/firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
+import { doc, setDoc } from "firebase/firestore";
 
 
 export default function SignupPage() {
@@ -19,6 +20,7 @@ export default function SignupPage() {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [isPending, startTransition] = useTransition();
     const auth = useAuth();
+    const firestore = useFirestore();
     const { user, isUserLoading } = useUser();
     const router = useRouter();
     const { toast } = useToast();
@@ -49,6 +51,31 @@ export default function SignupPage() {
         }
         startTransition(() => {
             createUserWithEmailAndPassword(auth, email, password)
+                .then(async (userCredential) => {
+                    const newUser = userCredential.user;
+                    const userDocRef = doc(firestore, "users", newUser.uid);
+                    
+                    const userProfile = {
+                        id: newUser.uid,
+                        email: newUser.email,
+                        role: "student",
+                        isPremium: false,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                        lastLoginAt: new Date().toISOString()
+                    };
+
+                    try {
+                        await setDoc(userDocRef, userProfile);
+                    } catch (firestoreError) {
+                        console.error("Error creating user profile in Firestore:", firestoreError);
+                        toast({
+                            title: "Signup Warning",
+                            description: "Account created, but failed to save profile. Some features might not work.",
+                            variant: "destructive",
+                        });
+                    }
+                })
                 .catch((error) => {
                     let errorMessage = "An unknown error occurred.";
                     if (error.code === 'auth/email-already-in-use') {
