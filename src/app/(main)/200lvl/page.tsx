@@ -1,21 +1,51 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { EBookCard } from "@/components/ebook-card";
 import { Input } from "@/components/ui/input";
-import { ebooks } from "@/lib/data";
 import { Search } from "lucide-react";
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import type { EBook } from '@/lib/data';
+
+type EBookData = Omit<EBook, 'id'>;
 
 export default function Level200Page() {
   const [searchQuery, setSearchQuery] = useState('');
-  const level200Ebooks = ebooks.filter((book) => book.level === 200);
+  const firestore = useFirestore();
 
-  const filteredEbooks = level200Ebooks.filter(
+  const freeCollectionRef = useMemoFirebase(() => {
+      if (!firestore) return null;
+      return collection(firestore, 'materials_200lvl_free');
+  }, [firestore]);
+
+  const premiumCollectionRef = useMemoFirebase(() => {
+      if (!firestore) return null;
+      return collection(firestore, 'materials_200lvl_premium');
+  }, [firestore]);
+
+  const { data: freeEbooks, isLoading: isLoadingFree } = useCollection<EBookData>(freeCollectionRef);
+  const { data: premiumEbooks, isLoading: isLoadingPremium } = useCollection<EBookData>(premiumCollectionRef);
+  
+  const [allEbooks, setAllEbooks] = useState<EBook[]>([]);
+
+  useEffect(() => {
+    const combined = [
+        ...(freeEbooks || []),
+        ...(premiumEbooks || [])
+    ];
+    setAllEbooks(combined);
+  }, [freeEbooks, premiumEbooks]);
+
+
+  const filteredEbooks = allEbooks.filter(
     (ebook) =>
       ebook.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ebook.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ebook.author.toLowerCase().includes(searchQuery.toLowerCase())
+      (ebook.description && ebook.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (ebook.author && ebook.author.toLowerCase().includes(searchQuery.toLowerCase()))
   );
+
+  const isLoading = isLoadingFree || isLoadingPremium;
 
   return (
     <div className="space-y-8">
@@ -35,6 +65,12 @@ export default function Level200Page() {
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
+      
+      {isLoading && <p className="text-center text-muted-foreground">Loading materials...</p>}
+
+      {!isLoading && filteredEbooks.length === 0 && (
+          <p className="text-center text-muted-foreground">No materials found.</p>
+      )}
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         {filteredEbooks.map((ebook) => (

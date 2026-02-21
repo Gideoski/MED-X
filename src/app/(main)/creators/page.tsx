@@ -11,14 +11,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useState, useTransition } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { Textarea } from "@/components/ui/textarea";
+import { useUser, useFirestore, addDocumentNonBlocking } from "@/firebase";
+import { collection } from "firebase/firestore";
+
 
 export default function CreatorsPage() {
   const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
   const [level, setLevel] = useState('');
   const [contentType, setContentType] = useState('free');
   const [file, setFile] = useState<File | null>(null);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const { user } = useUser();
+  const firestore = useFirestore();
+
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -38,34 +46,69 @@ export default function CreatorsPage() {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!title || !level || !file) {
+    if (!title || !level || !description || !file) {
       toast({
         title: "Incomplete Form",
-        description: "Please fill out all fields and select a file to upload.",
+        description: "Please fill out all fields and select a PDF file to upload.",
         variant: "destructive",
       });
       return;
     }
+    if (!user) {
+        toast({
+            title: "Authentication Required",
+            description: "You must be logged in to upload content.",
+            variant: "destructive",
+        });
+        return;
+    }
 
     startTransition(() => {
-      // Simulate upload process
-      console.log("Uploading content:", { title, level, contentType, fileName: file.name });
-      
-      // In a real app, you'd call a server action here to upload to Firebase Storage
-      // and create a Firestore document.
-      
-      // For now, just show a success message.
-      toast({
-        title: "Upload Successful",
-        description: `"${title}" has been uploaded.`,
-      });
+      // NOTE: File upload to storage is not implemented. We are creating metadata in Firestore.
+      const collectionName = `materials_${level}lvl_${contentType}`;
+      const collectionRef = collection(firestore, collectionName);
 
-      // Reset form
-      setTitle('');
-      setLevel('');
-      setContentType('free');
-      setFile(null);
-      e.currentTarget.reset();
+      const newEbookData = {
+          title,
+          description,
+          author: user.displayName || 'Anonymous Creator',
+          level: parseInt(level),
+          isPremium: contentType === 'premium',
+          coverImage: `https://picsum.photos/seed/${Math.random().toString().slice(2)}/300/400`,
+          imageHint: "book cover abstract",
+          creatorId: user.uid,
+          uploadDate: new Date().toISOString(),
+          lastUpdateDate: new Date().toISOString(),
+          filePath: '', // Placeholder, file is not actually uploaded.
+          isDownloadable: contentType !== 'premium',
+          type: 'E-Book',
+      };
+
+      addDocumentNonBlocking(collectionRef, newEbookData)
+        .then(() => {
+            toast({
+              title: "Upload Successful",
+              description: `"${title}" has been submitted and will appear on the site shortly.`,
+            });
+
+            // Reset form
+            setTitle('');
+            setDescription('');
+            setLevel('');
+            setContentType('free');
+            setFile(null);
+            if (e.target instanceof HTMLFormElement) {
+              e.target.reset();
+            }
+        })
+        .catch((error) => {
+            console.error("Firestore error:", error);
+            toast({
+                title: "Upload Failed",
+                description: "Could not save content to the database. Please check your connection or permissions.",
+                variant: "destructive",
+            });
+        });
     });
   };
 
@@ -112,6 +155,18 @@ export default function CreatorsPage() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   disabled={isPending}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea 
+                  id="description" 
+                  placeholder="A brief summary of the e-book's content." 
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  disabled={isPending}
+                  rows={4}
                 />
               </div>
 
@@ -162,7 +217,7 @@ export default function CreatorsPage() {
                   disabled={isPending}
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={isPending}>
+              <Button type="submit" className="w-full" disabled={!user || isPending}>
                 {isPending ? 'Uploading...' : (
                   <>
                     <Upload className="mr-2 h-4 w-4" />
@@ -170,6 +225,7 @@ export default function CreatorsPage() {
                   </>
                 )}
               </Button>
+              {!user && <p className="text-xs text-center text-muted-foreground">Please log in to upload content.</p>}
             </form>
           </CardContent>
         </Card>
