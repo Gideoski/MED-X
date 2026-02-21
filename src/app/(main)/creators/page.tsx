@@ -78,7 +78,7 @@ export default function CreatorsPage() {
             creatorId: user.uid,
             uploadDate: new Date().toISOString(),
             lastUpdateDate: new Date().toISOString(),
-            filePath: '', // Placeholder, file is not actually uploaded.
+            filePath: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
             type: 'E-Book',
         };
         await addDoc(collectionRef, newEbookData);

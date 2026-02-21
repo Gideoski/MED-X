@@ -104,6 +104,7 @@ export interface EBook {
   isPremium: boolean;
   coverImage: string;
   imageHint: string;
+  filePath: string;
 }
 
 export interface Creator {

@@ -95,11 +95,18 @@ export default function EbookReaderPage() {
                         <CardTitle>E-Book Content</CardTitle>
                     </CardHeader>
                     <CardContent>
-                         <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg bg-muted/50">
-                            <FileText className="h-12 w-12 text-muted-foreground" />
-                            <p className="mt-4 text-muted-foreground">The full PDF content viewer will be available here soon.</p>
-                            <p className="text-sm text-muted-foreground">Online PDF reading is a feature currently in development.</p>
-                         </div>
+                         {ebook.filePath ? (
+                            <iframe 
+                                src={ebook.filePath}
+                                className="w-full h-[800px] border-none rounded-lg"
+                                title={ebook.title}
+                            ></iframe>
+                         ) : (
+                             <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg bg-muted/50">
+                                <FileText className="h-12 w-12 text-muted-foreground" />
+                                <p className="mt-4 text-muted-foreground">PDF content is not available for this e-book.</p>
+                             </div>
+                         )}
                     </CardContent>
                 </Card>
             </div>
