@@ -28,9 +28,24 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
-      <SidebarTrigger className="md:hidden" />
-      <div className="hidden md:block">
+    <header className="relative sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
+      {/* Left Section */}
+      <div className="flex items-center gap-4">
+        <div className="md:hidden">
+          <SidebarTrigger />
+        </div>
+        <div className="hidden md:block">
+          <Link href="/home" className="flex items-center gap-2">
+            <Logo className="h-8 w-8 text-primary" />
+            <span className="whitespace-nowrap text-xl font-bold tracking-tighter text-primary">
+              <em className="not-italic">MED-X</em>
+            </span>
+          </Link>
+        </div>
+      </div>
+
+      {/* Center Section (Mobile Only) */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 md:hidden">
         <Link href="/home" className="flex items-center gap-2">
           <Logo className="h-8 w-8 text-primary" />
           <span className="whitespace-nowrap text-xl font-bold tracking-tighter text-primary">
@@ -39,7 +54,8 @@ export function Header() {
         </Link>
       </div>
 
-      <div className="flex w-full items-center justify-end gap-4">
+      {/* Right Section */}
+      <div className="flex items-center">
         {user ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
