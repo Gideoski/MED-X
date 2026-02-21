@@ -88,20 +88,22 @@ export default function EbookReaderPage() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-muted-foreground">The full content of this e-book is available for reading below. You can test your knowledge with the AI quiz on the right.</p>
+                        <p className="text-muted-foreground">{ebook.description}</p>
                     </CardContent>
                 </Card>
-                <Card>
+                 <Card>
                     <CardHeader>
-                        <CardTitle>E-Book Content</CardTitle>
-                        <CardDescription>Scroll down to read the material.</CardDescription>
+                        <CardTitle>Read Content</CardTitle>
+                        <CardDescription>Open the PDF to view the full material.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                         <ScrollArea className="h-[70vh] rounded-md border p-4">
-                           <p className="whitespace-pre-wrap text-sm text-foreground leading-relaxed">
-                             {ebook.description}
-                           </p>
-                        </ScrollArea>
+                        <Button asChild className="w-full">
+                          <Link href="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" target="_blank" rel="noopener noreferrer">
+                            <FileText className="mr-2 h-4 w-4" />
+                            Open PDF in Reader
+                          </Link>
+                        </Button>
+                        <p className="text-xs text-muted-foreground mt-2 text-center">This will open the PDF in your browser's default viewer or your preferred PDF application.</p>
                     </CardContent>
                 </Card>
             </div>

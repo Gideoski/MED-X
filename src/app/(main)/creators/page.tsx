@@ -9,80 +9,21 @@ import { Button } from "@/components/ui/button";
 import { Upload } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { useUser, useFirestore } from "@/firebase";
 import { collection, addDoc } from "firebase/firestore";
-import * as pdfjs from 'pdfjs-dist';
 
 export default function CreatorsPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [level, setLevel] = useState('');
   const [contentType, setContentType] = useState('free');
-  const [file, setFile] = useState<File | null>(null);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
-
-  useEffect(() => {
-    pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.mjs`;
-  }, []);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const selectedFile = e.target.files[0];
-      if (selectedFile.type !== 'application/pdf') {
-        toast({
-          title: "Invalid File Type",
-          description: "Please upload a PDF file.",
-          variant: "destructive",
-        });
-        e.target.value = ''; // Reset the input
-        setFile(null);
-        setDescription('');
-      } else {
-        setFile(selectedFile);
-        toast({
-          title: "Processing PDF",
-          description: "Extracting text content. This may take a moment...",
-        });
-
-        const fileReader = new FileReader();
-        fileReader.onload = async function() {
-            try {
-                if (this.result) {
-                    const typedArray = new Uint8Array(this.result as ArrayBuffer);
-                    const pdf = await pdfjs.getDocument({ data: typedArray }).promise;
-                    let fullText = '';
-                    for (let i = 1; i <= pdf.numPages; i++) {
-                        const page = await pdf.getPage(i);
-                        const textContent = await page.getTextContent();
-                        const pageText = textContent.items.map(item => 'str' in item ? item.str : '').join(' ');
-                        fullText += pageText + '\n\n';
-                    }
-                    setDescription(fullText.trim());
-                    toast({
-                        title: "Success",
-                        description: "PDF content has been extracted into the description field.",
-                    });
-                }
-            } catch (error) {
-                console.error("Error parsing PDF:", error);
-                toast({
-                    title: "PDF Parsing Error",
-                    description: "Could not extract text from the PDF. Please copy and paste the content manually.",
-                    variant: "destructive",
-                });
-                setDescription(''); // Clear description on error
-            }
-        };
-        fileReader.readAsArrayBuffer(selectedFile);
-      }
-    }
-  };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -119,7 +60,7 @@ export default function CreatorsPage() {
             creatorId: user.uid,
             uploadDate: new Date().toISOString(),
             lastUpdateDate: new Date().toISOString(),
-            filePath: '', // Content is now in description
+            filePath: `/sample.pdf`, // Placeholder file path
             type: 'E-Book',
         };
         await addDoc(collectionRef, newEbookData);
@@ -133,7 +74,6 @@ export default function CreatorsPage() {
         setDescription('');
         setLevel('');
         setContentType('free');
-        setFile(null);
         if (e.target instanceof HTMLFormElement) {
           e.target.reset();
         }
@@ -179,7 +119,7 @@ export default function CreatorsPage() {
         <Card className="max-w-2xl mx-auto">
           <CardHeader>
             <CardTitle>Creator Content Upload</CardTitle>
-            <CardDescription>Verified creators can upload new PDF content here.</CardDescription>
+            <CardDescription>Verified creators can upload new content here.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -194,27 +134,15 @@ export default function CreatorsPage() {
                 />
               </div>
 
-               <div className="space-y-2">
-                <Label htmlFor="pdf-upload">PDF File (optional)</Label>
-                <Input 
-                  id="pdf-upload" 
-                  type="file" 
-                  accept=".pdf" 
-                  onChange={handleFileChange}
-                  disabled={isPending}
-                />
-                 <p className="text-xs text-muted-foreground">Select a PDF to auto-fill the content below.</p>
-              </div>
-
               <div className="space-y-2">
-                <Label htmlFor="description">E-Book Content</Label>
+                <Label htmlFor="description">E-Book Description</Label>
                 <Textarea 
                   id="description" 
-                  placeholder="Paste e-book content here, or select a PDF file to automatically extract its text." 
+                  placeholder="Provide a brief summary of the e-book's content." 
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   disabled={isPending}
-                  rows={8}
+                  rows={4}
                 />
               </div>
 
