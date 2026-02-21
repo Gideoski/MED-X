@@ -1,12 +1,12 @@
 "use client";
 
 import { SidebarTrigger } from "@/components/ui/sidebar"
-import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import Link from "next/link"
 import Logo from "../logo"
 import { PlaceHolderImages } from "@/lib/placeholder-images"
+import { Button } from "../ui/button"
 
 export function Header() {
   const userAvatar = PlaceHolderImages.find(p => p.id === 'avatar-user');
@@ -17,7 +17,7 @@ export function Header() {
       <div className="hidden md:block">
         <Link href="/home" className="flex items-center gap-2">
             <Logo className="h-8 w-8 text-primary" />
-            <span className="text-xl font-bold tracking-tighter text-primary">
+            <span className="text-xl font-bold tracking-tighter text-primary whitespace-nowrap">
                 <em className="not-italic">MED-X</em>
             </span>
         </Link>

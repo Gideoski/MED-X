@@ -13,7 +13,6 @@
  import Logo from "../logo"
  import Link from "next/link"
  import { usePathname } from "next/navigation"
- import { Button } from "../ui/button"
  
  const navItems = [
    { href: "/home", icon: Home, label: "Home" },
@@ -38,7 +37,7 @@
        <SidebarHeader>
          <Link href="/home" className="flex items-center gap-2.5">
            <Logo className="h-8 w-8 text-primary" />
-           <h1 className="text-xl font-bold tracking-tighter text-primary">
+           <h1 className="text-xl font-bold tracking-tighter text-primary whitespace-nowrap">
              <em className="not-italic">MED-X</em>
            </h1>
          </Link>
