@@ -79,6 +79,13 @@ service cloud.firestore {
     function isVerifiedCreator(creatorId) {
       return get(/databases/$(database)/documents/creator_profiles/$(creatorId)).data.verifiedByAdmin == true;
     }
+    
+    /**
+     * Checks if the user is the owner of a material.
+     */
+    function isMaterialOwner(creatorId) {
+      return isOwner(creatorId);
+    }
 
     // ------------------------------------------------------------------
     // Collection Rules
@@ -87,11 +94,6 @@ service cloud.firestore {
     /**
      * @description Stores private user data like email and subscription status.
      * @path /users/{userId}
-     * @allow (get, update) A user can read or update their own document.
-     * @allow (create) A new user can create their own user document.
-     * @deny (list) Another user cannot list all users in the system.
-     * @deny (get) Another user cannot read a user's private data.
-     * @principle Restricts access to a user's own data tree.
      */
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
@@ -104,9 +106,6 @@ service cloud.firestore {
     /**
      * @description Manages admin privileges. Document existence grants admin rights.
      * @path /roles_admin/{adminId}
-     * @allow (get, list, create, delete) An admin can view and manage the list of other admins.
-     * @deny (get, list, create, delete) A non-admin user cannot access or modify this collection.
-     * @principle Enforces global role-based access control (RBAC) for administrators.
      */
     match /roles_admin/{adminId} {
       allow get: if isAdmin();
@@ -119,10 +118,6 @@ service cloud.firestore {
     /**
      * @description Stores public-facing profiles for content creators.
      * @path /creator_profiles/{userId}
-     * @allow (get, list) Anyone can read creator profiles to browse content authors.
-     * @allow (create, update) A creator can manage their own profile.
-     * @deny (update) A user cannot update another creator's profile.
-     * @principle Implements public-read access with owner-only writes.
      */
     match /creator_profiles/{userId} {
       allow get: if true;
@@ -135,10 +130,6 @@ service cloud.firestore {
     /**
      * @description Captures user feedback submissions.
      * @path /feedback/{feedbackId}
-     * @allow (create) Any signed-in user can submit feedback.
-     * @deny (get, list) A user cannot read feedback submitted by others.
-     * @deny (update, delete) A user cannot modify or delete any feedback.
-     * @principle Allows broad create access while restricting reads and modifications to administrators.
      */
     match /feedback/{feedbackId} {
       allow get: if isAdmin();
@@ -149,58 +140,47 @@ service cloud.firestore {
     }
 
     /**
-     * @description Handles both free and premium educational materials.
-     *              The collection name dictates access (e.g., /materials_100lvl_free, /materials_200lvl_premium).
-     * @path /{collectionId}/{materialId} where `collectionId` matches `materials_.*_free` or `materials_.*_premium`
-     * @allow (get, list) Free materials are public. Premium materials require `isPremium: true` or admin status.
-     * @allow (create) Any authenticated user can upload new materials, as long as they are the creator.
-     * @allow (update, delete) An admin or the owner of the material can modify/delete.
-     * @principle Distinguishes free (public) vs. premium (subscriber-only) reads based on collection name.
-     *            Writes are restricted to owners or admins.
+     * @description Stores 100-level educational materials that are designated as free content.
+     * @path /materials_100lvl_free/{materialId}
      */
-    match /{collectionId}/{materialId} {
-      // Helper functions for this specific match block
-      function isFreeMaterialCollection() {
-        return collectionId.matches("materials_.*_free");
-      }
-      function isPremiumMaterialCollection() {
-        return collectionId.matches("materials_.*_premium");
-      }
-      function isMaterialOwner(creatorId) {
-        // For existing documents (update/delete), check resource.data.
-        // The owner must be the signed-in user.
-        return isSignedIn() && isOwner(creatorId);
-      }
+    match /materials_100lvl_free/{materialId} {
+        allow get, list: if true;
+        allow create: if isSignedIn() && request.resource.data.creatorId == request.auth.uid;
+        allow update: if (isAdmin() || isMaterialOwner(resource.data.creatorId)) && resource != null && request.resource.data.creatorId == resource.data.creatorId;
+        allow delete: if (isAdmin() || isMaterialOwner(resource.data.creatorId)) && resource != null;
+    }
 
-      // Read access:
-      // Free materials are publicly readable.
-      // Premium materials require premium status or admin role.
-      allow get, list: if (isFreeMaterialCollection() && true) ||
-                          (isPremiumMaterialCollection() && (isPremiumUser() || isAdmin()));
-
-      // Create access:
-      // The user must be signed in, and the creatorId in the new document
-      // must match the user's UID.
-      allow create: if (isFreeMaterialCollection() || isPremiumMaterialCollection()) &&
-                       isSignedIn() && request.resource.data.creatorId == request.auth.uid;
-
-      // Update access:
-      // Only allow updates in recognized material collections.
-      // Document must exist (`resource != null`).
-      // `creatorId` field must be immutable.
-      // Only admins or the owner of the material can update.
-      allow update: if (isFreeMaterialCollection() || isPremiumMaterialCollection()) &&
-                       resource != null &&
-                       request.resource.data.creatorId == resource.data.creatorId &&
-                       (isAdmin() || isMaterialOwner(resource.data.creatorId));
-
-      // Delete access:
-      // Only allow deletion in recognized material collections.
-      // Document must exist (`resource != null`).
-      // Only admins or the owner of the material can delete.
-      allow delete: if (isFreeMaterialCollection() || isPremiumMaterialCollection()) &&
-                       resource != null &&
-                       (isAdmin() || isMaterialOwner(resource.data.creatorId));
+    /**
+     * @description Stores 100-level educational materials that require a premium subscription.
+     * @path /materials_100lvl_premium/{materialId}
+     */
+    match /materials_100lvl_premium/{materialId} {
+        allow get, list: if isPremiumUser() || isAdmin();
+        allow create: if isSignedIn() && request.resource.data.creatorId == request.auth.uid;
+        allow update: if (isAdmin() || isMaterialOwner(resource.data.creatorId)) && resource != null && request.resource.data.creatorId == resource.data.creatorId;
+        allow delete: if (isAdmin() || isMaterialOwner(resource.data.creatorId)) && resource != null;
+    }
+    
+    /**
+     * @description Stores 200-level educational materials that are designated as free content.
+     * @path /materials_200lvl_free/{materialId}
+     */
+    match /materials_200lvl_free/{materialId} {
+        allow get, list: if true;
+        allow create: if isSignedIn() && request.resource.data.creatorId == request.auth.uid;
+        allow update: if (isAdmin() || isMaterialOwner(resource.data.creatorId)) && resource != null && request.resource.data.creatorId == resource.data.creatorId;
+        allow delete: if (isAdmin() || isMaterialOwner(resource.data.creatorId)) && resource != null;
+    }
+    
+    /**
+     * @description Stores 200-level educational materials that require a premium subscription.
+     * @path /materials_200lvl_premium/{materialId}
+     */
+    match /materials_200lvl_premium/{materialId} {
+        allow get, list: if isPremiumUser() || isAdmin();
+        allow create: if isSignedIn() && request.resource.data.creatorId == request.auth.uid;
+        allow update: if (isAdmin() || isMaterialOwner(resource.data.creatorId)) && resource != null && request.resource.data.creatorId == resource.data.creatorId;
+        allow delete: if (isAdmin() || isMaterialOwner(resource.data.creatorId)) && resource != null;
     }
   }
 }
