@@ -37,12 +37,12 @@
    const pathname = usePathname()
    const auth = useAuth();
    const router = useRouter();
-   const { setOpen, setOpenMobile } = useSidebar();
+   const { isMobile, setOpenMobile } = useSidebar();
 
    const handleLinkClick = () => {
-     // This will close the off-canvas sidebar on both mobile and desktop.
-     setOpen(false);
-     setOpenMobile(false);
+     if (isMobile) {
+       setOpenMobile(false);
+     }
    }
  
    const handleLogout = () => {
@@ -54,9 +54,9 @@
    return (
      <Sidebar collapsible="offcanvas">
        <SidebarHeader>
-         <Link href="/home" className="flex items-center gap-2.5" onClick={handleLinkClick}>
+         <Link href="/home" className="flex items-center gap-2.5 whitespace-nowrap" onClick={handleLinkClick}>
            <Logo className="h-8 w-8 text-primary" />
-           <h1 className="text-xl font-bold tracking-tighter text-primary whitespace-nowrap">
+           <h1 className="text-xl font-bold tracking-tighter text-primary">
              <em className="not-italic">MED-X</em>
            </h1>
          </Link>
@@ -106,4 +106,3 @@
      </Sidebar>
    )
  }
- 
