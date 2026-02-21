@@ -31,7 +31,7 @@ export default function WelcomePage() {
           Study smarter, not harder. Access curated e-books and materials designed for your success.
         </p>
         <Button asChild size="lg" className="text-lg">
-          <Link href="/home">Get Started</Link>
+          <Link href="/signup">Get Started</Link>
         </Button>
       </div>
     </div>
