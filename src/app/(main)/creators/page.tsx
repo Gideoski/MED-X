@@ -6,39 +6,37 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Upload } from "lucide-react";
+import { Link, Upload } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useState, useTransition } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
-import { useUser, useFirestore, useStorage } from "@/firebase";
+import { useUser, useFirestore } from "@/firebase";
 import { collection, addDoc } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export default function CreatorsPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [level, setLevel] = useState('');
   const [contentType, setContentType] = useState('free');
-  const [file, setFile] = useState<File | null>(null);
+  const [filePath, setFilePath] = useState('');
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
-  const storage = useStorage();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!title || !level || !description || !file) {
+    if (!title || !level || !description || !filePath) {
       toast({
         title: "Incomplete Form",
-        description: "Please fill out all fields and select a PDF file.",
+        description: "Please fill out all fields, including the PDF link.",
         variant: "destructive",
       });
       return;
     }
-    if (!user || !firestore || !storage) {
+    if (!user || !firestore) {
         toast({
             title: "Authentication Required",
             description: "You must be logged in to upload content.",
@@ -49,10 +47,6 @@ export default function CreatorsPage() {
 
     startTransition(async () => {
       try {
-        const storageRef = ref(storage, `materials/${Date.now()}_${file.name}`);
-        await uploadBytes(storageRef, file);
-        const downloadURL = await getDownloadURL(storageRef);
-
         const collectionName = `materials_${level}lvl_${contentType === 'premium' ? 'premium' : 'free'}`;
         const collectionRef = collection(firestore, collectionName);
         const newEbookData = {
@@ -66,12 +60,12 @@ export default function CreatorsPage() {
             creatorId: user.uid,
             uploadDate: new Date().toISOString(),
             lastUpdateDate: new Date().toISOString(),
-            filePath: downloadURL,
+            filePath: filePath,
             type: 'E-Book',
         };
         await addDoc(collectionRef, newEbookData);
         toast({
-          title: "Upload Successful",
+          title: "Submission Successful",
           description: `"${title}" has been submitted and is now available.`,
         });
 
@@ -80,15 +74,15 @@ export default function CreatorsPage() {
         setDescription('');
         setLevel('');
         setContentType('free');
-        setFile(null);
+        setFilePath('');
         if (e.target instanceof HTMLFormElement) {
           e.target.reset();
         }
       } catch (error) {
-        console.error("Upload Error:", error);
+        console.error("Submission Error:", error);
         toast({
-          title: "Upload Failed",
-          description: "An unexpected error occurred while uploading. Please check the console.",
+          title: "Submission Failed",
+          description: "An unexpected error occurred while submitting. Please try again.",
           variant: "destructive"
         });
       }
@@ -125,8 +119,8 @@ export default function CreatorsPage() {
       <section>
         <Card className="max-w-2xl mx-auto">
           <CardHeader>
-            <CardTitle>Creator Content Upload</CardTitle>
-            <CardDescription>Verified creators can upload new content here.</CardDescription>
+            <CardTitle>Creator Content Submission</CardTitle>
+            <CardDescription>Verified creators can submit new content here.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -191,26 +185,30 @@ export default function CreatorsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="file">PDF File</Label>
+                <Label htmlFor="file-path">PDF Link</Label>
                 <Input
-                  id="file"
-                  type="file"
-                  accept="application/pdf"
-                  onChange={(e) => setFile(e.target.files ? e.target.files[0] : null)}
+                  id="file-path"
+                  type="url"
+                  placeholder="https://your-public-pdf-link.com/file.pdf"
+                  value={filePath}
+                  onChange={(e) => setFilePath(e.target.value)}
                   disabled={isPending}
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  Paste a publicly accessible link to your PDF (e.g., from Google Drive or Dropbox).
+                </p>
               </div>
               
               <Button type="submit" className="w-full" disabled={!user || isPending}>
-                {isPending ? 'Uploading...' : (
+                {isPending ? 'Submitting...' : (
                   <>
                     <Upload className="mr-2 h-4 w-4" />
-                    Upload Content
+                    Submit Content
                   </>
                 )}
               </Button>
-              {!user && <p className="text-xs text-center text-muted-foreground">Please log in to upload content.</p>}
+              {!user && <p className="text-xs text-center text-muted-foreground">Please log in to submit content.</p>}
             </form>
           </CardContent>
         </Card>
