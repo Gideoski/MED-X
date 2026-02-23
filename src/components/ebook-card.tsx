@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import type { EBook } from "@/lib/data";
@@ -5,8 +8,16 @@ import { Badge } from "./ui/badge";
 import { Eye, Lock } from "lucide-react";
 import Link from "next/link";
 import Logo from "@/components/logo";
+import { cn } from '@/lib/utils';
+
+const MAX_DESCRIPTION_LENGTH = 150; // Heuristic length in characters
 
 export function EBookCard({ ebook, collection }: { ebook: EBook; collection: string }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // A simple heuristic to check if the description is long enough to warrant a "Read More" button.
+  const isLongDescription = ebook.description.length > MAX_DESCRIPTION_LENGTH;
+
   return (
     <Card className="flex flex-col overflow-hidden">
       <CardHeader className="p-0">
@@ -23,7 +34,19 @@ export function EBookCard({ ebook, collection }: { ebook: EBook; collection: str
       <CardContent className="flex-grow p-4">
         <CardTitle className="mb-1 text-lg">{ebook.title}</CardTitle>
         <p className="text-sm text-muted-foreground">by MED-X</p>
-        <p className="mt-2 text-sm line-clamp-4">{ebook.description}</p>
+        <div className="mt-2 text-sm">
+            <p className={cn(isLongDescription && !isExpanded && "line-clamp-4")}>
+                {ebook.description}
+            </p>
+            {isLongDescription && (
+                <button 
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    className="text-primary font-semibold hover:underline mt-1 focus:outline-none"
+                >
+                    {isExpanded ? 'Read Less' : 'Read More'}
+                </button>
+            )}
+        </div>
       </CardContent>
       <CardFooter className="p-4 pt-0">
         <Button className="w-full" asChild>
