@@ -7,22 +7,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { useUser, useFirestore, useDoc, useMemoFirebase, useStorage } from "@/firebase";
-import { useState, useTransition, useEffect, useRef } from "react";
+import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
+import { useState, useTransition, useEffect } from "react";
 import { updateProfile } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 import { doc, updateDoc } from "firebase/firestore";
 import { Star, ShieldPlus } from "lucide-react";
-import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export default function AccountPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
-  const storage = useStorage();
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
-  const [isPhotoUploading, startPhotoUploadTransition] = useTransition();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState('');
 
@@ -57,34 +53,6 @@ export default function AccountPage() {
         toast({
           title: "Error",
           description: "Failed to update your profile. Please try again.",
-          variant: "destructive",
-        });
-      }
-    });
-  };
-
-  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files || !user || !storage) return;
-    const file = event.target.files[0];
-    if (!file) return;
-
-    startPhotoUploadTransition(async () => {
-      try {
-        const fileRef = storageRef(storage, `profile-pictures/${user.uid}`);
-        await uploadBytes(fileRef, file);
-        const photoURL = await getDownloadURL(fileRef);
-
-        await updateProfile(user, { photoURL });
-        
-        toast({
-          title: "Success",
-          description: "Your profile photo has been updated.",
-        });
-      } catch (error) {
-        console.error("Photo upload error:", error);
-        toast({
-          title: "Error",
-          description: "Failed to upload your photo. Please try again.",
           variant: "destructive",
         });
       }
@@ -135,20 +103,11 @@ export default function AccountPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center space-x-4">
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handlePhotoUpload}
-              hidden
-              accept="image/png, image/jpeg"
-            />
             <Avatar className="h-20 w-20">
               <AvatarImage src={user.photoURL || ''} alt={user.displayName || ''} />
               <AvatarFallback>{user.email ? user.email.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
             </Avatar>
-            <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isPhotoUploading}>
-              {isPhotoUploading ? 'Uploading...' : 'Change Photo'}
-            </Button>
+            <p className="text-sm text-muted-foreground">Profile photo is managed through your email provider (e.g., Google account).</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
