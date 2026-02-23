@@ -26,9 +26,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ShieldAlert, Trash2, Loader2 } from 'lucide-react';
+import { ShieldAlert, Trash2, Loader2, ShieldX } from 'lucide-react';
 import { formatNumber } from '@/lib/utils';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, deleteDoc, doc, setDoc, updateDoc } from 'firebase/firestore';
 import { useState, useEffect, useTransition } from 'react';
 import type { EBook } from '@/lib/data';
@@ -42,11 +42,20 @@ type UserData = { id: string, email: string, isPremium: boolean, role: string };
 export default function AdminPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { user, isUserLoading } = useUser();
 
   const [allMaterials, setAllMaterials] = useState<MaterialWithCollection[]>([]);
   const [materialToDelete, setMaterialToDelete] = useState<MaterialWithCollection | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdating, startTransition] = useTransition();
+
+  // Fetch current user's profile to check for admin role
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<{ role: string }>(userDocRef);
 
   // Fetch users
   const usersCollectionRef = useMemoFirebase(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
@@ -90,7 +99,7 @@ export default function AdminPage() {
   }, [dataHooks[0].data, dataHooks[1].data, dataHooks[2].data, dataHooks[3].data]);
 
   const isLoadingMaterials = dataHooks.some((h) => h.isLoading);
-  const isLoading = isLoadingUsers || isLoadingMaterials;
+  const isLoading = isLoadingUsers || isLoadingMaterials || isUserLoading || isProfileLoading;
 
   const handleDeleteClick = (material: MaterialWithCollection) => {
     setMaterialToDelete(material);
@@ -182,6 +191,27 @@ export default function AdminPage() {
 
   const totalDownloads = allMaterials.reduce((acc, c) => acc + (c.downloads || 0), 0);
   const premiumUsersCount = users ? users.filter((u) => u.isPremium).length : 0;
+  
+  if (isLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  const isAdmin = userProfile?.role === 'admin';
+
+  if (!isAdmin) {
+    return (
+        <div className="flex flex-col items-center justify-center h-full min-h-[60vh] text-center">
+            <ShieldX className="h-16 w-16 text-destructive mb-4" />
+            <h1 className="text-3xl font-bold">Access Denied</h1>
+            <p className="text-muted-foreground mt-2">You do not have permission to view this page.</p>
+        </div>
+    );
+  }
+
 
   return (
     <>

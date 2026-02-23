@@ -14,9 +14,10 @@
  import Logo from "../logo"
  import Link from "next/link"
  import { usePathname } from "next/navigation"
- import { useAuth } from "@/firebase"
+ import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase"
  import { signOut } from "firebase/auth"
  import { useRouter } from "next/navigation"
+ import { doc } from "firebase/firestore"
  
  const navItems = [
    { href: "/home", icon: Home, label: "Home" },
@@ -38,6 +39,16 @@
    const auth = useAuth();
    const router = useRouter();
    const { isMobile, setOpenMobile } = useSidebar();
+   const { user } = useUser();
+   const firestore = useFirestore();
+
+   const userDocRef = useMemoFirebase(() => {
+     if (!firestore || !user) return null;
+     return doc(firestore, 'users', user.uid);
+   }, [firestore, user]);
+ 
+   const { data: userProfile } = useDoc<{ role: string }>(userDocRef);
+   const isAdmin = userProfile?.role === 'admin';
 
    const handleLinkClick = () => {
      if (isMobile) {
@@ -64,6 +75,7 @@
        <SidebarContent className="p-2">
          <SidebarMenu>
            {navItems.map((item) => (
+            (item.href === "/admin" && !isAdmin) ? null : (
              <SidebarMenuItem key={item.href}>
                <SidebarMenuButton
                  asChild
@@ -76,6 +88,7 @@
                  </Link>
                </SidebarMenuButton>
              </SidebarMenuItem>
+            )
            ))}
          </SidebarMenu>
        </SidebarContent>
