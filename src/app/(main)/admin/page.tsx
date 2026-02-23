@@ -15,7 +15,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -30,10 +29,11 @@ import {
 import { ShieldAlert, Trash2, Loader2 } from 'lucide-react';
 import { formatNumber } from '@/lib/utils';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, deleteDoc, doc } from 'firebase/firestore';
-import { useState, useEffect } from 'react';
+import { collection, deleteDoc, doc, setDoc, updateDoc } from 'firebase/firestore';
+import { useState, useEffect, useTransition } from 'react';
 import type { EBook } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
+import { Switch } from '@/components/ui/switch';
 
 type Material = Omit<EBook, 'id' | 'level'> & { level: string | number, type: string, downloads?: number };
 type MaterialWithCollection = Material & { id: string; collection: string };
@@ -46,6 +46,7 @@ export default function AdminPage() {
   const [allMaterials, setAllMaterials] = useState<MaterialWithCollection[]>([]);
   const [materialToDelete, setMaterialToDelete] = useState<MaterialWithCollection | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isUpdating, startTransition] = useTransition();
 
   // Fetch users
   const usersCollectionRef = useMemoFirebase(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
@@ -84,6 +85,7 @@ export default function AdminPage() {
         });
       }
     });
+    combinedContent.sort((a, b) => a.title.localeCompare(b.title));
     setAllMaterials(combinedContent);
   }, [dataHooks[0].data, dataHooks[1].data, dataHooks[2].data, dataHooks[3].data]);
 
@@ -115,6 +117,67 @@ export default function AdminPage() {
       setIsDeleting(false);
       setMaterialToDelete(null);
     }
+  };
+
+  const handleUserPremiumChange = (user: UserData, isPremium: boolean) => {
+    if (!firestore) return;
+
+    startTransition(async () => {
+      const userDocRef = doc(firestore, 'users', user.id);
+      try {
+        await updateDoc(userDocRef, { isPremium });
+        toast({
+          title: 'User Updated',
+          description: `${user.email}'s status has been set to ${isPremium ? 'Premium' : 'Free'}.`,
+        });
+      } catch (error) {
+        console.error('Error updating user:', error);
+        toast({
+          title: 'Update Failed',
+          description: `Could not update ${user.email}'s status.`,
+          variant: 'destructive',
+        });
+      }
+    });
+  };
+
+  const handleMaterialPremiumChange = (material: MaterialWithCollection, newPremiumStatus: boolean) => {
+    if (!firestore) return;
+    
+    startTransition(async () => {
+      const currentCollection = material.collection;
+      const targetCollection = currentCollection.includes('_free')
+        ? currentCollection.replace('_free', '_premium')
+        : currentCollection.replace('_premium', '_free');
+
+      const originalDocRef = doc(firestore, currentCollection, material.id);
+      const targetDocRef = doc(firestore, targetCollection, material.id);
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { collection: _, ...materialData } = material;
+      const newMaterialData = {
+        ...materialData,
+        isPremium: newPremiumStatus,
+      };
+
+      try {
+        await setDoc(targetDocRef, newMaterialData);
+        await deleteDoc(originalDocRef);
+        
+        toast({
+          title: 'Content Updated',
+          description: `"${material.title}" has been moved to ${newPremiumStatus ? 'Premium' : 'Free'}.`,
+        });
+
+      } catch (error) {
+        console.error('Error moving document:', error);
+        toast({
+          title: 'Update Failed',
+          description: `Could not move "${material.title}".`,
+          variant: 'destructive',
+        });
+      }
+    });
   };
 
   const totalDownloads = allMaterials.reduce((acc, c) => acc + (c.downloads || 0), 0);
@@ -185,7 +248,7 @@ export default function AdminPage() {
                 <TableRow>
                   <TableHead>Title</TableHead>
                   <TableHead>Level</TableHead>
-                  <TableHead>Type</TableHead>
+                  <TableHead>Status (Premium)</TableHead>
                   <TableHead>Downloads</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -207,17 +270,20 @@ export default function AdminPage() {
                   </TableRow>
                 ) : (
                   allMaterials.map((material) => (
-                    <TableRow key={material.id}>
+                    <TableRow key={`${material.id}-${material.collection}`}>
                       <TableCell className="font-medium">{material.title}</TableCell>
                       <TableCell>{material.level} Level</TableCell>
                       <TableCell>
-                        <Badge variant={material.isPremium ? 'default' : 'secondary'}>
-                          {material.isPremium ? 'Premium' : 'Free'}
-                        </Badge>
+                        <Switch
+                          checked={material.isPremium}
+                          onCheckedChange={(checked) => handleMaterialPremiumChange(material, checked)}
+                          disabled={isUpdating}
+                          aria-label="Toggle premium status for content"
+                        />
                       </TableCell>
                        <TableCell>{formatNumber(material.downloads || 0)}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(material)}>
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(material)} disabled={isUpdating}>
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </TableCell>
@@ -239,7 +305,7 @@ export default function AdminPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Email</TableHead>
-                  <TableHead>Plan</TableHead>
+                  <TableHead>Premium Status</TableHead>
                   <TableHead>Role</TableHead>
                 </TableRow>
               </TableHeader>
@@ -263,9 +329,12 @@ export default function AdminPage() {
                     <TableRow key={user.id}>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>
-                        <Badge variant={user.isPremium ? 'default' : 'secondary'}>
-                          {user.isPremium ? 'Premium' : 'Free'}
-                        </Badge>
+                         <Switch
+                          checked={user.isPremium}
+                          onCheckedChange={(checked) => handleUserPremiumChange(user, checked)}
+                          disabled={isUpdating}
+                          aria-label="Toggle premium status for user"
+                        />
                       </TableCell>
                       <TableCell className="capitalize">{user.role}</TableCell>
                     </TableRow>
@@ -301,5 +370,3 @@ export default function AdminPage() {
     </>
   );
 }
-
-    
