@@ -1,23 +1,17 @@
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import type { EBook } from "@/lib/data";
 import { Badge } from "./ui/badge";
 import { Eye, Lock } from "lucide-react";
 import Link from "next/link";
+import Logo from "@/components/logo";
 
 export function EBookCard({ ebook, collection }: { ebook: EBook; collection: string }) {
   return (
     <Card className="flex flex-col overflow-hidden">
       <CardHeader className="p-0">
-        <div className="relative aspect-[3/4] w-full">
-          <Image
-            src={ebook.coverImage}
-            alt={`Cover of ${ebook.title}`}
-            fill
-            className="object-cover"
-            data-ai-hint={ebook.imageHint}
-          />
+        <div className="relative aspect-[3/4] w-full bg-muted flex items-center justify-center p-4">
+          <Logo className="h-24 w-24 text-primary" />
           {ebook.isPremium && (
             <Badge variant="destructive" className="absolute top-2 right-2">
               <Lock className="mr-1 h-3 w-3" />
