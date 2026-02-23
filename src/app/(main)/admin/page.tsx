@@ -30,7 +30,7 @@ import { ShieldAlert, Trash2, Loader2, ShieldX } from 'lucide-react';
 import { formatNumber } from '@/lib/utils';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, deleteDoc, doc, setDoc, updateDoc } from 'firebase/firestore';
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, useMemo } from 'react';
 import type { EBook } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
@@ -41,6 +41,7 @@ type Material = Omit<EBook, 'id' | 'level'> & { level: string | number, type: st
 type MaterialWithCollection = Material & { id: string; collection: string };
 type UserData = { id: string, email: string, isPremium: boolean, role: string, subscriptionExpiresAt?: string | null };
 type Feedback = { id: string; message: string; submittedAt: string; status: string; userId: string | null; email: string | null; };
+type CreatorProfile = { id: string, userId: string, verifiedByAdmin: boolean };
 
 const SubscriptionTimer = ({ expiryDate, onExpire }: { expiryDate: string; onExpire: () => void }) => {
     const [timeLeft, setTimeLeft] = useState<{
@@ -126,6 +127,15 @@ export default function AdminPage() {
   const usersCollectionRef = useMemoFirebase(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
   const { data: users, isLoading: isLoadingUsers } = useCollection<UserData>(usersCollectionRef);
 
+  // Fetch creator profiles
+  const creatorProfilesCollectionRef = useMemoFirebase(() => (firestore ? collection(firestore, 'creator_profiles') : null), [firestore]);
+  const { data: creatorProfiles, isLoading: isLoadingCreatorProfiles } = useCollection<CreatorProfile>(creatorProfilesCollectionRef);
+
+  const verificationStatusMap = useMemo(() => {
+    if (!creatorProfiles) return new Map<string, boolean>();
+    return new Map(creatorProfiles.map(p => [p.userId, p.verifiedByAdmin]));
+  }, [creatorProfiles]);
+
   // Fetch feedback
   const feedbackCollectionRef = useMemoFirebase(() => (firestore ? collection(firestore, 'feedback') : null), [firestore]);
   const { data: allFeedback, isLoading: isLoadingFeedback } = useCollection<Feedback>(feedbackCollectionRef);
@@ -168,7 +178,7 @@ export default function AdminPage() {
   }, [dataHooks[0].data, dataHooks[1].data, dataHooks[2].data, dataHooks[3].data]);
 
   const isLoadingMaterials = dataHooks.some((h) => h.isLoading);
-  const isLoading = isLoadingUsers || isLoadingMaterials || isLoadingFeedback || isUserLoading || isProfileLoading;
+  const isLoading = isLoadingUsers || isLoadingMaterials || isLoadingFeedback || isUserLoading || isProfileLoading || isLoadingCreatorProfiles;
 
   const handleDeleteClick = (material: MaterialWithCollection) => {
     setMaterialToDelete(material);
@@ -275,6 +285,34 @@ export default function AdminPage() {
           title: 'Update Failed',
           description: `Could not update ${targetUser.email}'s role.`,
           variant: 'destructive',
+        });
+      }
+    });
+  };
+
+  const handleUserVerificationChange = (targetUser: UserData, isVerified: boolean) => {
+    if (!firestore) return;
+
+    startTransition(async () => {
+      const creatorProfileRef = doc(firestore, 'creator_profiles', targetUser.id);
+      try {
+        // Use setDoc with merge to create or update the profile
+        await setDoc(creatorProfileRef, { 
+            id: targetUser.id,
+            userId: targetUser.id,
+            verifiedByAdmin: isVerified 
+        }, { merge: true });
+
+        toast({
+            title: 'User Updated',
+            description: `${targetUser.email} has been ${isVerified ? 'verified' : 'unverified'} as a creator.`,
+        });
+      } catch (error) {
+        console.error('Error updating creator profile:', error);
+        toast({
+            title: 'Update Failed',
+            description: `Could not update ${targetUser.email}'s verification status.`,
+            variant: 'destructive',
         });
       }
     });
@@ -467,12 +505,13 @@ export default function AdminPage() {
                   <TableHead>Email</TableHead>
                   <TableHead>Premium Status</TableHead>
                   <TableHead>Admin</TableHead>
+                  <TableHead>Verified Creator</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoadingUsers ? (
                   <TableRow>
-                     <TableCell colSpan={3} className="text-center">
+                     <TableCell colSpan={4} className="text-center">
                       <div className="flex items-center justify-center p-4">
                         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                       </div>
@@ -480,7 +519,7 @@ export default function AdminPage() {
                   </TableRow>
                 ) : !users?.length ? (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center text-muted-foreground">
+                    <TableCell colSpan={4} className="text-center text-muted-foreground">
                       No users found.
                     </TableCell>
                   </TableRow>
@@ -510,6 +549,14 @@ export default function AdminPage() {
                           onCheckedChange={(checked) => handleUserRoleChange(tableUser, checked)}
                           disabled={isUpdating || tableUser.id === user.uid}
                           aria-label="Toggle admin status for user"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Switch
+                          checked={verificationStatusMap.get(tableUser.id) || false}
+                          onCheckedChange={(checked) => handleUserVerificationChange(tableUser, checked)}
+                          disabled={isUpdating}
+                          aria-label="Toggle creator verification"
                         />
                       </TableCell>
                     </TableRow>
