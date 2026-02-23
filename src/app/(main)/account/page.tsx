@@ -11,8 +11,8 @@ import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { useState, useTransition, useEffect } from "react";
 import { updateProfile } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
-import { doc } from "firebase/firestore";
-import { Star } from "lucide-react";
+import { doc, updateDoc } from "firebase/firestore";
+import { Star, ShieldPlus } from "lucide-react";
 
 export default function AccountPage() {
   const { user, isUserLoading } = useUser();
@@ -27,7 +27,7 @@ export default function AccountPage() {
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
 
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<{ isPremium: boolean }>(userDocRef);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<{ isPremium: boolean; role?: string }>(userDocRef);
   const isPremium = userProfile?.isPremium ?? false;
 
   useEffect(() => {
@@ -58,6 +58,27 @@ export default function AccountPage() {
       }
     });
   };
+
+  const handleMakeAdmin = () => {
+    if (!userDocRef) return;
+    startTransition(async () => {
+        try {
+            await updateDoc(userDocRef, { role: 'admin' });
+            toast({
+                title: "Success!",
+                description: "You have been granted admin privileges. The page will now refresh.",
+            });
+            setTimeout(() => window.location.reload(), 2000);
+        } catch (error) {
+            console.error("Error granting admin role:", error);
+            toast({
+                title: "Error",
+                description: "Could not grant admin privileges. Please try again.",
+                variant: "destructive",
+            });
+        }
+    });
+  }
 
   if (isUserLoading || isProfileLoading) {
     return <div className="flex h-screen w-full items-center justify-center">Loading...</div>;
@@ -157,6 +178,20 @@ export default function AccountPage() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+            <CardTitle>Admin Access</CardTitle>
+            <CardDescription>
+                This is a one-time action to grant yourself administrative privileges. This card can be removed later.
+            </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <Button onClick={handleMakeAdmin} disabled={isPending || userProfile?.role === 'admin'}>
+                <ShieldPlus className="mr-2 h-4 w-4" />
+                {userProfile?.role === 'admin' ? 'You are already an Admin' : 'Make Me an Admin'}
+            </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }
