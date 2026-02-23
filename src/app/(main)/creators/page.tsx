@@ -62,6 +62,7 @@ export default function CreatorsPage() {
             lastUpdateDate: new Date().toISOString(),
             filePath: filePath,
             type: 'E-Book',
+            downloads: 0,
         };
         await addDoc(collectionRef, newEbookData);
         toast({
@@ -216,3 +217,5 @@ export default function CreatorsPage() {
     </div>
   );
 }
+
+    

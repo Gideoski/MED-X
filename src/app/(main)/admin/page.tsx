@@ -35,8 +35,8 @@ import { useState, useEffect } from 'react';
 import type { EBook } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 
-type Material = Omit<EBook, 'id' | 'level'> & { level: string | number, type: string };
-type MaterialWithCollection = Material & { id: string; collection: string; downloads?: number };
+type Material = Omit<EBook, 'id' | 'level'> & { level: string | number, type: string, downloads?: number };
+type MaterialWithCollection = Material & { id: string; collection: string };
 type UserData = { id: string, email: string, isPremium: boolean, role: string };
 
 export default function AdminPage() {
@@ -80,7 +80,6 @@ export default function AdminPage() {
             ...item,
             id: item.id,
             collection: collectionName,
-            downloads: Math.floor(Math.random() * 2000), // Placeholder for downloads
           });
         });
       }
@@ -187,13 +186,14 @@ export default function AdminPage() {
                   <TableHead>Title</TableHead>
                   <TableHead>Level</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead>Downloads</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoadingMaterials ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center">
+                    <TableCell colSpan={5} className="text-center">
                       <div className="flex items-center justify-center p-4">
                         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                       </div>
@@ -201,7 +201,7 @@ export default function AdminPage() {
                   </TableRow>
                 ) : !allMaterials.length ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground">
+                    <TableCell colSpan={5} className="text-center text-muted-foreground">
                       No content found.
                     </TableCell>
                   </TableRow>
@@ -215,6 +215,7 @@ export default function AdminPage() {
                           {material.isPremium ? 'Premium' : 'Free'}
                         </Badge>
                       </TableCell>
+                       <TableCell>{formatNumber(material.downloads || 0)}</TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(material)}>
                           <Trash2 className="h-4 w-4 text-destructive" />
@@ -300,3 +301,5 @@ export default function AdminPage() {
     </>
   );
 }
+
+    

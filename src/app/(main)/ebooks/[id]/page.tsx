@@ -2,7 +2,7 @@
 
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, updateDoc, increment } from 'firebase/firestore';
 import { EBook } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
 import { Lock, FileText, BrainCircuit, Loader2, ArrowLeft } from 'lucide-react';
@@ -62,6 +62,23 @@ export default function EbookReaderPage() {
         }, 0);
     };
 
+    const handleReadClick = () => {
+        if (!ebook || !ebook.filePath) return;
+
+        // Increment download count in Firestore (non-blocking)
+        if (ebookDocRef) {
+            updateDoc(ebookDocRef, {
+                downloads: increment(1)
+            }).catch(err => {
+                console.error("Failed to increment download count", err);
+                // We don't block the user or show an error for this, as it's a non-critical background task.
+            });
+        }
+
+        // Open the PDF in a new tab for the user
+        window.open(ebook.filePath, '_blank');
+    };
+
     if (isEbookLoading) {
         return <div className="flex h-full min-h-[50vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
     }
@@ -105,11 +122,9 @@ export default function EbookReaderPage() {
                             <CardDescription>Open the PDF to view the full material.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Button asChild className="w-full">
-                            <Link href={ebook.filePath} target="_blank" rel="noopener noreferrer">
+                            <Button onClick={handleReadClick} className="w-full">
                                 <FileText className="mr-2 h-4 w-4" />
                                 Open PDF in Reader
-                            </Link>
                             </Button>
                             <p className="text-xs text-muted-foreground mt-2 text-center">This will open the PDF in your browser's default viewer or your preferred PDF application.</p>
                         </CardContent>
@@ -191,3 +206,5 @@ export default function EbookReaderPage() {
         </div>
     );
 }
+
+    
