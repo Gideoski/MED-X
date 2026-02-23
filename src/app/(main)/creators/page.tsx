@@ -52,7 +52,7 @@ export default function CreatorsPage() {
         const newEbookData = {
             title,
             description,
-            author: user.displayName || 'Anonymous Creator',
+            author: 'MED-X',
             level: parseInt(level),
             isPremium: contentType === 'premium',
             coverImage: `https://picsum.photos/seed/${Math.random().toString().slice(2)}/300/400`,
@@ -217,5 +217,3 @@ export default function CreatorsPage() {
     </div>
   );
 }
-
-    

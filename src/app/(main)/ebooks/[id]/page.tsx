@@ -102,7 +102,7 @@ export default function EbookReaderPage() {
                             <div className="flex justify-between items-start">
                                 <div>
                                     <CardTitle className="text-3xl">{ebook.title}</CardTitle>
-                                    <CardDescription>by {ebook.author}</CardDescription>
+                                    <CardDescription>by MED-X</CardDescription>
                                 </div>
                                 {ebook.isPremium && (
                                     <Badge variant="destructive">
@@ -206,5 +206,3 @@ export default function EbookReaderPage() {
         </div>
     );
 }
-
-    
