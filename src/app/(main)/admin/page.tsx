@@ -40,6 +40,65 @@ type Material = Omit<EBook, 'id' | 'level'> & { level: string | number, type: st
 type MaterialWithCollection = Material & { id: string; collection: string };
 type UserData = { id: string, email: string, isPremium: boolean, role: string, subscriptionExpiresAt?: string | null };
 
+const SubscriptionTimer = ({ expiryDate, onExpire }: { expiryDate: string; onExpire: () => void }) => {
+    const [timeLeft, setTimeLeft] = useState<{
+        days: number;
+        hours: number;
+        minutes: number;
+        seconds: number;
+    } | null>(null);
+
+    useEffect(() => {
+        const expiry = new Date(expiryDate);
+
+        const calculateTimeLeft = () => {
+            const difference = +expiry - +new Date();
+            let newTimeLeft = null;
+
+            if (difference > 0) {
+                newTimeLeft = {
+                    days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+                    hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+                    minutes: Math.floor((difference / 1000 / 60) % 60),
+                    seconds: Math.floor((difference / 1000) % 60),
+                };
+            }
+            return newTimeLeft;
+        };
+
+        const initialTimeLeft = calculateTimeLeft();
+        if (!initialTimeLeft) {
+            onExpire();
+            return;
+        }
+
+        setTimeLeft(initialTimeLeft);
+
+        const interval = setInterval(() => {
+            const updatedTimeLeft = calculateTimeLeft();
+            if (updatedTimeLeft) {
+                setTimeLeft(updatedTimeLeft);
+            } else {
+                clearInterval(interval);
+                onExpire();
+            }
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [expiryDate, onExpire]);
+
+    if (!timeLeft) return null;
+
+    const format = (val: number) => val.toString().padStart(2, '0');
+
+    return (
+        <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
+            ({timeLeft.days > 0 && `${timeLeft.days}d `}{format(timeLeft.hours)}h:{format(timeLeft.minutes)}m:{format(timeLeft.seconds)}s left)
+        </span>
+    );
+};
+
+
 export default function AdminPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -394,12 +453,20 @@ export default function AdminPage() {
                     <TableRow key={tableUser.id}>
                       <TableCell>{tableUser.email}</TableCell>
                       <TableCell>
-                         <Switch
-                          checked={tableUser.isPremium}
-                          onCheckedChange={(checked) => handleUserPremiumChange(tableUser, checked)}
-                          disabled={isUpdating}
-                          aria-label="Toggle premium status for user"
-                        />
+                         <div className="flex items-center gap-2">
+                           <Switch
+                            checked={tableUser.isPremium}
+                            onCheckedChange={(checked) => handleUserPremiumChange(tableUser, checked)}
+                            disabled={isUpdating}
+                            aria-label="Toggle premium status for user"
+                          />
+                          {tableUser.isPremium && tableUser.subscriptionExpiresAt && (
+                            <SubscriptionTimer 
+                                expiryDate={tableUser.subscriptionExpiresAt} 
+                                onExpire={() => handleUserPremiumChange(tableUser, false)} 
+                            />
+                          )}
+                         </div>
                       </TableCell>
                       <TableCell>
                         <Switch
