@@ -34,11 +34,13 @@ import { useState, useEffect, useTransition } from 'react';
 import type { EBook } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
-import { addMonths } from 'date-fns';
+import { addMonths, format } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
 
 type Material = Omit<EBook, 'id' | 'level'> & { level: string | number, type: string, downloads?: number };
 type MaterialWithCollection = Material & { id: string; collection: string };
 type UserData = { id: string, email: string, isPremium: boolean, role: string, subscriptionExpiresAt?: string | null };
+type Feedback = { id: string; message: string; submittedAt: string; status: string; userId: string | null; email: string | null; };
 
 const SubscriptionTimer = ({ expiryDate, onExpire }: { expiryDate: string; onExpire: () => void }) => {
     const [timeLeft, setTimeLeft] = useState<{
@@ -108,6 +110,9 @@ export default function AdminPage() {
   const [materialToDelete, setMaterialToDelete] = useState<MaterialWithCollection | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdating, startTransition] = useTransition();
+  const [feedbackToDelete, setFeedbackToDelete] = useState<Feedback | null>(null);
+  const [isDeletingFeedback, setIsDeletingFeedback] = useState(false);
+
 
   // Fetch current user's profile to check for admin role
   const userDocRef = useMemoFirebase(() => {
@@ -120,6 +125,10 @@ export default function AdminPage() {
   // Fetch users
   const usersCollectionRef = useMemoFirebase(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
   const { data: users, isLoading: isLoadingUsers } = useCollection<UserData>(usersCollectionRef);
+
+  // Fetch feedback
+  const feedbackCollectionRef = useMemoFirebase(() => (firestore ? collection(firestore, 'feedback') : null), [firestore]);
+  const { data: allFeedback, isLoading: isLoadingFeedback } = useCollection<Feedback>(feedbackCollectionRef);
 
   // Fetch all materials
   const collectionsToFetch = [
@@ -159,7 +168,7 @@ export default function AdminPage() {
   }, [dataHooks[0].data, dataHooks[1].data, dataHooks[2].data, dataHooks[3].data]);
 
   const isLoadingMaterials = dataHooks.some((h) => h.isLoading);
-  const isLoading = isLoadingUsers || isLoadingMaterials || isUserLoading || isProfileLoading;
+  const isLoading = isLoadingUsers || isLoadingMaterials || isLoadingFeedback || isUserLoading || isProfileLoading;
 
   const handleDeleteClick = (material: MaterialWithCollection) => {
     setMaterialToDelete(material);
@@ -185,6 +194,33 @@ export default function AdminPage() {
     } finally {
       setIsDeleting(false);
       setMaterialToDelete(null);
+    }
+  };
+
+  const handleDeleteFeedbackClick = (feedbackItem: Feedback) => {
+    setFeedbackToDelete(feedbackItem);
+  };
+
+  const confirmDeleteFeedback = async () => {
+    if (!feedbackToDelete || !firestore) return;
+    setIsDeletingFeedback(true);
+    try {
+      const docRef = doc(firestore, 'feedback', feedbackToDelete.id);
+      await deleteDoc(docRef);
+      toast({
+        title: 'Feedback Deleted',
+        description: `Feedback submission has been successfully deleted.`,
+      });
+    } catch (error) {
+      console.error('Error deleting feedback: ', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete feedback. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeletingFeedback(false);
+      setFeedbackToDelete(null);
     }
   };
 
@@ -483,6 +519,59 @@ export default function AdminPage() {
             </Table>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>User Feedback</CardTitle>
+            <CardDescription>Review and manage user submissions.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[50%]">Message</TableHead>
+                  <TableHead>From</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoadingFeedback ? (
+                   <TableRow>
+                     <TableCell colSpan={5} className="text-center">
+                      <div className="flex items-center justify-center p-4">
+                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : !allFeedback?.length ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground">
+                      No feedback submissions yet.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  allFeedback.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="max-w-sm truncate">{item.message}</TableCell>
+                      <TableCell>{item.email || 'Anonymous'}</TableCell>
+                      <TableCell className="whitespace-nowrap">{format(new Date(item.submittedAt), 'PP')}</TableCell>
+                      <TableCell>
+                        <Badge variant={item.status === 'New' ? 'default' : 'secondary'}>{item.status}</Badge>
+                      </TableCell>
+                       <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteFeedbackClick(item)} disabled={isUpdating}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       </div>
 
       <AlertDialog open={!!materialToDelete} onOpenChange={(open) => !open && setMaterialToDelete(null)}>
@@ -502,6 +591,27 @@ export default function AdminPage() {
               className="bg-destructive hover:bg-destructive/90"
             >
               {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!feedbackToDelete} onOpenChange={(open) => !open && setFeedbackToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete this feedback submission from the database.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeletingFeedback}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteFeedback}
+              disabled={isDeletingFeedback}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {isDeletingFeedback ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
