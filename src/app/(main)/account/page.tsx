@@ -7,17 +7,28 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { useUser } from "@/firebase";
+import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { useState, useTransition, useEffect } from "react";
 import { updateProfile } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
+import { doc } from "firebase/firestore";
+import { Star } from "lucide-react";
 
 export default function AccountPage() {
   const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
 
   const [name, setName] = useState('');
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<{ isPremium: boolean }>(userDocRef);
+  const isPremium = userProfile?.isPremium ?? false;
 
   useEffect(() => {
     if (user) {
@@ -48,7 +59,7 @@ export default function AccountPage() {
     });
   };
 
-  if (isUserLoading) {
+  if (isUserLoading || isProfileLoading) {
     return <div className="flex h-screen w-full items-center justify-center">Loading...</div>;
   }
 
@@ -108,11 +119,18 @@ export default function AccountPage() {
             <div className="flex items-center justify-between rounded-lg border p-4">
                 <div>
                     <h3 className="font-semibold">Current Plan</h3>
-                    <p className="text-muted-foreground">You are currently on the <Badge variant="secondary">Free</Badge> plan.</p>
+                    <p className="text-muted-foreground">
+                      You are currently on the <Badge variant={isPremium ? 'default' : 'secondary'}>{isPremium ? 'Premium' : 'Free'}</Badge> plan.
+                    </p>
                 </div>
-                <Button asChild>
-                    <Link href="/premium">Upgrade to Premium</Link>
-                </Button>
+                {!isPremium && (
+                  <Button asChild>
+                    <Link href="/premium">
+                      <Star className="mr-2 h-4 w-4" />
+                      Upgrade to Premium
+                    </Link>
+                  </Button>
+                )}
             </div>
         </CardContent>
       </Card>
