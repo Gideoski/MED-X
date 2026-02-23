@@ -1,42 +1,86 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
-import { submitFeedback } from "@/lib/actions";
+import { useState, useTransition, FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { useFirestore, useUser } from "@/firebase";
+import { collection, addDoc } from "firebase/firestore";
+import { z } from 'zod';
+
+const feedbackSchema = z.string().min(10, { message: "Feedback must be at least 10 characters long." });
 
 function SubmitButton({ pending }: { pending: boolean }) {
   return <Button type="submit" disabled={pending}>{pending ? "Sending..." : "Send Feedback"}</Button>;
 }
 
 export function FeedbackForm() {
-  const [state, setState] = useState<{ message: string | null; errors: { feedback?: string[] } }>({ message: null, errors: {} });
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const [feedbackText, setFeedbackText] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (state.message && !state.errors.feedback) {
+  const firestore = useFirestore();
+  const { user } = useUser();
+
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+
+    const validation = feedbackSchema.safeParse(feedbackText);
+    if (!validation.success) {
+      const errorMessage = validation.error.flatten().formErrors.join(", ");
+      setError(errorMessage);
       toast({
-        title: "Success!",
-        description: state.message,
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
       });
-      setFeedbackText(""); // Clear textarea on success
-    } else if (state.message && state.errors.feedback) {
+      return;
+    }
+
+    if (!firestore) {
         toast({
             title: "Error",
-            description: state.errors.feedback.join(", "),
+            description: "Database connection not available. Please try again later.",
             variant: "destructive",
-        })
-    }
-  }, [state, toast]);
+        });
+        return;
+    };
 
-  const handleSubmit = async (formData: FormData) => {
     startTransition(async () => {
-      const result = await submitFeedback(state, formData);
-      setState(result);
+      try {
+        const feedbackData = {
+          message: feedbackText,
+          submittedAt: new Date().toISOString(),
+          status: "New",
+          userId: user?.uid ?? null,
+          email: user?.email ?? null,
+        };
+        
+        const feedbackCollection = collection(firestore, "feedback");
+        await addDoc(feedbackCollection, feedbackData);
+
+        toast({
+          title: "Success!",
+          description: "Thank you for your feedback!",
+        });
+        setFeedbackText("");
+      } catch (e) {
+        console.error("Feedback submission error: ", e);
+        
+        let description = "Could not submit your feedback. Please try again.";
+        if (e instanceof Error && e.message.toLowerCase().includes("permission-denied")) {
+            description = "You do not have permission to submit feedback.";
+        }
+
+        toast({
+          title: "Error",
+          description: description,
+          variant: "destructive",
+        });
+      }
     });
   };
 
@@ -47,7 +91,7 @@ export function FeedbackForm() {
         <CardDescription>Have a suggestion or found a bug? Let us know!</CardDescription>
       </CardHeader>
       <CardContent>
-        <form action={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <Textarea
             name="feedback"
             placeholder="Tell us what you think..."
@@ -58,12 +102,11 @@ export function FeedbackForm() {
             disabled={isPending}
           />
           <div id="feedback-error" aria-live="polite" aria-atomic="true">
-            {state.errors?.feedback &&
-              state.errors.feedback.map((error: string) => (
-                <p className="mt-2 text-sm text-destructive" key={error}>
+            {error &&
+                <p className="mt-2 text-sm text-destructive">
                   {error}
                 </p>
-              ))}
+            }
           </div>
           <SubmitButton pending={isPending} />
         </form>
