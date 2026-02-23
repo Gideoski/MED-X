@@ -12,11 +12,12 @@ import { cn } from '@/lib/utils';
 
 const MAX_DESCRIPTION_LENGTH = 150; // Heuristic length in characters
 
-export function EBookCard({ ebook, collection }: { ebook: EBook; collection: string }) {
+export function EBookCard({ ebook, collection, isUserPremium }: { ebook: EBook; collection: string; isUserPremium: boolean }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   // A simple heuristic to check if the description is long enough to warrant a "Read More" button.
   const isLongDescription = ebook.description.length > MAX_DESCRIPTION_LENGTH;
+  const isLocked = ebook.isPremium && !isUserPremium;
 
   return (
     <Card className="flex flex-col overflow-hidden">
@@ -49,11 +50,20 @@ export function EBookCard({ ebook, collection }: { ebook: EBook; collection: str
         </div>
       </CardContent>
       <CardFooter className="p-4 pt-0">
-        <Button className="w-full" asChild>
-          <Link href={`/ebooks/${ebook.id}?collection=${collection}`}>
-            <Eye className="mr-2 h-4 w-4" /> Read Online
-          </Link>
-        </Button>
+        {isLocked ? (
+          <Button className="w-full" asChild>
+            <Link href="/premium">
+              <Lock className="mr-2 h-4 w-4" />
+              Upgrade to Read
+            </Link>
+          </Button>
+        ) : (
+          <Button className="w-full" asChild>
+            <Link href={`/ebooks/${ebook.id}?collection=${collection}`}>
+              <Eye className="mr-2 h-4 w-4" /> Read Online
+            </Link>
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );

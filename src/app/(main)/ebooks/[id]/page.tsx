@@ -1,11 +1,11 @@
 'use client';
 
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
-import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { doc, updateDoc, increment } from 'firebase/firestore';
 import { EBook } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
-import { Lock, FileText, BrainCircuit, Loader2, ArrowLeft } from 'lucide-react';
+import { Lock, FileText, BrainCircuit, Loader2, ArrowLeft, Star } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useState, useTransition } from 'react';
@@ -34,6 +34,14 @@ export default function EbookReaderPage() {
 
     const { data: ebook, isLoading: isEbookLoading } = useDoc<EBook>(ebookDocRef);
     
+    const { user, isUserLoading } = useUser();
+    const userDocRef = useMemoFirebase(() => {
+        if (!firestore || !user) return null;
+        return doc(firestore, 'users', user.uid);
+    }, [firestore, user]);
+    const { data: userProfile, isLoading: isProfileLoading } = useDoc<{ isPremium: boolean }>(userDocRef);
+    const isUserPremium = userProfile?.isPremium ?? false;
+
     const [isQuizLoading, startQuizTransition] = useTransition();
     const [quiz, setQuiz] = useState<QuizQuestion[] | null>(null);
     const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
@@ -78,13 +86,59 @@ export default function EbookReaderPage() {
         // Open the PDF in a new tab for the user
         window.open(ebook.filePath, '_blank');
     };
+    
+    const isLoading = isEbookLoading || isUserLoading || isProfileLoading;
+    const isLocked = ebook && ebook.isPremium && !isUserPremium;
 
-    if (isEbookLoading) {
+    if (isLoading) {
         return <div className="flex h-full min-h-[50vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
     }
 
     if (!ebook) {
-        return <div className="flex h-full min-h-[50vh] items-center justify-center"><p>E-book not found or you don't have permission to view it.</p></div>;
+        return (
+            <div className="space-y-6 text-center">
+                 <p>E-book not found. It might have been moved or deleted.</p>
+                 <Button variant="outline" onClick={() => router.back()}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Go Back
+                </Button>
+            </div>
+        );
+    }
+    
+    if (isLocked) {
+        return (
+            <div className="space-y-6">
+                 <div>
+                    <Button variant="outline" onClick={() => router.back()}>
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Go Back
+                    </Button>
+                </div>
+                <Card className="max-w-2xl mx-auto text-center">
+                    <CardHeader>
+                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+                            <Lock className="h-8 w-8" />
+                        </div>
+                        <CardTitle className="mt-4 text-2xl">Premium Content Locked</CardTitle>
+                        <CardDescription>
+                            This e-book, "{ebook.title}", is only available to premium subscribers.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground mb-6">
+                            Upgrade your plan to get instant access to this and all other premium materials on MED-X.
+                        </p>
+                        <Button asChild>
+                            <Link href="/premium">
+                                <Star className="mr-2 h-4 w-4" />
+                                Upgrade to Premium
+                            </Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
+        );
     }
 
     return (

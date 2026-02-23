@@ -21,7 +21,7 @@ export default function Level200Page() {
   }, [firestore, user]);
 
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<{ isPremium: boolean }>(userDocRef);
-  const isPremium = userProfile?.isPremium ?? false;
+  const isUserPremium = userProfile?.isPremium ?? false;
 
   const freeCollectionRef = useMemoFirebase(() => {
       if (!firestore) return null;
@@ -29,9 +29,9 @@ export default function Level200Page() {
   }, [firestore]);
 
   const premiumCollectionRef = useMemoFirebase(() => {
-      if (!firestore || !isPremium) return null;
+      if (!firestore) return null;
       return collection(firestore, 'materials_200lvl_premium');
-  }, [firestore, isPremium]);
+  }, [firestore]);
 
   const { data: freeEbooks, isLoading: isLoadingFree } = useCollection<EBookData>(freeCollectionRef);
   const { data: premiumEbooks, isLoading: isLoadingPremium } = useCollection<EBookData>(premiumCollectionRef);
@@ -40,14 +40,14 @@ export default function Level200Page() {
 
   useEffect(() => {
     const freeWithCollection = freeEbooks ? freeEbooks.map(ebook => ({ ...ebook, collection: 'materials_200lvl_free' })) : [];
-    const premiumWithCollection = premiumEbooks && isPremium ? premiumEbooks.map(ebook => ({ ...ebook, collection: 'materials_200lvl_premium' })) : [];
+    const premiumWithCollection = premiumEbooks ? premiumEbooks.map(ebook => ({ ...ebook, collection: 'materials_200lvl_premium' })) : [];
     
     const combined = [
         ...freeWithCollection,
         ...premiumWithCollection
     ];
     setAllEbooks(combined as (EBook & { collection: string })[]);
-  }, [freeEbooks, premiumEbooks, isPremium]);
+  }, [freeEbooks, premiumEbooks]);
 
 
   const filteredEbooks = allEbooks.filter(
@@ -57,7 +57,7 @@ export default function Level200Page() {
       (ebook.author && ebook.author.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const isLoading = isUserLoading || isProfileLoading || isLoadingFree || (isPremium && isLoadingPremium);
+  const isLoading = isUserLoading || isProfileLoading || isLoadingFree || isLoadingPremium;
 
   return (
     <div className="space-y-8">
@@ -86,7 +86,7 @@ export default function Level200Page() {
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         {filteredEbooks.map((ebook) => (
-          <EBookCard key={ebook.id} ebook={ebook as EBook} collection={ebook.collection} />
+          <EBookCard key={ebook.id} ebook={ebook as EBook} collection={ebook.collection} isUserPremium={isUserPremium} />
         ))}
       </div>
     </div>
