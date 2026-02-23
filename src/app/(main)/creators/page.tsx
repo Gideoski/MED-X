@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Link, Upload } from "lucide-react";
+import { Upload } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useState, useTransition } from "react";
@@ -196,7 +196,7 @@ export default function CreatorsPage() {
                   required
                 />
                 <p className="text-xs text-muted-foreground">
-                  Paste a publicly accessible link to your PDF (e.g., from Google Drive or Dropbox).
+                  Upload your PDF to a service like Google Drive. Right-click the file, select "Share", and change access to "Anyone with the link". Then copy and paste the link here.
                 </p>
               </div>
               
