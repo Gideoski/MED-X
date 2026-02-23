@@ -10,7 +10,7 @@
    SidebarFooter,
    useSidebar,
  } from "@/components/ui/sidebar"
- import { Home, Book, GraduationCap, Pencil, Shield, Users, User, Settings, HelpCircle, LogOut } from "lucide-react"
+ import { Home, Book, GraduationCap, Pencil, Shield, Users, User, Settings, MessageSquare, LogOut } from "lucide-react"
  import Logo from "../logo"
  import Link from "next/link"
  import { usePathname } from "next/navigation"
@@ -31,7 +31,7 @@
  const bottomNavItems = [
     { href: "/account", icon: User, label: "Account" },
     { href: "/settings", icon: Settings, label: "Settings" },
-    { href: "/feedback-help", icon: HelpCircle, label: "Feedback & Help" },
+    { href: "/feedback-help", icon: MessageSquare, label: "Feedback" },
  ]
  
  export function SidebarNav() {

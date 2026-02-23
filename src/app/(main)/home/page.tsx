@@ -7,7 +7,7 @@ export default function HomePage() {
   const creativeServices = services.filter(s => s.category === "Creative & Non-Academic Services");
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="mx-auto max-w-7xl">
       <header className="mb-12 text-center">
         <h1 className="text-6xl font-extrabold tracking-tighter">
           <span className="text-primary">*MED-X*</span>
