@@ -50,12 +50,14 @@ export default function Level200Page() {
   }, [freeEbooks, premiumEbooks]);
 
 
-  const filteredEbooks = allEbooks.filter(
-    (ebook) =>
-      ebook.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (ebook.description && ebook.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (ebook.author && ebook.author.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredEbooks = allEbooks
+    .filter(
+      (ebook) =>
+        ebook.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (ebook.description && ebook.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (ebook.author && ebook.author.toLowerCase().includes(searchQuery.toLowerCase()))
+    )
+    .sort((a, b) => a.title.localeCompare(b.title));
 
   const isLoading = isUserLoading || isProfileLoading || isLoadingFree || isLoadingPremium;
 
