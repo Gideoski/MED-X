@@ -128,22 +128,44 @@ export default function AdminPage() {
     }
   };
 
-  const handleUserPremiumChange = (user: UserData, isPremium: boolean) => {
+  const handleUserPremiumChange = (targetUser: UserData, isPremium: boolean) => {
     if (!firestore) return;
 
     startTransition(async () => {
-      const userDocRef = doc(firestore, 'users', user.id);
+      const userDocRef = doc(firestore, 'users', targetUser.id);
       try {
         await updateDoc(userDocRef, { isPremium });
         toast({
           title: 'User Updated',
-          description: `${user.email}'s status has been set to ${isPremium ? 'Premium' : 'Free'}.`,
+          description: `${targetUser.email}'s status has been set to ${isPremium ? 'Premium' : 'Free'}.`,
         });
       } catch (error) {
         console.error('Error updating user:', error);
         toast({
           title: 'Update Failed',
-          description: `Could not update ${user.email}'s status.`,
+          description: `Could not update ${targetUser.email}'s status.`,
+          variant: 'destructive',
+        });
+      }
+    });
+  };
+
+  const handleUserRoleChange = (targetUser: UserData, isAdmin: boolean) => {
+    if (!firestore) return;
+
+    startTransition(async () => {
+      const userDocRef = doc(firestore, 'users', targetUser.id);
+      try {
+        await updateDoc(userDocRef, { role: isAdmin ? 'admin' : 'student' });
+        toast({
+          title: 'User Role Updated',
+          description: `${targetUser.email} has been made an ${isAdmin ? 'Admin' : 'Student'}.`,
+        });
+      } catch (error) {
+        console.error('Error updating user role:', error);
+        toast({
+          title: 'Update Failed',
+          description: `Could not update ${targetUser.email}'s role.`,
           variant: 'destructive',
         });
       }
@@ -336,7 +358,7 @@ export default function AdminPage() {
                 <TableRow>
                   <TableHead>Email</TableHead>
                   <TableHead>Premium Status</TableHead>
-                  <TableHead>Role</TableHead>
+                  <TableHead>Admin</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -355,18 +377,25 @@ export default function AdminPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  users.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell>{user.email}</TableCell>
+                  users.map((tableUser) => (
+                    <TableRow key={tableUser.id}>
+                      <TableCell>{tableUser.email}</TableCell>
                       <TableCell>
                          <Switch
-                          checked={user.isPremium}
-                          onCheckedChange={(checked) => handleUserPremiumChange(user, checked)}
+                          checked={tableUser.isPremium}
+                          onCheckedChange={(checked) => handleUserPremiumChange(tableUser, checked)}
                           disabled={isUpdating}
                           aria-label="Toggle premium status for user"
                         />
                       </TableCell>
-                      <TableCell className="capitalize">{user.role}</TableCell>
+                      <TableCell>
+                        <Switch
+                          checked={tableUser.role === 'admin'}
+                          onCheckedChange={(checked) => handleUserRoleChange(tableUser, checked)}
+                          disabled={isUpdating || tableUser.id === user.uid}
+                          aria-label="Toggle admin status for user"
+                        />
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
