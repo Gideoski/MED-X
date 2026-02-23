@@ -34,10 +34,11 @@ import { useState, useEffect, useTransition } from 'react';
 import type { EBook } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
+import { addMonths } from 'date-fns';
 
 type Material = Omit<EBook, 'id' | 'level'> & { level: string | number, type: string, downloads?: number };
 type MaterialWithCollection = Material & { id: string; collection: string };
-type UserData = { id: string, email: string, isPremium: boolean, role: string };
+type UserData = { id: string, email: string, isPremium: boolean, role: string, subscriptionExpiresAt?: string | null };
 
 export default function AdminPage() {
   const firestore = useFirestore();
@@ -130,14 +131,26 @@ export default function AdminPage() {
 
   const handleUserPremiumChange = (targetUser: UserData, isPremium: boolean) => {
     if (!firestore) return;
-
+  
     startTransition(async () => {
       const userDocRef = doc(firestore, 'users', targetUser.id);
       try {
-        await updateDoc(userDocRef, { isPremium });
+        const updateData: { isPremium: boolean; subscriptionExpiresAt?: string | null } = { isPremium };
+        let toastDescription = `${targetUser.email}'s status has been set to ${isPremium ? 'Premium' : 'Free'}.`;
+
+        if (isPremium) {
+          const expiryDate = addMonths(new Date(), 1);
+          updateData.subscriptionExpiresAt = expiryDate.toISOString();
+          toastDescription = `${targetUser.email} has been upgraded to Premium for one month.`
+        } else {
+          updateData.subscriptionExpiresAt = null; // Or remove the field
+        }
+  
+        await updateDoc(userDocRef, updateData);
+        
         toast({
           title: 'User Updated',
-          description: `${targetUser.email}'s status has been set to ${isPremium ? 'Premium' : 'Free'}.`,
+          description: toastDescription,
         });
       } catch (error) {
         console.error('Error updating user:', error);
