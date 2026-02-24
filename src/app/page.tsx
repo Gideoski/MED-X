@@ -40,10 +40,10 @@ export default function WelcomePage() {
           </span>
         ))}
       </div>
-      <div className="relative z-10 flex flex-col items-center justify-center space-y-6 text-center">
+      <div className="relative z-10 flex flex-col items-center justify-center space-y-6 px-4 text-center">
         <Logo className="h-24 w-24 text-primary" />
-        <h1 className="text-5xl font-extrabold tracking-tighter sm:text-6xl md:text-7xl">
-          Welcome to <em className="text-primary not-italic">MED-X</em>
+        <h1 className="text-4xl font-extrabold tracking-tighter sm:text-5xl md:text-6xl">
+          Welcome to <em className="text-primary not-italic whitespace-nowrap">MED-X</em>
         </h1>
         <p className="max-w-md text-lg text-muted-foreground">
           Study smarter, not harder. Access curated e-books and materials designed for your success.
