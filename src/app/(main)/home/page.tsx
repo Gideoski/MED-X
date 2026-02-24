@@ -9,9 +9,9 @@ export default function HomePage() {
   return (
     <div className="mx-auto max-w-7xl">
       <header className="mb-12 text-center">
-        <h1 className="text-6xl font-extrabold tracking-tighter">
+        <h1 className="text-4xl font-extrabold tracking-tighter sm:text-5xl lg:text-6xl">
           <span className="text-primary">*MED-X*</span>
-          <span className="block text-5xl text-foreground">E-BOOKS</span>
+          <span className="block text-3xl sm:text-4xl lg:text-5xl text-foreground">E-BOOKS</span>
         </h1>
       </header>
 
@@ -30,7 +30,7 @@ export default function HomePage() {
       </section>
 
       <section>
-        <h2 className="mb-8 text-center text-4xl font-bold tracking-tight">📚 Our Services</h2>
+        <h2 className="mb-8 text-center text-3xl font-bold tracking-tight md:text-4xl">📚 Our Services</h2>
         
         <div className="grid grid-cols-1 gap-10 md:grid-cols-2">
             <div>
