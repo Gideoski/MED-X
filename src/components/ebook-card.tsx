@@ -10,16 +10,14 @@ import Link from "next/link";
 import Image from "next/image";
 import { cn } from '@/lib/utils';
 
-const MAX_DESCRIPTION_LENGTH = 150; // Heuristic length in characters
+const MAX_DESCRIPTION_LENGTH = 150;
 
 export function EBookCard({ ebook, collection, isUserPremium }: { ebook: EBook; collection: string; isUserPremium: boolean }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // A simple heuristic to check if the description is long enough to warrant a "Read More" button.
   const isLongDescription = ebook.description.length > MAX_DESCRIPTION_LENGTH;
   const isLocked = ebook.isPremium && !isUserPremium;
 
-  // Determine the cover image source based on title or level
   const getCoverImage = () => {
     const title = ebook.title.toLowerCase();
     
@@ -28,21 +26,22 @@ export function EBookCard({ ebook, collection, isUserPremium }: { ebook: EBook; 
     if (title.includes('anatomy of the leg')) return '/images/anatomy of the leg.png';
     if (title.includes('csc study guide')) return '/images/csc study guide.png';
     if (title.includes('epithelial tissues')) return '/images/epithelial tissues.png';
-    if (title.includes('igmc exam')) return '/images/IGMC Exam.png';
+    // Broad match for any IGMC exam related titles
+    if (title.includes('igmc')) return '/images/IGMC Exam.png';
     if (title.includes('upper limb')) return '/images/upper limb.png';
 
     // Default 100 Level
     const is100Lvl = collection.includes('100lvl') || ebook.level === 100;
     if (is100Lvl) return '/images/med-x 100lvl ebook cover.jpeg';
 
-    // Fallback to provided cover image or generic logo
+    // Fallback
     return ebook.coverImage || '/images/MED-X logo.jpeg';
   };
 
   const coverSrc = getCoverImage();
 
   return (
-    <Card className="flex flex-col overflow-hidden border-border/50 shadow-sm transition-shadow hover:shadow-md">
+    <Card className="flex flex-col overflow-hidden border-border/50 shadow-sm transition-shadow hover:shadow-md h-full">
       <CardHeader className="p-0">
         <div className="relative aspect-[3/4] w-full bg-muted overflow-hidden">
           <Image 
@@ -61,16 +60,16 @@ export function EBookCard({ ebook, collection, isUserPremium }: { ebook: EBook; 
         </div>
       </CardHeader>
       <CardContent className="flex-grow p-5">
-        <CardTitle className="mb-1 text-lg font-bold tracking-tight">{ebook.title}</CardTitle>
-        <p className="text-sm text-muted-foreground font-medium">by MED-X</p>
-        <div className="mt-3 text-sm leading-relaxed text-muted-foreground">
-            <p className={cn(isLongDescription && !isExpanded && "line-clamp-4")}>
+        <CardTitle className="mb-1 text-lg font-bold tracking-tight line-clamp-2">{ebook.title}</CardTitle>
+        <p className="text-sm text-muted-foreground font-medium mb-3">by MED-X</p>
+        <div className="text-sm leading-relaxed text-muted-foreground">
+            <p className={cn(isLongDescription && !isExpanded && "line-clamp-3")}>
                 {ebook.description}
             </p>
             {isLongDescription && (
                 <button 
                     onClick={() => setIsExpanded(!isExpanded)}
-                    className="text-primary font-semibold hover:underline mt-2 focus:outline-none block"
+                    className="text-primary text-xs font-semibold hover:underline mt-2 focus:outline-none"
                 >
                     {isExpanded ? 'Read Less' : 'Read More'}
                 </button>

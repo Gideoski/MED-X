@@ -49,7 +49,6 @@ export default function LoginPage() {
               const userDoc = await getDoc(userDocRef);
 
               if (!userDoc.exists()) {
-                  // User document doesn't exist, create it.
                   const userProfile = {
                       id: loggedInUser.uid,
                       email: loggedInUser.email,
@@ -61,7 +60,6 @@ export default function LoginPage() {
                   };
                   await setDoc(userDocRef, userProfile);
               } else {
-                  // Optional: update last login time
                   await setDoc(userDocRef, { lastLoginAt: new Date().toISOString() }, { merge: true });
               }
             })
@@ -86,7 +84,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-background px-4">
+    <div className="flex min-h-screen w-full items-center justify-center bg-background px-4 py-8">
       <Card className="mx-auto max-w-sm w-full">
         <CardHeader className="text-center">
           <Link href="/" className="inline-block mb-4">
@@ -128,17 +126,16 @@ export default function LoginPage() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         disabled={isPending}
+                        className="pr-10"
                     />
-                    <Button
+                    <button
                         type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground hover:text-foreground transition-colors"
                         onClick={() => setShowPassword(!showPassword)}
                         aria-label={showPassword ? "Hide password" : "Show password"}
                     >
-                        {showPassword ? <EyeOff /> : <Eye />}
-                    </Button>
+                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
                 </div>
               </div>
               <Button type="submit" className="w-full" disabled={isPending}>
