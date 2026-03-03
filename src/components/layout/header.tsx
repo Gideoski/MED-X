@@ -30,25 +30,13 @@ export function Header() {
   return (
     <header className="relative sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
       {/* Left Section */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 md:gap-4">
         <div className="md:hidden">
           <SidebarTrigger />
         </div>
-        <div className="hidden md:block">
-          <Link href="/home" className="flex items-center gap-2">
-            <Logo className="h-8 w-8 text-primary" />
-            <span className="whitespace-nowrap text-xl font-bold tracking-tighter text-primary">
-              <em className="not-italic">MED-X</em>
-            </span>
-          </Link>
-        </div>
-      </div>
-
-      {/* Center Section (Mobile Only) */}
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 md:hidden">
         <Link href="/home" className="flex items-center gap-2">
-          <Logo className="h-8 w-8 text-primary" />
-          <span className="whitespace-nowrap text-xl font-bold tracking-tighter text-primary">
+          <Logo className="h-7 w-7 md:h-8 md:h-8 text-primary" />
+          <span className="whitespace-nowrap text-lg md:text-xl font-bold tracking-tighter text-primary">
             <em className="not-italic">MED-X</em>
           </span>
         </Link>
@@ -93,11 +81,11 @@ export function Header() {
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
-          <div className="flex items-center gap-2">
-            <Button asChild variant="outline">
+          <div className="flex items-center gap-1.5 md:gap-2">
+            <Button asChild variant="outline" size="sm" className="h-8 md:h-9 px-3 md:px-4 text-xs md:text-sm">
               <Link href="/login">Login</Link>
             </Button>
-            <Button asChild>
+            <Button asChild size="sm" className="h-8 md:h-9 px-3 md:px-4 text-xs md:text-sm">
               <Link href="/signup">Sign Up</Link>
             </Button>
           </div>
