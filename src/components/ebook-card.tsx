@@ -19,11 +19,27 @@ export function EBookCard({ ebook, collection, isUserPremium }: { ebook: EBook; 
   const isLongDescription = ebook.description.length > MAX_DESCRIPTION_LENGTH;
   const isLocked = ebook.isPremium && !isUserPremium;
 
-  // Determine the cover image source
-  const is100Lvl = collection.includes('100lvl') || ebook.level === 100;
-  const coverSrc = is100Lvl 
-    ? '/images/med-x 100lvl ebook cover.jpeg' 
-    : (ebook.coverImage || '/images/MED-X logo.jpeg');
+  // Determine the cover image source based on title or level
+  const getCoverImage = () => {
+    const title = ebook.title.toLowerCase();
+    
+    // 200 Level Specific Overrides
+    if (title.includes('embryology')) return '/images/embryology.png';
+    if (title.includes('anatomy of the leg')) return '/images/anatomy of the leg.png';
+    if (title.includes('csc study guide')) return '/images/csc study guide.png';
+    if (title.includes('epithelial tissues')) return '/images/epithelial tissues.png';
+    if (title.includes('igmc exam')) return '/images/IGMC Exam.png';
+    if (title.includes('upper limb')) return '/images/upper limb.png';
+
+    // Default 100 Level
+    const is100Lvl = collection.includes('100lvl') || ebook.level === 100;
+    if (is100Lvl) return '/images/med-x 100lvl ebook cover.jpeg';
+
+    // Fallback to provided cover image or generic logo
+    return ebook.coverImage || '/images/MED-X logo.jpeg';
+  };
+
+  const coverSrc = getCoverImage();
 
   return (
     <Card className="flex flex-col overflow-hidden">
