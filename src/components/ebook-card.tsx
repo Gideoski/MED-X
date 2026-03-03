@@ -7,7 +7,7 @@ import type { EBook } from "@/lib/data";
 import { Badge } from "./ui/badge";
 import { Eye, Lock } from "lucide-react";
 import Link from "next/link";
-import Logo from "@/components/logo";
+import Image from "next/image";
 import { cn } from '@/lib/utils';
 
 const MAX_DESCRIPTION_LENGTH = 150; // Heuristic length in characters
@@ -19,11 +19,23 @@ export function EBookCard({ ebook, collection, isUserPremium }: { ebook: EBook; 
   const isLongDescription = ebook.description.length > MAX_DESCRIPTION_LENGTH;
   const isLocked = ebook.isPremium && !isUserPremium;
 
+  // Determine the cover image source
+  const is100Lvl = collection.includes('100lvl') || ebook.level === 100;
+  const coverSrc = is100Lvl 
+    ? '/images/med-x 100lvl ebook cover.jpeg' 
+    : (ebook.coverImage || '/images/MED-X logo.jpeg');
+
   return (
     <Card className="flex flex-col overflow-hidden">
       <CardHeader className="p-0">
-        <div className="relative aspect-[3/4] w-full bg-muted flex items-center justify-center p-4">
-          <Logo className="h-24 w-24 text-primary" />
+        <div className="relative aspect-[3/4] w-full bg-muted overflow-hidden">
+          <Image 
+            src={coverSrc}
+            alt={ebook.title}
+            fill
+            className="object-cover transition-transform duration-300 hover:scale-105"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+          />
           {ebook.isPremium && (
             <Badge variant="destructive" className="absolute top-2 right-2">
               <Lock className="mr-1 h-3 w-3" />

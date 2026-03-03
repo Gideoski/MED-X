@@ -70,14 +70,20 @@ export default function CreatorsPage() {
       try {
         const collectionName = `materials_${level}lvl_${contentType === 'premium' ? 'premium' : 'free'}`;
         const collectionRef = collection(firestore, collectionName);
+        
+        // Use the specific 100lvl cover image if level is 100
+        const coverImageUrl = level === '100' 
+          ? '/images/med-x 100lvl ebook cover.jpeg' 
+          : `https://picsum.photos/seed/${Math.random().toString().slice(2)}/300/400`;
+
         const newEbookData = {
             title,
             description,
             author: 'MED-X',
             level: parseInt(level),
             isPremium: contentType === 'premium',
-            coverImage: `https://picsum.photos/seed/${Math.random().toString().slice(2)}/300/400`,
-            imageHint: "book cover abstract",
+            coverImage: coverImageUrl,
+            imageHint: level === '100' ? "med-x 100lvl cover" : "book cover abstract",
             creatorId: user.uid,
             uploadDate: new Date().toISOString(),
             lastUpdateDate: new Date().toISOString(),
