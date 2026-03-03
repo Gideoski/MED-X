@@ -42,7 +42,7 @@ export function EBookCard({ ebook, collection, isUserPremium }: { ebook: EBook; 
   const coverSrc = getCoverImage();
 
   return (
-    <Card className="flex flex-col overflow-hidden">
+    <Card className="flex flex-col overflow-hidden border-border/50 shadow-sm transition-shadow hover:shadow-md">
       <CardHeader className="p-0">
         <div className="relative aspect-[3/4] w-full bg-muted overflow-hidden">
           <Image 
@@ -60,33 +60,33 @@ export function EBookCard({ ebook, collection, isUserPremium }: { ebook: EBook; 
           )}
         </div>
       </CardHeader>
-      <CardContent className="flex-grow p-4">
-        <CardTitle className="mb-1 text-lg">{ebook.title}</CardTitle>
-        <p className="text-sm text-muted-foreground">by MED-X</p>
-        <div className="mt-2 text-sm">
+      <CardContent className="flex-grow p-5">
+        <CardTitle className="mb-1 text-lg font-bold tracking-tight">{ebook.title}</CardTitle>
+        <p className="text-sm text-muted-foreground font-medium">by MED-X</p>
+        <div className="mt-3 text-sm leading-relaxed text-muted-foreground">
             <p className={cn(isLongDescription && !isExpanded && "line-clamp-4")}>
                 {ebook.description}
             </p>
             {isLongDescription && (
                 <button 
                     onClick={() => setIsExpanded(!isExpanded)}
-                    className="text-primary font-semibold hover:underline mt-1 focus:outline-none"
+                    className="text-primary font-semibold hover:underline mt-2 focus:outline-none block"
                 >
                     {isExpanded ? 'Read Less' : 'Read More'}
                 </button>
             )}
         </div>
       </CardContent>
-      <CardFooter className="p-4 pt-0">
+      <CardFooter className="p-5 pt-0">
         {isLocked ? (
-          <Button className="w-full" asChild>
+          <Button className="w-full h-11" asChild>
             <Link href="/premium">
               <Lock className="mr-2 h-4 w-4" />
               Upgrade to Read
             </Link>
           </Button>
         ) : (
-          <Button className="w-full" asChild>
+          <Button className="w-full h-11" asChild>
             <Link href={`/ebooks/${ebook.id}?collection=${collection}`}>
               <Eye className="mr-2 h-4 w-4" /> Read Online
             </Link>
