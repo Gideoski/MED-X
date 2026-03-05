@@ -128,17 +128,22 @@ export default function CreatorsPage() {
 
       <section className="grid grid-cols-1 gap-8 md:grid-cols-3">
         {creators.map((creator) => (
-          <Card key={creator.id} className="text-center">
-            <CardHeader className="items-center">
-              <Avatar className="h-24 w-24">
-                <AvatarImage src={creator.avatar} alt={creator.name} data-ai-hint={creator.imageHint} />
-                <AvatarFallback>{creator.name.charAt(0)}</AvatarFallback>
+          <Card key={creator.id} className="text-center border-border/40 shadow-sm overflow-hidden flex flex-col">
+            <CardHeader className="items-center pb-0 pt-8">
+              <Avatar className="h-44 w-32 rounded-2xl border-2 border-primary/10">
+                <AvatarImage 
+                  src={creator.avatar} 
+                  alt={creator.name} 
+                  className="aspect-auto object-cover h-full w-full"
+                  data-ai-hint={creator.imageHint} 
+                />
+                <AvatarFallback className="rounded-2xl">{creator.name.charAt(0)}</AvatarFallback>
               </Avatar>
             </CardHeader>
-            <CardContent>
-              <CardTitle>{creator.name}</CardTitle>
-              <CardDescription className="text-primary">{creator.title}</CardDescription>
-              <p className="mt-4 text-sm text-muted-foreground">{creator.bio}</p>
+            <CardContent className="flex-grow flex flex-col justify-center px-6 py-8">
+              <CardTitle className="text-xl mb-1">{creator.name}</CardTitle>
+              <CardDescription className="text-primary font-semibold mb-4">{creator.title}</CardDescription>
+              <p className="text-sm text-muted-foreground leading-relaxed">{creator.bio}</p>
             </CardContent>
           </Card>
         ))}
@@ -150,7 +155,7 @@ export default function CreatorsPage() {
                 <Loader2 className="h-8 w-8 animate-spin" />
             </div>
         ) : canUpload ? (
-          <Card className="max-w-2xl mx-auto">
+          <Card className="max-w-2xl mx-auto border-border/50">
             <CardHeader>
               <CardTitle>Creator Content Submission</CardTitle>
               <CardDescription>Submit your new e-book using the form below.</CardDescription>
@@ -245,7 +250,7 @@ export default function CreatorsPage() {
             </CardContent>
           </Card>
         ) : (
-          <Card className="max-w-2xl mx-auto text-center">
+          <Card className="max-w-2xl mx-auto text-center border-border/50">
             <CardHeader>
               <CardTitle>Become a Creator</CardTitle>
               <CardDescription>Share your knowledge with the MED-X community.</CardDescription>
