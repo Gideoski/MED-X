@@ -28,6 +28,7 @@ export const services: Service[] = [
     title: "Topic Q&A E-books",
     description: "A curated set of 20–50 practice questions per topic (MCQs, SAQs, and long answers) with full, step-by-step model answers and examiner tips.",
     idealFor: "Exam practice and self-testing.",
+    deliverables: "PDF (print + mobile friendly); optional DOCX on request.",
     addOns: "Marking scheme notes."
   },
   {
@@ -44,6 +45,7 @@ export const services: Service[] = [
     title: "PowerPoint Slide Design",
     description: "We convert your raw notes into clean, readable and attractive slides for class presentations or seminars.",
     idealFor: "Seminar presenters and group project leaders.",
+    deliverables: "Customized PowerPoint; optional PDF handout.",
     addOns: "Presenter notes, animated transitions, school logo branding."
   },
   {
@@ -52,6 +54,7 @@ export const services: Service[] = [
     title: "Project Assistance",
     description: "Help structuring and polishing long-form academic projects — from Abstract to Conclusion. We do paraphrasing, referencing, editing, and final formatting.",
     idealFor: "Final-year and project students.",
+    deliverables: "Polished project document (DOCX/PDF).",
     addOns: "PowerPoint version; short plagiarism-check summary."
   },
   {
@@ -60,6 +63,7 @@ export const services: Service[] = [
     title: "Creative Writing Design",
     description: "Turn poems, essays or short stories into a stylized e-book with a cover, headers and polished layout — ready for sharing or publishing.",
     idealFor: "Student writers & club publications.",
+    deliverables: "E-book (PDF/EPUB); promotional snippet.",
     addOns: "Free e-publishing guidance and social-share graphics."
   },
   {
@@ -68,6 +72,7 @@ export const services: Service[] = [
     title: "Personal Notes → E-Book Conversion",
     description: "Send your typed or handwritten notes; we type, organize, format and beautify them into a clean e-book.",
     idealFor: "Students who want tidy, searchable study notes.",
+    deliverables: "Organized E-book (PDF).",
     addOns: "AI-generated quizzes and color-coded versions."
   },
   {
@@ -76,6 +81,7 @@ export const services: Service[] = [
     title: "Mini Study Guides (“Crash Course” Series)",
     description: "3–5 page focused summaries that cover a single topic quickly: mnemonics, formulas, comparison tables and a “3-Minute Read” for last-minute revision.",
     idealFor: "Last-minute exam prep.",
+    deliverables: "Short E-book (PDF).",
     addOns: "Bundle 5 topics; QR links to short videos."
   },
   {
@@ -84,6 +90,7 @@ export const services: Service[] = [
     title: "E-Book Presentation Templates",
     description: "Ready-to-edit PPT or PDF templates for research defenses, medical case presentations and class talks.",
     idealFor: "Frequent presenters.",
+    deliverables: "Editable template files.",
     addOns: "Color-theme customization and matching poster design."
   },
   {
@@ -91,7 +98,8 @@ export const services: Service[] = [
     icon: Users,
     title: "E-Book Portfolios for Clubs & Orgs",
     description: "Beautifully formatted club booklets with mission, event highlights, member profiles and photos.",
-    idealFor: "Student societies and campus clubs."
+    idealFor: "Student societies and campus clubs.",
+    deliverables: "Organizational E-book (PDF)."
   }
 ];
 
