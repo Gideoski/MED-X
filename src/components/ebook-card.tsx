@@ -26,9 +26,9 @@ export function EBookCard({ ebook, collection, isUserPremium }: { ebook: EBook; 
     if (title.includes('anatomy of the leg')) return '/images/anatomy of the leg.png';
     if (title.includes('csc study guide')) return '/images/csc study guide.png';
     if (title.includes('epithelial tissues')) return '/images/epithelial tissues.png';
-    // Broad match for any IGMC exam related titles
     if (title.includes('igmc')) return '/images/IGMC Exam.png';
     if (title.includes('upper limb')) return '/images/upper limb.png';
+    if (title.includes('respiratory system histology')) return '/images/respiratory system histology.png';
 
     // Default 100 Level
     const is100Lvl = collection.includes('100lvl') || ebook.level === 100;
