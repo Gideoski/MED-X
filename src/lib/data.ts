@@ -135,11 +135,11 @@ export const creators: Creator[] = [
     },
     {
         id: "c2",
-        name: "Dr. Ada Okoro",
-        title: "Anatomy Content Lead",
+        name: "Ekemini-Abasi",
+        title: "Publicity lead and HR manager.",
         avatar: PlaceHolderImages.find(p => p.id === 'avatar-ada')!.imageUrl,
-        imageHint: "woman portrait",
-        bio: "With over 10 years of experience teaching anatomy, Dr. Okoro ensures all anatomical content is accurate, easy to understand, and aligned with current medical school curriculums."
+        imageHint: "man portrait",
+        bio: "A medical student who doubles as the engine room behind Med X’s visibility and people management. He shapes the brand’s voice, amplifies its reach, and builds a driven team to keep the platform thriving."
     },
     {
         id: "c3",
