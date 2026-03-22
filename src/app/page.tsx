@@ -32,9 +32,21 @@ export default function WelcomePage() {
     setBgElements(elements);
   }, []);
 
-  if (isUserLoading || user) {
-    return <div className="flex h-screen w-full items-center justify-center">Loading...</div>;
+  // Show a simpler loading state only if we are absolutely sure we're redirecting
+  if (user && !isUserLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Logo className="h-16 w-16 animate-pulse text-primary" />
+          <p className="text-sm font-medium text-muted-foreground">Redirecting to home...</p>
+        </div>
+      </div>
+    );
   }
+
+  // If we're still loading the user state, but don't have a user yet, 
+  // we show the welcome page anyway to avoid a blank screen/hang.
+  // The layout will update once the auth state is confirmed.
   
   return (
     <div className="relative flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-background">
@@ -60,7 +72,7 @@ export default function WelcomePage() {
       {/* Main Content */}
       <div className="relative z-10 flex flex-col items-center justify-center space-y-8 px-6 text-center">
         <div className="animate-in fade-in zoom-in duration-1000">
-           <Logo className="h-32 w-32 text-primary drop-shadow-2xl" />
+           <Logo className="h-32 w-32 text-primary drop-shadow-2xl md:h-40 md:w-40" />
         </div>
         
         <div className="space-y-4 animate-in slide-in-from-bottom-4 duration-1000 delay-200">
@@ -72,13 +84,21 @@ export default function WelcomePage() {
           </p>
         </div>
 
-        <div className="animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-500">
+        <div className="flex flex-col gap-4 sm:flex-row animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-500">
           <Button 
             asChild 
             size="lg" 
             className="h-12 px-10 text-lg font-bold shadow-lg transition-all hover:scale-105 active:scale-95"
           >
             <Link href="/signup">Get Started</Link>
+          </Button>
+          <Button 
+            asChild 
+            variant="outline"
+            size="lg" 
+            className="h-12 px-10 text-lg font-bold shadow-sm transition-all hover:scale-105 active:scale-95"
+          >
+            <Link href="/login">Login</Link>
           </Button>
         </div>
       </div>
