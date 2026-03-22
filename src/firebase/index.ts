@@ -3,7 +3,7 @@
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, initializeFirestore, Firestore } from 'firebase/firestore'
+import { getFirestore, initializeFirestore, Firestore, terminate } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage';
 
 let initializedFirestore: Firestore | null = null;
@@ -27,10 +27,11 @@ export function initializeFirebase() {
   }
 
   // Ensure Firestore is initialized with long-polling only once
+  // We use strict settings to prevent any connection hangs in restricted networks
   if (!initializedFirestore) {
     initializedFirestore = initializeFirestore(app, {
       experimentalForceLongPolling: true,
-      experimentalAutoDetectLongPolling: false, // Force it strictly
+      experimentalAutoDetectLongPolling: false,
     });
   }
 
