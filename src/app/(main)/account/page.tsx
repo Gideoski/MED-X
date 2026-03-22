@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,8 +12,8 @@ import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { useState, useTransition, useEffect } from "react";
 import { updateProfile } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
-import { doc, updateDoc } from "firebase/firestore";
-import { Star, ShieldPlus } from "lucide-react";
+import { doc } from "firebase/firestore";
+import { Star } from "lucide-react";
 
 export default function AccountPage() {
   const { user, isUserLoading } = useUser();
@@ -59,33 +60,11 @@ export default function AccountPage() {
     });
   };
 
-  const handleMakeAdmin = () => {
-    if (!userDocRef) return;
-    startTransition(async () => {
-        try {
-            await updateDoc(userDocRef, { role: 'admin' });
-            toast({
-                title: "Success!",
-                description: "You have been granted admin privileges. The page will now refresh.",
-            });
-            setTimeout(() => window.location.reload(), 2000);
-        } catch (error) {
-            console.error("Error granting admin role:", error);
-            toast({
-                title: "Error",
-                description: "Could not grant admin privileges. Please try again.",
-                variant: "destructive",
-            });
-        }
-    });
-  }
-
   if (isUserLoading || isProfileLoading) {
     return <div className="flex h-screen w-full items-center justify-center">Loading...</div>;
   }
 
   if (!user) {
-    // Or redirect to login page
     return <div className="flex h-screen w-full items-center justify-center">Please log in to view your account details.</div>;
   }
   
@@ -159,36 +138,12 @@ export default function AccountPage() {
       <Card>
         <CardHeader>
           <CardTitle>Security</CardTitle>
-          <CardDescription>Change your password.</CardDescription>
+          <CardDescription>Update your security settings.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="current-password">Current Password</Label>
-              <Input id="current-password" type="password" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="new-password">New Password</Label>
-              <Input id="new-password" type="password" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirm-new-password">Confirm New Password</Label>
-              <Input id="confirm-new-password" type="password" />
-            </div>
-            <Button>Update Password</Button>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-            <CardTitle>Admin Access</CardTitle>
-            <CardDescription>
-                This is a one-time action to grant yourself administrative privileges. This card can be removed later.
-            </CardDescription>
-        </CardHeader>
-        <CardContent>
-            <Button onClick={handleMakeAdmin} disabled={isPending || userProfile?.role === 'admin'}>
-                <ShieldPlus className="mr-2 h-4 w-4" />
-                {userProfile?.role === 'admin' ? 'You are already an Admin' : 'Make Me an Admin'}
+            <p className="text-sm text-muted-foreground">To change your password or security settings, please use the "Forgot Password" flow from the login page or your email provider's security dashboard.</p>
+            <Button variant="outline" asChild>
+                <Link href="/forgot-password">Reset Password</Link>
             </Button>
         </CardContent>
       </Card>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -26,7 +27,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ShieldAlert, Trash2, Loader2, ShieldX } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { ShieldAlert, Trash2, Loader2, ShieldX, Edit, Save } from 'lucide-react';
 import { formatNumber } from '@/lib/utils';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, deleteDoc, doc, setDoc, updateDoc } from 'firebase/firestore';
@@ -37,7 +49,7 @@ import { Switch } from '@/components/ui/switch';
 import { addMonths, format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 
-type Material = Omit<EBook, 'id' | 'level'> & { level: string | number, type: string, downloads?: number };
+type Material = Omit<EBook, 'id' | 'level'> & { level: string | number, type: string, downloads?: number, coverImage: string };
 type MaterialWithCollection = Material & { id: string; collection: string };
 type UserData = { id: string, email: string, isPremium: boolean, role: string, subscriptionExpiresAt?: string | null };
 type Feedback = { id: string; message: string; submittedAt: string; status: string; userId: string | null; email: string | null; };
@@ -92,11 +104,11 @@ const SubscriptionTimer = ({ expiryDate, onExpire }: { expiryDate: string; onExp
 
     if (!timeLeft) return null;
 
-    const format = (val: number) => val.toString().padStart(2, '0');
+    const formatTime = (val: number) => val.toString().padStart(2, '0');
 
     return (
         <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
-            ({timeLeft.days > 0 && `${timeLeft.days}d `}{format(timeLeft.hours)}h:{format(timeLeft.minutes)}m:{format(timeLeft.seconds)}s left)
+            ({timeLeft.days > 0 && `${timeLeft.days}d `}{formatTime(timeLeft.hours)}h:{formatTime(timeLeft.minutes)}m:{formatTime(timeLeft.seconds)}s left)
         </span>
     );
 };
@@ -109,10 +121,16 @@ export default function AdminPage() {
 
   const [allMaterials, setAllMaterials] = useState<MaterialWithCollection[]>([]);
   const [materialToDelete, setMaterialToDelete] = useState<MaterialWithCollection | null>(null);
+  const [materialToEdit, setMaterialToEdit] = useState<MaterialWithCollection | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdating, startTransition] = useTransition();
   const [feedbackToDelete, setFeedbackToDelete] = useState<Feedback | null>(null);
   const [isDeletingFeedback, setIsDeletingFeedback] = useState(false);
+
+  // Edit State
+  const [editTitle, setEditTitle] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editCover, setEditCover] = useState('');
 
 
   // Fetch current user's profile to check for admin role
@@ -179,6 +197,41 @@ export default function AdminPage() {
 
   const isLoadingMaterials = dataHooks.some((h) => h.isLoading);
   const isLoading = isLoadingUsers || isLoadingMaterials || isLoadingFeedback || isUserLoading || isProfileLoading || isLoadingCreatorProfiles;
+
+  const handleEditClick = (material: MaterialWithCollection) => {
+      setMaterialToEdit(material);
+      setEditTitle(material.title);
+      setEditDesc(material.description);
+      setEditCover(material.coverImage || '');
+  };
+
+  const handleEditSubmit = async () => {
+    if (!materialToEdit || !firestore) return;
+    
+    startTransition(async () => {
+        try {
+            const docRef = doc(firestore, materialToEdit.collection, materialToEdit.id);
+            await updateDoc(docRef, {
+                title: editTitle,
+                description: editDesc,
+                coverImage: editCover,
+                lastUpdateDate: new Date().toISOString(),
+            });
+            toast({
+                title: 'Success',
+                description: 'Material updated successfully.',
+            });
+            setMaterialToEdit(null);
+        } catch (error) {
+            console.error('Error updating material:', error);
+            toast({
+                title: 'Error',
+                description: 'Failed to update material.',
+                variant: 'destructive',
+            });
+        }
+    });
+  };
 
   const handleDeleteClick = (material: MaterialWithCollection) => {
     setMaterialToDelete(material);
@@ -248,7 +301,7 @@ export default function AdminPage() {
           updateData.subscriptionExpiresAt = expiryDate.toISOString();
           toastDescription = `${targetUser.email} has been upgraded to Premium for one month.`
         } else {
-          updateData.subscriptionExpiresAt = null; // Or remove the field
+          updateData.subscriptionExpiresAt = null;
         }
   
         await updateDoc(userDocRef, updateData);
@@ -296,7 +349,6 @@ export default function AdminPage() {
     startTransition(async () => {
       const creatorProfileRef = doc(firestore, 'creator_profiles', targetUser.id);
       try {
-        // Use setDoc with merge to create or update the profile
         await setDoc(creatorProfileRef, { 
             id: targetUser.id,
             userId: targetUser.id,
@@ -330,7 +382,6 @@ export default function AdminPage() {
       const originalDocRef = doc(firestore, currentCollection, material.id);
       const targetDocRef = doc(firestore, targetCollection, material.id);
 
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { collection: _, ...materialData } = material;
       const newMaterialData = {
         ...materialData,
@@ -481,9 +532,14 @@ export default function AdminPage() {
                       </TableCell>
                        <TableCell>{formatNumber(material.downloads || 0)}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(material)} disabled={isUpdating}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                            <Button variant="ghost" size="icon" onClick={() => handleEditClick(material)} disabled={isUpdating}>
+                                <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(material)} disabled={isUpdating}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -663,6 +719,36 @@ export default function AdminPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!materialToEdit} onOpenChange={(open) => !open && setMaterialToEdit(null)}>
+        <DialogContent className="max-w-md">
+            <DialogHeader>
+                <DialogTitle>Edit Material</DialogTitle>
+                <DialogDescription>Update the details for "{materialToEdit?.title}".</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                    <Label htmlFor="edit-title">Title</Label>
+                    <Input id="edit-title" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="edit-desc">Description</Label>
+                    <Textarea id="edit-desc" value={editDesc} onChange={(e) => setEditDesc(e.target.value)} rows={4} />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="edit-cover">Cover Image URL</Label>
+                    <Input id="edit-cover" value={editCover} onChange={(e) => setEditCover(e.target.value)} placeholder="https://..." />
+                </div>
+            </div>
+            <DialogFooter>
+                <Button variant="outline" onClick={() => setMaterialToEdit(null)}>Cancel</Button>
+                <Button onClick={handleEditSubmit} disabled={isUpdating}>
+                    {isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    Save Changes
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { creators } from "@/lib/data";
@@ -6,14 +7,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Upload, MessageSquare, Loader2 } from "lucide-react";
+import { Upload, MessageSquare, Loader2, ImageIcon } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useState, useTransition } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
-import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
+import { useUser, useFirestore, useDoc, useMemoFirebase, useStorage } from "@/firebase";
 import { collection, addDoc, doc } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import Link from "next/link";
 
 export default function CreatorsPage() {
@@ -22,11 +24,14 @@ export default function CreatorsPage() {
   const [level, setLevel] = useState('');
   const [contentType, setContentType] = useState('free');
   const [filePath, setFilePath] = useState('');
+  const [coverImage, setCoverImage] = useState<File | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const storage = useStorage();
 
   // Check for admin role
   const userDocRef = useMemoFirebase(() => {
@@ -68,14 +73,22 @@ export default function CreatorsPage() {
 
     startTransition(async () => {
       try {
-        const collectionName = `materials_${level}lvl_${contentType === 'premium' ? 'premium' : 'free'}`;
-        const collectionRef = collection(firestore, collectionName);
-        
-        // Use the specific 100lvl cover image if level is 100
-        const coverImageUrl = level === '100' 
+        let coverImageUrl = level === '100' 
           ? '/images/med-x 100lvl ebook cover.jpeg' 
           : `https://picsum.photos/seed/${Math.random().toString().slice(2)}/300/400`;
 
+        // Handle cover image upload if provided
+        if (coverImage && storage) {
+            setIsUploadingImage(true);
+            const imageRef = ref(storage, `covers/${Date.now()}_${coverImage.name}`);
+            const uploadResult = await uploadBytes(imageRef, coverImage);
+            coverImageUrl = await getDownloadURL(uploadResult.ref);
+            setIsUploadingImage(false);
+        }
+
+        const collectionName = `materials_${level}lvl_${contentType === 'premium' ? 'premium' : 'free'}`;
+        const collectionRef = collection(firestore, collectionName);
+        
         const newEbookData = {
             title,
             description,
@@ -83,7 +96,7 @@ export default function CreatorsPage() {
             level: parseInt(level),
             isPremium: contentType === 'premium',
             coverImage: coverImageUrl,
-            imageHint: level === '100' ? "med-x 100lvl cover" : "book cover abstract",
+            imageHint: level === '100' ? "med-x 100lvl cover" : "book cover",
             creatorId: user.uid,
             uploadDate: new Date().toISOString(),
             lastUpdateDate: new Date().toISOString(),
@@ -103,6 +116,7 @@ export default function CreatorsPage() {
         setLevel('');
         setContentType('free');
         setFilePath('');
+        setCoverImage(null);
         if (e.target instanceof HTMLFormElement) {
           e.target.reset();
         }
@@ -113,8 +127,16 @@ export default function CreatorsPage() {
           description: "An unexpected error occurred while submitting. Please try again.",
           variant: "destructive"
         });
+      } finally {
+          setIsUploadingImage(false);
       }
     });
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files[0]) {
+          setCoverImage(e.target.files[0]);
+      }
   };
 
   return (
@@ -169,7 +191,7 @@ export default function CreatorsPage() {
                     placeholder="e.g. Intro to Human Anatomy" 
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    disabled={isPending}
+                    disabled={isPending || isUploadingImage}
                   />
                 </div>
 
@@ -180,7 +202,7 @@ export default function CreatorsPage() {
                     placeholder="Provide a brief summary of the e-book's content." 
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    disabled={isPending}
+                    disabled={isPending || isUploadingImage}
                     rows={4}
                   />
                 </div>
@@ -191,7 +213,7 @@ export default function CreatorsPage() {
                         <Select 
                           value={level} 
                           onValueChange={setLevel}
-                          disabled={isPending}
+                          disabled={isPending || isUploadingImage}
                         >
                             <SelectTrigger id="level">
                                 <SelectValue placeholder="Select a level" />
@@ -207,7 +229,7 @@ export default function CreatorsPage() {
                         <RadioGroup 
                           value={contentType}
                           onValueChange={setContentType}
-                          disabled={isPending}
+                          disabled={isPending || isUploadingImage}
                           className="flex items-center pt-2 space-x-4"
                         >
                             <div className="flex items-center space-x-2">
@@ -223,6 +245,22 @@ export default function CreatorsPage() {
                 </div>
 
                 <div className="space-y-2">
+                    <Label htmlFor="cover-image">Custom Cover Image (Optional)</Label>
+                    <div className="flex items-center gap-4">
+                        <Input
+                            id="cover-image"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageChange}
+                            disabled={isPending || isUploadingImage}
+                            className="cursor-pointer"
+                        />
+                        <ImageIcon className="h-6 w-6 text-muted-foreground shrink-0" />
+                    </div>
+                    <p className="text-xs text-muted-foreground">Upload a custom thumbnail for your e-book. Recommended aspect ratio: 3:4.</p>
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="file-path">PDF Link</Label>
                   <Input
                     id="file-path"
@@ -230,16 +268,18 @@ export default function CreatorsPage() {
                     placeholder="https://your-public-pdf-link.com/file.pdf"
                     value={filePath}
                     onChange={(e) => setFilePath(e.target.value)}
-                    disabled={isPending}
+                    disabled={isPending || isUploadingImage}
                     required
                   />
                   <p className="text-xs text-muted-foreground">
-                    Upload your PDF to a service like Google Drive. Right-click the file, select "Share", and change access to "Anyone with the link". Then copy and paste the link here.
+                    Upload your PDF to a service like Google Drive and provide the share link here.
                   </p>
                 </div>
                 
-                <Button type="submit" className="w-full" disabled={!canUpload || isPending}>
-                  {isPending ? 'Submitting...' : (
+                <Button type="submit" className="w-full" disabled={!canUpload || isPending || isUploadingImage}>
+                  {isPending || isUploadingImage ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...</>
+                  ) : (
                     <>
                       <Upload className="mr-2 h-4 w-4" />
                       Submit Content
@@ -258,7 +298,7 @@ export default function CreatorsPage() {
             <CardContent className="space-y-4">
               <p className="text-muted-foreground">To maintain the quality of our content, we verify all creators. If you're interested in contributing, please contact an admin for verification.</p>
               <Button asChild>
-                <Link href="https://wa.me/2347087088090" target="_blank">
+                <Link href="https://wa.me/2349123338586" target="_blank">
                     <MessageSquare className="mr-2 h-4 w-4" />
                     Contact Admin for Verification
                 </Link>
