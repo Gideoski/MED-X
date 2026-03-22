@@ -108,11 +108,9 @@ export default function HomePage() {
             ))}
           </CarouselContent>
           
-          {/* Navigation Arrows - Visible on Hover (Desktop) */}
-          <div className="hidden md:block">
-            <CarouselPrevious className="absolute left-6 top-1/2 -translate-y-1/2 h-12 w-12 border-none bg-white/20 hover:bg-white/40 text-white backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity" />
-            <CarouselNext className="absolute right-6 top-1/2 -translate-y-1/2 h-12 w-12 border-none bg-white/20 hover:bg-white/40 text-white backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity" />
-          </div>
+          {/* Navigation Arrows */}
+          <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 h-8 w-8 md:h-12 md:w-12 border-none bg-black/10 hover:bg-black/20 text-foreground dark:text-white backdrop-blur-sm transition-opacity" />
+          <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 h-8 w-8 md:h-12 md:w-12 border-none bg-black/10 hover:bg-black/20 text-foreground dark:text-white backdrop-blur-sm transition-opacity" />
 
           {/* Custom Pagination Dots */}
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3">
@@ -123,8 +121,8 @@ export default function HomePage() {
                 className={cn(
                   "w-2.5 h-2.5 rounded-full transition-all duration-300",
                   current === index 
-                    ? "bg-white scale-125 shadow-md" 
-                    : "bg-white/30 hover:bg-white/50"
+                    ? "bg-white scale-125 shadow-md ring-2 ring-primary/20" 
+                    : "bg-white/40 hover:bg-white/60"
                 )}
                 aria-label={`Go to slide ${index + 1}`}
               />
@@ -201,9 +199,6 @@ export default function HomePage() {
         <h2 className="text-xl md:text-3xl font-bold px-4">Ready to Study Smarter?</h2>
         <p className="max-w-xl mx-auto px-6 text-[11px] md:text-base text-muted-foreground">Join thousands of students who are using MED-X to simplify their studies and excel in their exams.</p>
         <div className="flex flex-col sm:flex-row justify-center gap-2 px-8 pt-2">
-            <Button asChild size="lg" className="h-10 md:h-14 px-6 md:px-8 text-xs md:text-lg font-bold">
-                <Link href="/signup">Get Started Free</Link>
-            </Button>
             <Button asChild size="lg" variant="outline" className="h-10 md:h-14 px-6 md:px-8 text-xs md:text-lg font-bold border-primary text-primary hover:bg-primary/5">
                 <Link href="/premium">
                     <Star className="mr-1.5 h-3.5 w-3.5 md:h-5 md:w-5" />
