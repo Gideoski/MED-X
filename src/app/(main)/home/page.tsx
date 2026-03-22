@@ -8,21 +8,44 @@ import {
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
+  type CarouselApi,
 } from "@/components/ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowRight, Star } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function HomePage() {
   const academicServices = services.filter(s => s.category === "Academic Services");
   const creativeServices = services.filter(s => s.category === "Creative & Non-Academic Services");
   const plugin = useRef(Autoplay({ delay: 5000, stopOnInteraction: true }));
+  
+  const [api, setApi] = useState<CarouselApi>();
+  const [current, setCurrent] = useState(0);
+
+  useEffect(() => {
+    if (!api) return;
+    
+    setCurrent(api.selectedScrollSnap());
+    
+    const onSelect = () => {
+      setCurrent(api.selectedScrollSnap());
+    };
+
+    api.on("select", onSelect);
+    api.on("reInit", onSelect);
+
+    return () => {
+      api.off("select", onSelect);
+      api.off("reInit", onSelect);
+    };
+  }, [api]);
 
   const featuredSlides = [
     {
-      title: "MED-X E-BOOKS",
+      title: "MED-X\nE-BOOKS",
       subtitle: "Learn with purpose...",
       description: "Clearly formatted study e-books, summaries, and Q&A packs designed by med students for med students.",
       cta: "Browse 100Lvl",
@@ -30,7 +53,7 @@ export default function HomePage() {
       bg: "bg-primary/5"
     },
     {
-      title: "PREMIUM ACCESS",
+      title: "PREMIUM\nACCESS",
       subtitle: "Unlock your potential",
       description: "Get unlimited access to advanced materials, exclusive Q&A packs, and downloadable revision guides.",
       cta: "Upgrade Now",
@@ -38,7 +61,7 @@ export default function HomePage() {
       bg: "bg-accent/5"
     },
     {
-        title: "CREATOR HUB",
+        title: "CREATOR\nHUB",
         subtitle: "Share your expertise",
         description: "Join our team of verified creators and help fellow students by sharing your beautifully designed summaries.",
         cta: "Become a Creator",
@@ -50,9 +73,13 @@ export default function HomePage() {
   return (
     <div className="mx-auto w-full max-w-full space-y-8 md:space-y-16 pb-12 animate-in fade-in duration-1000 overflow-x-hidden">
       {/* Hero Carousel */}
-      <section className="px-0 sm:px-4 w-full overflow-hidden">
+      <section className="px-0 sm:px-4 w-full overflow-hidden relative group">
         <Carousel
+          setApi={setApi}
           plugins={[plugin.current]}
+          opts={{
+            loop: true,
+          }}
           className="w-full rounded-none sm:rounded-2xl overflow-hidden border-b sm:border border-border/50 shadow-sm"
           onMouseEnter={plugin.current.stop}
           onMouseLeave={plugin.current.reset}
@@ -60,14 +87,14 @@ export default function HomePage() {
           <CarouselContent>
             {featuredSlides.map((slide, index) => (
               <CarouselItem key={index}>
-                <div className={`flex flex-col items-center justify-center p-6 md:p-12 text-center h-[300px] md:h-[500px] ${slide.bg}`}>
-                  <h2 className="text-2xl md:text-6xl font-extrabold tracking-tighter text-primary mb-2 md:mb-4">
+                <div className={`flex flex-col items-center justify-center p-6 md:p-12 text-center h-[380px] md:h-[500px] ${slide.bg}`}>
+                  <h2 className="text-3xl md:text-7xl font-extrabold tracking-tighter text-primary mb-2 md:mb-4 whitespace-pre-line leading-[1.1]">
                     {slide.title}
                   </h2>
-                  <h3 className="text-base md:text-3xl font-bold text-foreground mb-4 md:mb-6">
+                  <h3 className="text-lg md:text-3xl font-bold text-foreground mb-4 md:mb-6">
                     {slide.subtitle}
                   </h3>
-                  <p className="max-w-[280px] md:max-w-2xl text-[11px] md:text-lg text-muted-foreground mb-6 md:mb-8 leading-relaxed line-clamp-3 md:line-clamp-none">
+                  <p className="max-w-[280px] md:max-w-2xl text-[12px] md:text-lg text-muted-foreground mb-6 md:mb-8 leading-relaxed line-clamp-3 md:line-clamp-none">
                     {slide.description}
                   </p>
                   <Button asChild size="lg" className="h-9 md:h-12 px-5 md:px-8 text-xs md:text-lg font-bold">
@@ -80,8 +107,29 @@ export default function HomePage() {
               </CarouselItem>
             ))}
           </CarouselContent>
-          <CarouselPrevious className="hidden lg:flex left-4" />
-          <CarouselNext className="hidden lg:flex right-4" />
+          
+          {/* Navigation Arrows - Visible on Hover (Desktop) */}
+          <div className="hidden md:block">
+            <CarouselPrevious className="absolute left-6 top-1/2 -translate-y-1/2 h-12 w-12 border-none bg-white/20 hover:bg-white/40 text-white backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CarouselNext className="absolute right-6 top-1/2 -translate-y-1/2 h-12 w-12 border-none bg-white/20 hover:bg-white/40 text-white backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+
+          {/* Custom Pagination Dots */}
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3">
+            {featuredSlides.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => api?.scrollTo(index)}
+                className={cn(
+                  "w-2.5 h-2.5 rounded-full transition-all duration-300",
+                  current === index 
+                    ? "bg-white scale-125 shadow-md" 
+                    : "bg-white/30 hover:bg-white/50"
+                )}
+                aria-label={`Go to slide ${index + 1}`}
+              />
+            ))}
+          </div>
         </Carousel>
       </section>
 
