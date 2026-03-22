@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -38,10 +37,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ShieldAlert, Trash2, Loader2, ShieldX, Edit, Save } from 'lucide-react';
+import { ShieldAlert, Trash2, Loader2, ShieldX, Edit, Save, ImageIcon, Upload } from 'lucide-react';
 import { formatNumber } from '@/lib/utils';
-import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc, useStorage } from '@/firebase';
 import { collection, deleteDoc, doc, setDoc, updateDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useState, useEffect, useTransition, useMemo } from 'react';
 import type { EBook } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
@@ -116,6 +116,7 @@ const SubscriptionTimer = ({ expiryDate, onExpire }: { expiryDate: string; onExp
 
 export default function AdminPage() {
   const firestore = useFirestore();
+  const storage = useStorage();
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
 
@@ -131,6 +132,8 @@ export default function AdminPage() {
   const [editTitle, setEditTitle] = useState('');
   const [editDesc, setEditDesc] = useState('');
   const [editCover, setEditCover] = useState('');
+  const [editCoverFile, setEditCoverFile] = useState<File | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
 
   // Fetch current user's profile to check for admin role
@@ -203,6 +206,7 @@ export default function AdminPage() {
       setEditTitle(material.title);
       setEditDesc(material.description);
       setEditCover(material.coverImage || '');
+      setEditCoverFile(null);
   };
 
   const handleEditSubmit = async () => {
@@ -210,11 +214,21 @@ export default function AdminPage() {
     
     startTransition(async () => {
         try {
+            let finalCoverUrl = editCover;
+
+            if (editCoverFile && storage) {
+                setIsUploadingImage(true);
+                const imageRef = ref(storage, `covers/${Date.now()}_${editCoverFile.name}`);
+                const uploadResult = await uploadBytes(imageRef, editCoverFile);
+                finalCoverUrl = await getDownloadURL(uploadResult.ref);
+                setIsUploadingImage(false);
+            }
+
             const docRef = doc(firestore, materialToEdit.collection, materialToEdit.id);
             await updateDoc(docRef, {
                 title: editTitle,
                 description: editDesc,
-                coverImage: editCover,
+                coverImage: finalCoverUrl,
                 lastUpdateDate: new Date().toISOString(),
             });
             toast({
@@ -229,6 +243,8 @@ export default function AdminPage() {
                 description: 'Failed to update material.',
                 variant: 'destructive',
             });
+        } finally {
+            setIsUploadingImage(false);
         }
     });
   };
@@ -736,14 +752,28 @@ export default function AdminPage() {
                     <Textarea id="edit-desc" value={editDesc} onChange={(e) => setEditDesc(e.target.value)} rows={4} />
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="edit-cover">Cover Image URL</Label>
-                    <Input id="edit-cover" value={editCover} onChange={(e) => setEditCover(e.target.value)} placeholder="https://..." />
+                    <Label htmlFor="edit-cover-file">Update Cover Image</Label>
+                    <div className="flex items-center gap-4">
+                        <Input
+                            id="edit-cover-file"
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => setEditCoverFile(e.target.files?.[0] || null)}
+                            disabled={isUpdating || isUploadingImage}
+                            className="cursor-pointer"
+                        />
+                        <Upload className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="edit-cover">Cover Image URL (Fallback)</Label>
+                    <Input id="edit-cover" value={editCover} onChange={(e) => setEditCover(e.target.value)} placeholder="https://..." disabled={!!editCoverFile} />
                 </div>
             </div>
             <DialogFooter>
                 <Button variant="outline" onClick={() => setMaterialToEdit(null)}>Cancel</Button>
-                <Button onClick={handleEditSubmit} disabled={isUpdating}>
-                    {isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                <Button onClick={handleEditSubmit} disabled={isUpdating || isUploadingImage}>
+                    {isUpdating || isUploadingImage ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                     Save Changes
                 </Button>
             </DialogFooter>

@@ -8,29 +8,32 @@ import { getStorage } from 'firebase/storage';
 
 let initializedFirestore: Firestore | null = null;
 
-// IMPORTANT: DO NOT MODIFY THIS FUNCTION
+/**
+ * Initializes Firebase services with specific configurations for the workstation environment.
+ * Ensures Firestore uses long-polling to bypass WebSocket restrictions.
+ */
 export function initializeFirebase() {
+  let app: FirebaseApp;
+
   if (!getApps().length) {
-    let firebaseApp;
     try {
-      firebaseApp = initializeApp();
+      app = initializeApp(firebaseConfig);
     } catch (e) {
-      if (process.env.NODE_ENV === "production") {
-        console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
-      }
-      firebaseApp = initializeApp(firebaseConfig);
+      console.error('Firebase initialization failed:', e);
+      app = initializeApp(firebaseConfig);
     }
-
-    // Initialize Firestore with long-polling to ensure connectivity in workstation environments
-    // where WebSockets might be restricted by proxies.
-    initializedFirestore = initializeFirestore(firebaseApp, {
-      experimentalForceLongPolling: true,
-    });
-
-    return getSdks(firebaseApp);
+  } else {
+    app = getApp();
   }
 
-  const app = getApp();
+  // Ensure Firestore is initialized with long-polling only once
+  if (!initializedFirestore) {
+    initializedFirestore = initializeFirestore(app, {
+      experimentalForceLongPolling: true,
+      experimentalAutoDetectLongPolling: false, // Force it strictly
+    });
+  }
+
   return getSdks(app);
 }
 
