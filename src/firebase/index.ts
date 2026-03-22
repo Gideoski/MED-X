@@ -3,7 +3,7 @@
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore'
+import { getFirestore, initializeFirestore } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage';
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
@@ -25,6 +25,12 @@ export function initializeFirebase() {
       }
       firebaseApp = initializeApp(firebaseConfig);
     }
+
+    // Initialize Firestore with long-polling to ensure connectivity in workstation environments
+    // where WebSockets might be restricted by proxies.
+    initializeFirestore(firebaseApp, {
+      experimentalForceLongPolling: true,
+    });
 
     return getSdks(firebaseApp);
   }
