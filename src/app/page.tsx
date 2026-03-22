@@ -4,20 +4,12 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/logo';
 import { useUser } from '@/firebase';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export default function WelcomePage() {
   const { user, isUserLoading } = useUser();
-  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [bgElements, setBgElements] = useState<{ top: string; left: string; fontSize: string; duration: string; delay: string }[]>([]);
-
-  useEffect(() => {
-    if (user && !isUserLoading) {
-      router.replace('/home');
-    }
-  }, [user, isUserLoading, router]);
 
   useEffect(() => {
     setMounted(true);
@@ -32,22 +24,6 @@ export default function WelcomePage() {
     setBgElements(elements);
   }, []);
 
-  // Show a simpler loading state only if we are absolutely sure we're redirecting
-  if (user && !isUserLoading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <Logo className="h-16 w-16 animate-pulse text-primary" />
-          <p className="text-sm font-medium text-muted-foreground">Redirecting to home...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // If we're still loading the user state, but don't have a user yet, 
-  // we show the welcome page anyway to avoid a blank screen/hang.
-  // The layout will update once the auth state is confirmed.
-  
   return (
     <div className="relative flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-background">
       {/* Dynamic Background Elements */}
@@ -85,21 +61,33 @@ export default function WelcomePage() {
         </div>
 
         <div className="flex flex-col gap-4 sm:flex-row animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-500">
-          <Button 
-            asChild 
-            size="lg" 
-            className="h-12 px-10 text-lg font-bold shadow-lg transition-all hover:scale-105 active:scale-95"
-          >
-            <Link href="/signup">Get Started</Link>
-          </Button>
-          <Button 
-            asChild 
-            variant="outline"
-            size="lg" 
-            className="h-12 px-10 text-lg font-bold shadow-sm transition-all hover:scale-105 active:scale-95"
-          >
-            <Link href="/login">Login</Link>
-          </Button>
+          {user ? (
+            <Button 
+              asChild 
+              size="lg" 
+              className="h-12 px-10 text-lg font-bold shadow-lg transition-all hover:scale-105 active:scale-95"
+            >
+              <Link href="/home">Get Started</Link>
+            </Button>
+          ) : (
+            <>
+              <Button 
+                asChild 
+                size="lg" 
+                className="h-12 px-10 text-lg font-bold shadow-lg transition-all hover:scale-105 active:scale-95"
+              >
+                <Link href="/signup">Get Started</Link>
+              </Button>
+              <Button 
+                asChild 
+                variant="outline"
+                size="lg" 
+                className="h-12 px-10 text-lg font-bold shadow-sm transition-all hover:scale-105 active:scale-95"
+              >
+                <Link href="/login">Login</Link>
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </div>
