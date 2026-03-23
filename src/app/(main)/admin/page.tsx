@@ -129,7 +129,7 @@ export default function AdminPage() {
 
   const [editTitle, setEditTitle] = useState('');
   const [editDesc, setEditDesc] = useState('');
-  const [editCover, setEditCover] = useState('');
+  const [editCoverUrl, setEditCoverUrl] = useState('');
   const [editCoverFile, setEditCoverFile] = useState<File | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
@@ -209,7 +209,7 @@ export default function AdminPage() {
       setMaterialToEdit(material);
       setEditTitle(material.title);
       setEditDesc(material.description);
-      setEditCover(material.coverImage || '');
+      setEditCoverUrl(''); // Keep empty by default as per request
       setEditCoverFile(null);
   };
 
@@ -218,7 +218,8 @@ export default function AdminPage() {
     
     startTransition(async () => {
         try {
-            let finalCoverUrl = editCover;
+            // Use existing cover as base. If file uploaded, replace. If URL provided, replace.
+            let finalCoverUrl = materialToEdit.coverImage;
 
             if (editCoverFile && storage) {
                 setIsUploadingImage(true);
@@ -226,6 +227,8 @@ export default function AdminPage() {
                 const uploadResult = await uploadBytes(imageRef, editCoverFile);
                 finalCoverUrl = await getDownloadURL(uploadResult.ref);
                 setIsUploadingImage(false);
+            } else if (editCoverUrl.trim()) {
+                finalCoverUrl = editCoverUrl.trim();
             }
 
             const docRef = doc(firestore, materialToEdit.collection, materialToEdit.id);
@@ -770,8 +773,8 @@ export default function AdminPage() {
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="edit-cover">Cover Image URL (Fallback)</Label>
-                    <p className="text-[10px] text-muted-foreground">Use this only if you don't upload a file. Pasting a direct image link here works as a backup.</p>
-                    <Input id="edit-cover" value={editCover} onChange={(e) => setEditCover(e.target.value)} placeholder="https://..." disabled={!!editCoverFile} />
+                    <p className="text-[10px] text-muted-foreground">Leave empty to keep current image. Use this only to provide a new link as a backup.</p>
+                    <Input id="edit-cover" value={editCoverUrl} onChange={(e) => setEditCoverUrl(e.target.value)} placeholder="https://..." disabled={!!editCoverFile} />
                 </div>
             </div>
             <DialogFooter>

@@ -50,6 +50,7 @@ export default function CreatorsPage() {
   const [contentType, setContentType] = useState('free');
   const [filePath, setFilePath] = useState('');
   const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverUrl, setCoverUrl] = useState('');
   const [isUploadingCover, setIsUploadingCover] = useState(false);
 
   // Team Member Management State
@@ -113,7 +114,7 @@ export default function CreatorsPage() {
 
     startTransition(async () => {
       try {
-        let coverImageUrl = level === '100' 
+        let finalCoverUrl = level === '100' 
           ? '/images/med-x 100lvl ebook cover.jpeg' 
           : `https://picsum.photos/seed/${Math.random().toString().slice(2)}/300/400`;
 
@@ -121,8 +122,10 @@ export default function CreatorsPage() {
             setIsUploadingCover(true);
             const coverRef = ref(storage, `covers/${Date.now()}_${coverFile.name}`);
             const uploadResult = await uploadBytes(coverRef, coverFile);
-            coverImageUrl = await getDownloadURL(uploadResult.ref);
+            finalCoverUrl = await getDownloadURL(uploadResult.ref);
             setIsUploadingCover(false);
+        } else if (coverUrl.trim()) {
+            finalCoverUrl = coverUrl.trim();
         }
 
         const collectionName = `materials_${level}lvl_${contentType === 'premium' ? 'premium' : 'free'}`;
@@ -134,7 +137,7 @@ export default function CreatorsPage() {
             author: 'MED-X',
             level: parseInt(level),
             isPremium: contentType === 'premium',
-            coverImage: coverImageUrl,
+            coverImage: finalCoverUrl,
             imageHint: level === '100' ? "med-x 100lvl cover" : "book cover",
             creatorId: user.uid,
             uploadDate: new Date().toISOString(),
@@ -156,6 +159,7 @@ export default function CreatorsPage() {
         setContentType('free');
         setFilePath('');
         setCoverFile(null);
+        setCoverUrl('');
       } catch (error) {
         console.error("Submission Error:", error);
         toast({
@@ -455,6 +459,18 @@ export default function CreatorsPage() {
                     />
                     <ImageIcon className="h-4 w-4 text-muted-foreground" />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                    <Label htmlFor="cover-url">Cover Image URL (Fallback)</Label>
+                    <p className="text-[10px] text-muted-foreground">Only use this if you don't upload a file. Pasting a direct image link here works as a backup.</p>
+                    <Input 
+                        id="cover-url" 
+                        placeholder="https://..." 
+                        value={coverUrl} 
+                        onChange={(e) => setCoverUrl(e.target.value)} 
+                        disabled={isPending || !!coverFile}
+                    />
                 </div>
 
                 <div className="space-y-2">
