@@ -6,14 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Upload, MessageSquare, Loader2, ImageIcon, Plus, Trash2, Edit2, Save, X, Info } from "lucide-react";
+import { Upload, MessageSquare, Loader2, ImageIcon, Plus, Trash2, Edit2, Save, Info } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useState, useTransition, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, useStorage } from "@/firebase";
-import { collection, addDoc, doc, deleteDoc, setDoc, query, orderBy } from "firebase/firestore";
+import { collection, addDoc, doc, setDoc, query, orderBy } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import Link from "next/link";
 import { deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -52,7 +52,6 @@ export default function CreatorsPage() {
   const [filePath, setFilePath] = useState('');
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverUrl, setCoverUrl] = useState('');
-  const [isUploadingCover, setIsUploadingCover] = useState(false);
 
   // Team Member Management State
   const [isTeamDialogOpen, setIsTeamDialogOpen] = useState(false);
@@ -61,7 +60,6 @@ export default function CreatorsPage() {
   const [memberTitle, setMemberTitle] = useState('');
   const [memberBio, setMemberBio] = useState('');
   const [memberAvatarFile, setMemberAvatarFile] = useState<File | null>(null);
-  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   // Deletion State
   const [memberToDelete, setMemberToDelete] = useState<Creator | null>(null);
@@ -74,7 +72,7 @@ export default function CreatorsPage() {
 
   const { data: teamMembers, isLoading: isTeamLoading } = useCollection<Creator>(teamQuery);
 
-  // Check for admin role
+  // Roles Check
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid);
@@ -82,7 +80,6 @@ export default function CreatorsPage() {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<{ role?: string }>(userDocRef);
   const isAdmin = userProfile?.role === 'admin';
 
-  // Check for verified creator status
   const creatorProfileRef = useMemoFirebase(() => {
       if (!firestore || !user) return null;
       return doc(firestore, 'creator_profiles', user.uid);
@@ -100,7 +97,8 @@ export default function CreatorsPage() {
       return;
     }
     
-    toast({ title: "Processing", description: "Your content is being uploaded." });
+    // Non-blocking pattern: Show feedback and clear form immediately
+    toast({ title: "Processing", description: "Your content is being uploaded in the background." });
 
     startTransition(async () => {
       try {
@@ -109,11 +107,9 @@ export default function CreatorsPage() {
           : `https://picsum.photos/seed/${Math.random().toString().slice(2)}/300/400`;
 
         if (coverFile && storage) {
-            setIsUploadingCover(true);
             const coverRef = ref(storage, `covers/${Date.now()}_${coverFile.name}`);
             const uploadResult = await uploadBytes(coverRef, coverFile);
             finalCoverUrl = await getDownloadURL(uploadResult.ref);
-            setIsUploadingCover(false);
         } else if (coverUrl.trim()) {
             finalCoverUrl = coverUrl.trim();
         }
@@ -137,7 +133,7 @@ export default function CreatorsPage() {
             downloads: 0,
         };
         await addDoc(collectionRef, newEbookData);
-        toast({ title: "Submission Successful", description: `"${title}" is now available.` });
+        toast({ title: "Submission Successful", description: `"${title}" is now live.` });
 
         // Reset form
         setTitle('');
@@ -149,7 +145,7 @@ export default function CreatorsPage() {
         setCoverUrl('');
       } catch (error) {
         console.error("Submission Error:", error);
-        toast({ title: "Submission Failed", description: "An error occurred while submitting.", variant: "destructive" });
+        toast({ title: "Submission Failed", description: "An error occurred during upload.", variant: "destructive" });
       }
     });
   };
@@ -160,7 +156,6 @@ export default function CreatorsPage() {
       return;
     }
 
-    // Close dialog and show success toast immediately (Non-blocking)
     const isEditing = !!editingMember;
     const originalMember = editingMember;
     closeTeamDialog();
@@ -190,10 +185,10 @@ export default function CreatorsPage() {
         } else {
           await addDoc(collection(firestore, 'team_members'), memberData);
         }
-        toast({ title: 'Success', description: 'Team member list updated.' });
+        toast({ title: 'Success', description: 'Team list updated.' });
       } catch (e) {
         console.error("Error saving member:", e);
-        toast({ title: "Error", description: "Could not save member.", variant: "destructive" });
+        toast({ title: "Error", description: "Could not save changes.", variant: "destructive" });
       }
     });
   };
@@ -207,7 +202,7 @@ export default function CreatorsPage() {
 
     try {
       deleteDocumentNonBlocking(doc(firestore, 'team_members', originalMember.id));
-      toast({ title: "Removed", description: "Member removed from team." });
+      toast({ title: "Removed", description: "Member removed successfully." });
     } catch (e) {
       console.error("Error deleting member:", e);
       toast({ title: "Error", description: "Could not remove member.", variant: "destructive" });
@@ -222,10 +217,9 @@ export default function CreatorsPage() {
           const { id, ...data } = member;
           await setDoc(doc(firestore, 'team_members', id), { ...data, order: index });
         }
-        toast({ title: "Initialized", description: "Default team members added." });
+        toast({ title: "Initialized", description: "Defaults restored." });
       } catch (e) {
         console.error("Error initializing team:", e);
-        toast({ title: "Error", description: "Failed to initialize team.", variant: "destructive" });
       }
     });
   };
@@ -255,7 +249,7 @@ export default function CreatorsPage() {
       <section className="text-center relative">
         <h1 className="text-4xl font-bold tracking-tight">Meet the MED-X Creators</h1>
         <p className="mt-2 text-lg text-muted-foreground">
-          The team dedicated to helping you study smarter.
+          Expert team dedicated to high-yield student success.
         </p>
 
         {isAdmin && (
@@ -270,7 +264,7 @@ export default function CreatorsPage() {
               <DialogContent className="max-w-md">
                 <DialogHeader>
                   <DialogTitle>{editingMember ? 'Edit Team Member' : 'Add Team Member'}</DialogTitle>
-                  <DialogDescription>Fill in the details for the team member profile.</DialogDescription>
+                  <DialogDescription>Create a professional profile for the creators page.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
@@ -279,10 +273,10 @@ export default function CreatorsPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Title / Role</Label>
-                    <Input value={memberTitle} onChange={(e) => setMemberTitle(e.target.value)} placeholder="e.g. Lead Designer" />
+                    <Input value={memberTitle} onChange={(e) => setMemberTitle(e.target.value)} placeholder="e.g. Content Lead" />
                   </div>
                   <div className="space-y-2">
-                    <Label>Avatar Image</Label>
+                    <Label>Avatar Image (Preferred)</Label>
                     <div className="flex items-center gap-4">
                         <Input 
                             type="file" 
@@ -356,10 +350,10 @@ export default function CreatorsPage() {
                 <Loader2 className="h-8 w-8 animate-spin" />
             </div>
         ) : canUpload ? (
-          <Card className="max-w-2xl mx-auto border-border/50">
+          <Card className="max-w-2xl mx-auto border-border/50 shadow-md">
             <CardHeader>
-              <CardTitle>Creator Content Submission</CardTitle>
-              <CardDescription>Submit your new e-book using the form below.</CardDescription>
+              <CardTitle>Content Submission</CardTitle>
+              <CardDescription>Upload high-yield materials for the student body.</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleContentSubmit} className="space-y-6">
@@ -367,7 +361,7 @@ export default function CreatorsPage() {
                   <Label htmlFor="title">E-Book Title</Label>
                   <Input 
                     id="title" 
-                    placeholder="e.g. Intro to Human Anatomy" 
+                    placeholder="e.g. Comprehensive Embryology Guide" 
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                   />
@@ -377,7 +371,7 @@ export default function CreatorsPage() {
                   <Label htmlFor="description">E-Book Description</Label>
                   <Textarea 
                     id="description" 
-                    placeholder="Provide a brief summary of the e-book's content." 
+                    placeholder="Brief summary of core concepts covered." 
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     rows={4}
@@ -386,10 +380,10 @@ export default function CreatorsPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                        <Label htmlFor="level">Level</Label>
+                        <Label htmlFor="level">Academic Level</Label>
                         <Select value={level} onValueChange={setLevel}>
                             <SelectTrigger id="level">
-                                <SelectValue placeholder="Select a level" />
+                                <SelectValue placeholder="Select level" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="100">100 Level</SelectItem>
@@ -398,7 +392,7 @@ export default function CreatorsPage() {
                         </Select>
                     </div>
                     <div className="space-y-2">
-                        <Label>Content Type</Label>
+                        <Label>Content Access</Label>
                         <RadioGroup value={contentType} onValueChange={setContentType} className="flex items-center pt-2 space-x-4">
                             <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="free" id="free" />
@@ -428,7 +422,6 @@ export default function CreatorsPage() {
 
                 <div className="space-y-2">
                     <Label htmlFor="cover-url">Cover Image URL (Fallback)</Label>
-                    <p className="text-[10px] text-muted-foreground">https://...</p>
                     <Input 
                         id="cover-url" 
                         placeholder="https://..." 
@@ -439,15 +432,15 @@ export default function CreatorsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="file-path">PDF Link</Label>
-                  <div className="rounded-md bg-muted p-3 text-[10px] md:text-xs text-muted-foreground space-y-1">
-                    <p className="font-semibold text-foreground flex items-center gap-1">
-                      <Info className="h-3 w-3" /> How to get a public link?
+                  <Label htmlFor="file-path">PDF Link (Cloud Hosted)</Label>
+                  <div className="rounded-md bg-muted p-4 text-xs text-muted-foreground space-y-2 border border-border/50">
+                    <p className="font-semibold text-foreground flex items-center gap-1.5">
+                      <Info className="h-4 w-4 text-primary" /> Sharing from Google Drive:
                     </p>
-                    <ol className="list-decimal list-inside space-y-0.5">
+                    <ol className="list-decimal list-inside space-y-1.5 ml-1">
                       <li>Upload your PDF to Google Drive.</li>
                       <li>Right-click the file and select <strong>Share</strong>.</li>
-                      <li>Change access from "Restricted" to <strong>"Anyone with the link"</strong>.</li>
+                      <li>Set access to <strong>"Anyone with the link"</strong>.</li>
                       <li>Click <strong>Copy link</strong> and paste it below.</li>
                     </ol>
                   </div>
@@ -461,9 +454,9 @@ export default function CreatorsPage() {
                   />
                 </div>
                 
-                <Button type="submit" className="w-full">
-                   <Upload className="mr-2 h-4 w-4" />
-                   Submit Content
+                <Button type="submit" className="w-full h-11 text-lg">
+                   <Upload className="mr-2 h-5 w-5" />
+                   Publish Material
                 </Button>
               </form>
             </CardContent>
@@ -475,11 +468,11 @@ export default function CreatorsPage() {
               <CardDescription>Share your knowledge with the MED-X community.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-muted-foreground">To maintain the quality of our content, we verify all creators. If you're interested in contributing, please contact an admin for verification.</p>
-              <Button asChild>
+              <p className="text-muted-foreground leading-relaxed">Join our team of verified creators and contribute high-quality study materials. All creators are vetted for accuracy and quality.</p>
+              <Button asChild size="lg">
                 <Link href="https://wa.me/2349123338586" target="_blank">
-                    <MessageSquare className="mr-2 h-4 w-4" />
-                    Contact Admin for Verification
+                    <MessageSquare className="mr-2 h-5 w-5" />
+                    Apply for Verification
                 </Link>
               </Button>
             </CardContent>
@@ -492,7 +485,7 @@ export default function CreatorsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently remove <span className="font-bold">"{memberToDelete?.name}"</span> from the team members list.
+              This will permanently remove <span className="font-bold">"{memberToDelete?.name}"</span> from the public creators list.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -501,7 +494,7 @@ export default function CreatorsPage() {
               onClick={handleDeleteMember}
               className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
             >
-              Delete Member
+              Remove Member
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

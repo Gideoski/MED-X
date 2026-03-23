@@ -37,10 +37,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ShieldAlert, Trash2, Loader2, ShieldX, Edit, Save, ImageIcon, Upload } from 'lucide-react';
+import { ShieldAlert, Trash2, Loader2, ShieldX, Edit, Save, Upload } from 'lucide-react';
 import { formatNumber } from '@/lib/utils';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc, useStorage } from '@/firebase';
-import { collection, deleteDoc, doc, setDoc, updateDoc } from 'firebase/firestore';
+import { collection, deleteDoc, doc, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useState, useEffect, useTransition, useMemo } from 'react';
 import type { EBook } from '@/lib/data';
@@ -123,16 +123,13 @@ export default function AdminPage() {
   const [allMaterials, setAllMaterials] = useState<MaterialWithCollection[]>([]);
   const [materialToDelete, setMaterialToDelete] = useState<MaterialWithCollection | null>(null);
   const [materialToEdit, setMaterialToEdit] = useState<MaterialWithCollection | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdating, startTransition] = useTransition();
   const [feedbackToDelete, setFeedbackToDelete] = useState<Feedback | null>(null);
-  const [isDeletingFeedback, setIsDeletingFeedback] = useState(false);
 
   const [editTitle, setEditTitle] = useState('');
   const [editDesc, setEditDesc] = useState('');
   const [editCoverUrl, setEditCoverUrl] = useState('');
   const [editCoverFile, setEditCoverFile] = useState<File | null>(null);
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -144,13 +141,11 @@ export default function AdminPage() {
   const usersCollectionRef = useMemoFirebase(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
   const { data: users, isLoading: isLoadingUsers } = useCollection<UserData>(usersCollectionRef);
 
-  // Deduplicate users by email for a cleaner admin view
   const uniqueUsers = useMemo(() => {
     if (!users) return [];
     const map = new Map<string, UserData>();
     users.forEach(u => {
       const existing = map.get(u.email);
-      // Prefer records with legitimate Firebase UIDs (typically 28 chars) over anonymous ones
       if (!existing || u.id.length >= 28) {
         map.set(u.email, u);
       }
@@ -219,7 +214,7 @@ export default function AdminPage() {
   const handleEditSubmit = async () => {
     if (!materialToEdit || !firestore) return;
     
-    // Close dialog and show success toast immediately (Non-blocking)
+    // Close dialog and show success toast immediately (Non-blocking pattern)
     const originalMaterial = materialToEdit;
     setMaterialToEdit(null);
     toast({ title: 'Processing Changes', description: 'Your updates are being saved in the background.' });
@@ -665,7 +660,7 @@ export default function AdminPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               className="bg-destructive hover:bg-destructive/90"

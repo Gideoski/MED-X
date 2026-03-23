@@ -14,15 +14,15 @@ import Autoplay from "embla-carousel-autoplay";
 import { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowRight, Star, BookOpen } from "lucide-react";
+import { ArrowRight, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
-import { collection, query, limit } from "firebase/firestore";
+import { collection, query, limit, where } from "firebase/firestore";
 import { EBookCard } from "@/components/ebook-card";
 import type { EBook } from "@/lib/data";
 
 /**
- * A simple scroll-triggered animation component.
+ * A modern scroll-triggered animation component that "pops in" content.
  */
 function ScrollReveal({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
   const [isVisible, setIsVisible] = useState(false);
@@ -67,7 +67,7 @@ export default function HomePage() {
 
   const firestore = useFirestore();
 
-  // Fetch a few free books for the "Free Content" section
+  // Fetch a selection of free books to advertise on the home page
   const free100Query = useMemoFirebase(() => (firestore ? query(collection(firestore, 'materials_100lvl_free'), limit(2)) : null), [firestore]);
   const free200Query = useMemoFirebase(() => (firestore ? query(collection(firestore, 'materials_200lvl_free'), limit(2)) : null), [firestore]);
 
@@ -182,11 +182,11 @@ export default function HomePage() {
         </Carousel>
       </section>
 
-      {/* Featured Free E-Books */}
+      {/* Featured Free E-Books Advertisement Section */}
       <section className="px-4 space-y-8">
         <div className="text-center space-y-2">
-            <h2 className="text-2xl md:text-4xl font-bold tracking-tight">🆓 Start Learning for Free</h2>
-            <p className="text-muted-foreground text-sm md:text-base">Check out some of our high-quality study materials at no cost.</p>
+            <h2 className="text-2xl md:text-4xl font-bold tracking-tight">🆓 Evaluation Content</h2>
+            <p className="text-muted-foreground text-sm md:text-base">Experience our high-yield materials for free before choosing a plan.</p>
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -202,7 +202,7 @@ export default function HomePage() {
             ))
           ) : (
             <div className="col-span-full py-12 text-center text-muted-foreground">
-              No featured free materials at the moment.
+              Loading preview materials...
             </div>
           )}
         </div>
@@ -210,18 +210,18 @@ export default function HomePage() {
         <div className="flex justify-center pt-4">
             <Button asChild variant="ghost" className="text-primary hover:text-primary hover:bg-primary/5">
                 <Link href="/100lvl">
-                    View All Free Materials
+                    View All Study Materials
                     <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
             </Button>
         </div>
       </section>
 
-      {/* Services Section with Animations */}
+      {/* Services Section with Modern "Pop-In" Animations */}
       <section className="px-4">
         <div className="text-center mb-12">
-            <h2 className="text-2xl md:text-4xl font-bold tracking-tight">📚 Our Specialized Services</h2>
-            <p className="text-muted-foreground mt-2 text-sm md:text-base">Modern solutions for the modern medical student</p>
+            <h2 className="text-2xl md:text-4xl font-bold tracking-tight">📚 Specialized Services</h2>
+            <p className="text-muted-foreground mt-2 text-sm md:text-base">Engineered for the modern university student.</p>
         </div>
         
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
@@ -274,11 +274,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* CTA Section */}
+      {/* Final CTA Section */}
       <ScrollReveal>
         <section className="mx-4 py-16 bg-primary/5 rounded-3xl text-center space-y-6">
           <h2 className="text-2xl md:text-4xl font-bold px-4">Ready to Study Smarter?</h2>
-          <p className="max-w-xl mx-auto px-6 text-sm md:text-lg text-muted-foreground">Join thousands of students who are using MED-X to simplify their studies and excel in their exams.</p>
+          <p className="max-w-xl mx-auto px-6 text-sm md:text-lg text-muted-foreground">Join the community of students simplifying their studies with MED-X.</p>
           <div className="flex flex-col sm:flex-row justify-center gap-4 px-8 pt-4">
               <Button asChild size="lg" className="h-14 px-10 text-lg font-bold">
                   <Link href="/signup">
@@ -287,7 +287,6 @@ export default function HomePage() {
               </Button>
               <Button asChild size="lg" variant="outline" className="h-14 px-10 text-lg font-bold border-primary text-primary hover:bg-primary/5">
                   <Link href="/premium">
-                      <Star className="mr-2 h-5 w-5" />
                       Explore Premium
                   </Link>
               </Button>

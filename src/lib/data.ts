@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { BookCopy, FileText, Presentation, Laptop, Scroll, Mic, PenTool, Lightbulb, FolderKanban, Users } from "lucide-react";
+import { BookCopy, FileText, Presentation, Laptop, Scroll, Mic, PenTool, Lightbulb, FolderKanban } from "lucide-react";
 
 export interface Service {
   title: string;
@@ -132,7 +132,7 @@ export const defaultCreators: Creator[] = [
     {
         id: "ekemini",
         name: "Ekemini-Abasi",
-        title: "Publicity lead and HR manager.",
+        title: "Publicity lead and HR manager",
         avatar: "/images/ekems.jpeg",
         imageHint: "man portrait",
         bio: "A medical student who doubles as the engine room behind Med X’s visibility and people management. He shapes the brand’s voice, amplifies its reach, and builds a driven team."

@@ -18,15 +18,23 @@ export function EBookCard({ ebook, collection, isUserPremium }: { ebook: EBook; 
   const isLongDescription = ebook.description.length > MAX_DESCRIPTION_LENGTH;
   const isLocked = ebook.isPremium && !isUserPremium;
 
+  /**
+   * Logic to determine the best cover image.
+   * Prioritizes custom uploads and URLs over level-based defaults.
+   */
   const getCoverImage = () => {
-    // 1. Prioritize custom uploaded image or custom URL provided by admin/creator
-    if (ebook.coverImage && !ebook.coverImage.includes('placehold.co') && !ebook.coverImage.includes('picsum.photos')) {
+    // 1. HIGHEST PRIORITY: Custom uploaded image (from Firebase Storage) or a manual URL provided by admin/creator.
+    // We check if it looks like a real image URL and not the placeholder seeds.
+    if (ebook.coverImage && 
+        !ebook.coverImage.includes('placehold.co') && 
+        !ebook.coverImage.includes('picsum.photos') && 
+        ebook.coverImage.startsWith('http')) {
       return ebook.coverImage;
     }
 
     const title = ebook.title.toLowerCase();
     
-    // 2. 200 Level Specific Overrides (Known high-quality defaults)
+    // 2. Specific 200 Level Overrides (High-quality themed defaults)
     if (title.includes('embryology')) return '/images/embryology.png';
     if (title.includes('anatomy of the leg')) return '/images/anatomy of the leg.png';
     if (title.includes('csc study guide')) return '/images/csc study guide.png';
@@ -35,11 +43,11 @@ export function EBookCard({ ebook, collection, isUserPremium }: { ebook: EBook; 
     if (title.includes('upper limb')) return '/images/upper limb.png';
     if (title.includes('respiratory system histology')) return '/images/respiratory system histology.png';
 
-    // 3. Default 100 Level high-quality cover
+    // 3. Level-Based Defaults
     const is100Lvl = collection.includes('100lvl') || ebook.level === 100;
     if (is100Lvl) return '/images/med-x 100lvl ebook cover.jpeg';
 
-    // 4. Fallback to storage or placeholder if absolutely necessary
+    // 4. Absolute Fallback
     return ebook.coverImage || '/images/MED-X logo.jpeg';
   };
 

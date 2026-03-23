@@ -10,7 +10,7 @@ let initializedFirestore: Firestore | null = null;
 
 /**
  * Initializes Firebase services with specific configurations for the workstation environment.
- * Ensures Firestore uses long-polling to bypass WebSocket restrictions.
+ * Ensures Firestore uses long-polling to bypass WebSocket restrictions and prevent connectivity errors.
  */
 export function initializeFirebase() {
   let app: FirebaseApp;
@@ -26,8 +26,9 @@ export function initializeFirebase() {
     app = getApp();
   }
 
-  // Ensure Firestore is initialized with long-polling only once
-  // We use strict settings to prevent any connection hangs in restricted networks
+  // Ensure Firestore is initialized with long-polling only once.
+  // We force long-polling to prevent "Could not reach Cloud Firestore backend" errors 
+  // which are common in restricted network environments or workstations.
   if (!initializedFirestore) {
     initializedFirestore = initializeFirestore(app, {
       experimentalForceLongPolling: true,
