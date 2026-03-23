@@ -443,7 +443,7 @@ export default function CreatorsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="cover-image">Cover Image</Label>
+                  <Label htmlFor="cover-image">Cover Image (Preferred)</Label>
                   <div className="flex items-center gap-4">
                     <Input
                       id="cover-image"
@@ -513,7 +513,6 @@ export default function CreatorsPage() {
         )}
       </section>
 
-      {/* Deletion Confirmation Dialog */}
       <AlertDialog open={!!memberToDelete} onOpenChange={(open) => !open && setMemberToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

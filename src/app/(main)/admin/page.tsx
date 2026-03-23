@@ -55,9 +55,6 @@ type UserData = { id: string, email: string, isPremium: boolean, role: string, s
 type Feedback = { id: string; message: string; submittedAt: string; status: string; userId: string | null; email: string | null; };
 type CreatorProfile = { id: string, userId: string, verifiedByAdmin: boolean };
 
-/**
- * A countdown timer for premium subscriptions.
- */
 const SubscriptionTimer = ({ expiryDate, onExpire }: { expiryDate: string; onExpire: () => void }) => {
     const [timeLeft, setTimeLeft] = useState<{
         days: number;
@@ -130,14 +127,12 @@ export default function AdminPage() {
   const [feedbackToDelete, setFeedbackToDelete] = useState<Feedback | null>(null);
   const [isDeletingFeedback, setIsDeletingFeedback] = useState(false);
 
-  // Edit State
   const [editTitle, setEditTitle] = useState('');
   const [editDesc, setEditDesc] = useState('');
   const [editCover, setEditCover] = useState('');
   const [editCoverFile, setEditCoverFile] = useState<File | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
-  // Fetch current user's profile to check for admin role
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid);
@@ -145,11 +140,9 @@ export default function AdminPage() {
 
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<{ role: string }>(userDocRef);
 
-  // Fetch users
   const usersCollectionRef = useMemoFirebase(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
   const { data: users, isLoading: isLoadingUsers } = useCollection<UserData>(usersCollectionRef);
 
-  // Deduplicate users by email for visual display
   const uniqueUsers = useMemo(() => {
     if (!users) return [];
     const map = new Map<string, UserData>();
@@ -162,7 +155,6 @@ export default function AdminPage() {
     return Array.from(map.values()).sort((a, b) => a.email.localeCompare(b.email));
   }, [users]);
 
-  // Fetch creator profiles
   const creatorProfilesCollectionRef = useMemoFirebase(() => (firestore ? collection(firestore, 'creator_profiles') : null), [firestore]);
   const { data: creatorProfiles, isLoading: isLoadingCreatorProfiles } = useCollection<CreatorProfile>(creatorProfilesCollectionRef);
 
@@ -171,11 +163,9 @@ export default function AdminPage() {
     return new Map(creatorProfiles.map(p => [p.userId, p.verifiedByAdmin]));
   }, [creatorProfiles]);
 
-  // Fetch feedback
   const feedbackCollectionRef = useMemoFirebase(() => (firestore ? collection(firestore, 'feedback') : null), [firestore]);
   const { data: allFeedback, isLoading: isLoadingFeedback } = useCollection<Feedback>(feedbackCollectionRef);
 
-  // Fetch all materials
   const collectionsToFetch = [
     'materials_100lvl_free',
     'materials_100lvl_premium',
@@ -632,7 +622,7 @@ export default function AdminPage() {
                         <Switch
                           checked={tableUser.role === 'admin'}
                           onCheckedChange={(checked) => handleUserRoleChange(tableUser, checked)}
-                          disabled={isUpdating || tableUser.id === user.uid}
+                          disabled={isUpdating || tableUser.id === user?.uid}
                           aria-label="Toggle admin status for user"
                         />
                       </TableCell>
@@ -765,7 +755,7 @@ export default function AdminPage() {
                     <Textarea id="edit-desc" value={editDesc} onChange={(e) => setEditDesc(e.target.value)} rows={4} />
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="edit-cover-file">Update Cover Image</Label>
+                    <Label htmlFor="edit-cover-file">Update Cover Image (Preferred)</Label>
                     <div className="flex items-center gap-4">
                         <Input
                             id="edit-cover-file"
@@ -780,6 +770,7 @@ export default function AdminPage() {
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="edit-cover">Cover Image URL (Fallback)</Label>
+                    <p className="text-[10px] text-muted-foreground">Use this only if you don't upload a file. Pasting a direct image link here works as a backup.</p>
                     <Input id="edit-cover" value={editCover} onChange={(e) => setEditCover(e.target.value)} placeholder="https://..." disabled={!!editCoverFile} />
                 </div>
             </div>
