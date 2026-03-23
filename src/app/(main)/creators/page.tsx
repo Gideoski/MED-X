@@ -25,6 +25,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function CreatorsPage() {
   const { user, isUserLoading } = useUser();
@@ -48,6 +58,10 @@ export default function CreatorsPage() {
   const [memberBio, setMemberBio] = useState('');
   const [memberAvatarFile, setMemberAvatarFile] = useState<File | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
+  // Deletion State
+  const [memberToDelete, setMemberToDelete] = useState<Creator | null>(null);
+  const [isDeletingMember, setIsDeletingMember] = useState(false);
 
   // Fetch Team Members
   const teamQuery = useMemoFirebase(() => {
@@ -186,16 +200,19 @@ export default function CreatorsPage() {
     });
   };
 
-  const deleteMember = async (id: string) => {
-    if (!firestore || !confirm("Are you sure you want to remove this member?")) return;
-    startTransition(async () => {
-      try {
-        await deleteDoc(doc(firestore, 'team_members', id));
-        toast({ title: "Removed", description: "Member removed from team." });
-      } catch (e) {
-        toast({ title: "Error", description: "Could not remove member.", variant: "destructive" });
-      }
-    });
+  const handleDeleteMember = async () => {
+    if (!memberToDelete || !firestore) return;
+    setIsDeletingMember(true);
+    try {
+      await deleteDoc(doc(firestore, 'team_members', memberToDelete.id));
+      toast({ title: "Removed", description: "Member removed from team." });
+    } catch (e) {
+      console.error("Error deleting member:", e);
+      toast({ title: "Error", description: "Could not remove member.", variant: "destructive" });
+    } finally {
+      setIsDeletingMember(false);
+      setMemberToDelete(null);
+    }
   };
 
   const initializeTeam = async () => {
@@ -204,10 +221,12 @@ export default function CreatorsPage() {
       try {
         for (const [index, member] of defaultCreators.entries()) {
           const { id, ...data } = member;
-          await addDoc(collection(firestore, 'team_members'), { ...data, order: index });
+          // Use setDoc with the static ID to ensure it's deletable using its predictable path
+          await setDoc(doc(firestore, 'team_members', id), { ...data, order: index });
         }
         toast({ title: "Initialized", description: "Default team members added." });
       } catch (e) {
+        console.error("Error initializing team:", e);
         toast({ title: "Error", description: "Failed to initialize team.", variant: "destructive" });
       }
     });
@@ -313,7 +332,7 @@ export default function CreatorsPage() {
                 <Button variant="secondary" size="icon" className="h-8 w-8" onClick={() => openEditDialog(creator)}>
                   <Edit2 className="h-4 w-4" />
                 </Button>
-                <Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => deleteMember(creator.id)}>
+                <Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => setMemberToDelete(creator)}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
@@ -455,6 +474,28 @@ export default function CreatorsPage() {
           </Card>
         )}
       </section>
+
+      {/* Deletion Confirmation Dialog */}
+      <AlertDialog open={!!memberToDelete} onOpenChange={(open) => !open && setMemberToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently remove <span className="font-bold">"{memberToDelete?.name}"</span> from the team members list.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeletingMember}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteMember}
+              disabled={isDeletingMember}
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+            >
+              {isDeletingMember ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete Member"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
