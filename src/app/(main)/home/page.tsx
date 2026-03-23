@@ -14,8 +14,48 @@ import Autoplay from "embla-carousel-autoplay";
 import { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowRight, Star } from "lucide-react";
+import { ArrowRight, Star, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { collection, query, limit } from "firebase/firestore";
+import { EBookCard } from "@/components/ebook-card";
+import type { EBook } from "@/lib/data";
+
+/**
+ * A simple scroll-triggered animation component.
+ */
+function ScrollReveal({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.unobserve(entry.target);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      style={{ transitionDelay: `${delay}ms` }}
+      className={cn(
+        "transition-all duration-700 ease-out",
+        isVisible ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-12 scale-95"
+      )}
+    >
+      {children}
+    </div>
+  );
+}
 
 export default function HomePage() {
   const academicServices = services.filter(s => s.category === "Academic Services");
@@ -24,6 +64,17 @@ export default function HomePage() {
   
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
+
+  const firestore = useFirestore();
+
+  // Fetch a few free books for the "Free Content" section
+  const free100Query = useMemoFirebase(() => (firestore ? query(collection(firestore, 'materials_100lvl_free'), limit(2)) : null), [firestore]);
+  const free200Query = useMemoFirebase(() => (firestore ? query(collection(firestore, 'materials_200lvl_free'), limit(2)) : null), [firestore]);
+
+  const { data: free100 } = useCollection<EBook>(free100Query);
+  const { data: free200 } = useCollection<EBook>(free200Query);
+
+  const featuredFree = [...(free100 || []), ...(free200 || [])].slice(0, 4);
 
   useEffect(() => {
     if (!api) return;
@@ -71,7 +122,7 @@ export default function HomePage() {
   ];
 
   return (
-    <div className="mx-auto w-full max-w-full space-y-8 md:space-y-16 pb-12 animate-in fade-in duration-1000 overflow-x-hidden">
+    <div className="mx-auto w-full max-w-full space-y-12 md:space-y-24 pb-12 animate-in fade-in duration-1000 overflow-x-hidden">
       {/* Hero Carousel */}
       <section className="px-0 sm:px-4 w-full overflow-hidden relative group">
         <Carousel
@@ -131,63 +182,92 @@ export default function HomePage() {
         </Carousel>
       </section>
 
-      {/* About Section */}
-      <section className="px-4">
-        <Card className="bg-card/50 border-border/50 shadow-none backdrop-blur-sm">
-          <CardContent className="p-5 md:p-8 text-center text-xs md:text-lg leading-relaxed text-muted-foreground">
-            <p className="mb-4 md:mb-6 max-w-4xl mx-auto">
-              MED-X helps students study smarter, not harder. Founded by Denzel, a med-student turned study-designer, MED-X produces clear, concise and beautifully formatted study materials so you can focus on learning.
-            </p>
-            <p className="font-semibold text-foreground max-w-3xl mx-auto border-t pt-4 md:pt-6">
-              Serving Nigerian undergraduates — especially medical, pharmacy and allied health students — with practical academic and creative materials.
-            </p>
-          </CardContent>
-        </Card>
-      </section>
-
-      {/* Services Section */}
-      <section className="px-4">
-        <div className="text-center mb-8 md:mb-12">
-            <h2 className="text-xl md:text-4xl font-bold tracking-tight">📚 Our Services</h2>
-            <p className="text-muted-foreground mt-1 text-[10px] md:text-base">Specialized support for your academic journey</p>
+      {/* Featured Free E-Books */}
+      <section className="px-4 space-y-8">
+        <div className="text-center space-y-2">
+            <h2 className="text-2xl md:text-4xl font-bold tracking-tight">🆓 Start Learning for Free</h2>
+            <p className="text-muted-foreground text-sm md:text-base">Check out some of our high-quality study materials at no cost.</p>
         </div>
         
-        <div className="grid grid-cols-1 gap-6 md:gap-12 lg:grid-cols-2">
-            <div className="space-y-4">
-                <h3 className="mb-2 md:mb-6 text-center text-lg md:text-2xl font-bold text-primary/80">🎓 Academic Services</h3>
-                <div className="grid gap-3">
-                    {academicServices.map((service) => (
-                        <Card key={service.title} className="border-border/50 shadow-sm transition-all hover:scale-[1.01]">
-                            <CardHeader className="p-4 md:p-6">
-                                <CardTitle className="flex items-start gap-2 text-sm md:text-xl">
-                                    <service.icon className="mt-0.5 h-4 w-4 md:h-5 md:w-5 shrink-0 text-primary"/>
-                                    <span>{service.title}</span>
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-4 md:p-6 pt-0 md:pt-0 space-y-1.5 text-[10px] md:text-base text-muted-foreground leading-relaxed">
-                                <p>{service.description}</p>
-                                <p><strong className="text-foreground">Ideal for:</strong> {service.idealFor}</p>
-                            </CardContent>
-                        </Card>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {featuredFree.length > 0 ? (
+            featuredFree.map((ebook, idx) => (
+              <ScrollReveal key={ebook.id} delay={idx * 100}>
+                <EBookCard 
+                  ebook={ebook} 
+                  collection={ebook.level === 100 ? 'materials_100lvl_free' : 'materials_200lvl_free'} 
+                  isUserPremium={false} 
+                />
+              </ScrollReveal>
+            ))
+          ) : (
+            <div className="col-span-full py-12 text-center text-muted-foreground">
+              No featured free materials at the moment.
+            </div>
+          )}
+        </div>
+        
+        <div className="flex justify-center pt-4">
+            <Button asChild variant="ghost" className="text-primary hover:text-primary hover:bg-primary/5">
+                <Link href="/100lvl">
+                    View All Free Materials
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+            </Button>
+        </div>
+      </section>
+
+      {/* Services Section with Animations */}
+      <section className="px-4">
+        <div className="text-center mb-12">
+            <h2 className="text-2xl md:text-4xl font-bold tracking-tight">📚 Our Specialized Services</h2>
+            <p className="text-muted-foreground mt-2 text-sm md:text-base">Modern solutions for the modern medical student</p>
+        </div>
+        
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
+            <div className="space-y-6">
+                <h3 className="text-center text-lg md:text-2xl font-bold text-primary/80">🎓 Academic Excellence</h3>
+                <div className="grid gap-4">
+                    {academicServices.map((service, idx) => (
+                        <ScrollReveal key={service.title} delay={idx * 50}>
+                          <Card className="border-border/50 shadow-sm hover:border-primary/50 transition-colors">
+                              <CardHeader className="p-5">
+                                  <CardTitle className="flex items-center gap-3 text-base md:text-xl">
+                                      <div className="p-2 bg-primary/10 rounded-lg">
+                                        <service.icon className="h-5 w-5 text-primary"/>
+                                      </div>
+                                      <span>{service.title}</span>
+                                  </CardTitle>
+                              </CardHeader>
+                              <CardContent className="p-5 pt-0 space-y-2 text-sm md:text-base text-muted-foreground">
+                                  <p>{service.description}</p>
+                                  <p><strong className="text-foreground">Ideal for:</strong> {service.idealFor}</p>
+                              </CardContent>
+                          </Card>
+                        </ScrollReveal>
                     ))}
                 </div>
             </div>
-            <div className="space-y-4">
-                <h3 className="mb-2 md:mb-6 text-center text-lg md:text-2xl font-bold text-primary/80">✍️ Creative Services</h3>
-                 <div className="grid gap-3">
-                    {creativeServices.map((service) => (
-                        <Card key={service.title} className="border-border/50 shadow-sm transition-all hover:scale-[1.01]">
-                            <CardHeader className="p-4 md:p-6">
-                                <CardTitle className="flex items-start gap-2 text-sm md:text-xl">
-                                    <service.icon className="mt-0.5 h-4 w-4 md:h-5 md:w-5 shrink-0 text-primary"/>
-                                    <span>{service.title}</span>
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-4 md:p-6 pt-0 md:pt-0 space-y-1.5 text-[10px] md:text-base text-muted-foreground leading-relaxed">
-                                <p>{service.description}</p>
-                                <p><strong className="text-foreground">Ideal for:</strong> {service.idealFor}</p>
-                            </CardContent>
-                        </Card>
+            <div className="space-y-6">
+                <h3 className="text-center text-lg md:text-2xl font-bold text-primary/80">✍️ Creative Solutions</h3>
+                 <div className="grid gap-4">
+                    {creativeServices.map((service, idx) => (
+                        <ScrollReveal key={service.title} delay={idx * 50}>
+                          <Card className="border-border/50 shadow-sm hover:border-primary/50 transition-colors">
+                              <CardHeader className="p-5">
+                                  <CardTitle className="flex items-center gap-3 text-base md:text-xl">
+                                      <div className="p-2 bg-primary/10 rounded-lg">
+                                        <service.icon className="h-5 w-5 text-primary"/>
+                                      </div>
+                                      <span>{service.title}</span>
+                                  </CardTitle>
+                              </CardHeader>
+                              <CardContent className="p-5 pt-0 space-y-2 text-sm md:text-base text-muted-foreground">
+                                  <p>{service.description}</p>
+                                  <p><strong className="text-foreground">Ideal for:</strong> {service.idealFor}</p>
+                              </CardContent>
+                          </Card>
+                        </ScrollReveal>
                     ))}
                 </div>
             </div>
@@ -195,18 +275,25 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="mx-4 py-8 md:py-16 bg-primary/5 rounded-2xl text-center space-y-4 md:space-y-6">
-        <h2 className="text-xl md:text-3xl font-bold px-4">Ready to Study Smarter?</h2>
-        <p className="max-w-xl mx-auto px-6 text-[11px] md:text-base text-muted-foreground">Join thousands of students who are using MED-X to simplify their studies and excel in their exams.</p>
-        <div className="flex flex-col sm:flex-row justify-center gap-2 px-8 pt-2">
-            <Button asChild size="lg" variant="outline" className="h-10 md:h-14 px-6 md:px-8 text-xs md:text-lg font-bold border-primary text-primary hover:bg-primary/5">
-                <Link href="/premium">
-                    <Star className="mr-1.5 h-3.5 w-3.5 md:h-5 md:w-5" />
-                    Go Premium
-                </Link>
-            </Button>
-        </div>
-      </section>
+      <ScrollReveal>
+        <section className="mx-4 py-16 bg-primary/5 rounded-3xl text-center space-y-6">
+          <h2 className="text-2xl md:text-4xl font-bold px-4">Ready to Study Smarter?</h2>
+          <p className="max-w-xl mx-auto px-6 text-sm md:text-lg text-muted-foreground">Join thousands of students who are using MED-X to simplify their studies and excel in their exams.</p>
+          <div className="flex flex-col sm:flex-row justify-center gap-4 px-8 pt-4">
+              <Button asChild size="lg" className="h-14 px-10 text-lg font-bold">
+                  <Link href="/signup">
+                      Get Started Now
+                  </Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="h-14 px-10 text-lg font-bold border-primary text-primary hover:bg-primary/5">
+                  <Link href="/premium">
+                      <Star className="mr-2 h-5 w-5" />
+                      Explore Premium
+                  </Link>
+              </Button>
+          </div>
+        </section>
+      </ScrollReveal>
     </div>
   );
 }

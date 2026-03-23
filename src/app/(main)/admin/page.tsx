@@ -48,6 +48,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
 import { addMonths, format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 type Material = Omit<EBook, 'id' | 'level'> & { level: string | number, type: string, downloads?: number, coverImage: string };
 type MaterialWithCollection = Material & { id: string; collection: string };
@@ -143,11 +144,13 @@ export default function AdminPage() {
   const usersCollectionRef = useMemoFirebase(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
   const { data: users, isLoading: isLoadingUsers } = useCollection<UserData>(usersCollectionRef);
 
+  // Deduplicate users by email for a cleaner admin view
   const uniqueUsers = useMemo(() => {
     if (!users) return [];
     const map = new Map<string, UserData>();
     users.forEach(u => {
       const existing = map.get(u.email);
+      // Prefer records with legitimate Firebase UIDs (typically 28 chars) over anonymous ones
       if (!existing || u.id.length >= 28) {
         map.set(u.email, u);
       }
@@ -209,49 +212,42 @@ export default function AdminPage() {
       setMaterialToEdit(material);
       setEditTitle(material.title);
       setEditDesc(material.description);
-      setEditCoverUrl(''); // Keep empty by default as per request
+      setEditCoverUrl(''); 
       setEditCoverFile(null);
   };
 
   const handleEditSubmit = async () => {
     if (!materialToEdit || !firestore) return;
     
+    // Close dialog and show success toast immediately (Non-blocking)
+    const originalMaterial = materialToEdit;
+    setMaterialToEdit(null);
+    toast({ title: 'Processing Changes', description: 'Your updates are being saved in the background.' });
+
     startTransition(async () => {
         try {
-            // Use existing cover as base. If file uploaded, replace. If URL provided, replace.
-            let finalCoverUrl = materialToEdit.coverImage;
+            let finalCoverUrl = originalMaterial.coverImage;
 
             if (editCoverFile && storage) {
-                setIsUploadingImage(true);
                 const imageRef = ref(storage, `covers/${Date.now()}_${editCoverFile.name}`);
                 const uploadResult = await uploadBytes(imageRef, editCoverFile);
                 finalCoverUrl = await getDownloadURL(uploadResult.ref);
-                setIsUploadingImage(false);
             } else if (editCoverUrl.trim()) {
                 finalCoverUrl = editCoverUrl.trim();
             }
 
-            const docRef = doc(firestore, materialToEdit.collection, materialToEdit.id);
-            await updateDoc(docRef, {
+            const docRef = doc(firestore, originalMaterial.collection, originalMaterial.id);
+            updateDocumentNonBlocking(docRef, {
                 title: editTitle,
                 description: editDesc,
                 coverImage: finalCoverUrl,
                 lastUpdateDate: new Date().toISOString(),
             });
-            toast({
-                title: 'Success',
-                description: 'Material updated successfully.',
-            });
-            setMaterialToEdit(null);
+            
+            toast({ title: 'Success', description: 'Material updated successfully.' });
         } catch (error) {
             console.error('Error updating material:', error);
-            toast({
-                title: 'Error',
-                description: 'Failed to update material.',
-                variant: 'destructive',
-            });
-        } finally {
-            setIsUploadingImage(false);
+            toast({ title: 'Error', description: 'Failed to update material.', variant: 'destructive' });
         }
     });
   };
@@ -262,24 +258,21 @@ export default function AdminPage() {
 
   const confirmDelete = async () => {
     if (!materialToDelete || !firestore) return;
-    setIsDeleting(true);
+    
+    const originalMaterial = materialToDelete;
+    setMaterialToDelete(null);
+    toast({ title: 'Processing Deletion', description: 'Deleting content...' });
+
     try {
-      const docRef = doc(firestore, materialToDelete.collection, materialToDelete.id);
-      await deleteDoc(docRef);
+      const docRef = doc(firestore, originalMaterial.collection, originalMaterial.id);
+      deleteDocumentNonBlocking(docRef);
       toast({
         title: 'Content Deleted',
-        description: `"${materialToDelete.title}" has been successfully deleted.`,
+        description: `"${originalMaterial.title}" has been successfully deleted.`,
       });
     } catch (error) {
       console.error('Error deleting document: ', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to delete content. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsDeleting(false);
-      setMaterialToDelete(null);
+      toast({ title: 'Error', description: 'Failed to delete content.', variant: 'destructive' });
     }
   };
 
@@ -289,24 +282,17 @@ export default function AdminPage() {
 
   const confirmDeleteFeedback = async () => {
     if (!feedbackToDelete || !firestore) return;
-    setIsDeletingFeedback(true);
+    
+    const originalFeedback = feedbackToDelete;
+    setFeedbackToDelete(null);
+
     try {
-      const docRef = doc(firestore, 'feedback', feedbackToDelete.id);
-      await deleteDoc(docRef);
-      toast({
-        title: 'Feedback Deleted',
-        description: `Feedback submission has been successfully deleted.`,
-      });
+      const docRef = doc(firestore, 'feedback', originalFeedback.id);
+      deleteDocumentNonBlocking(docRef);
+      toast({ title: 'Feedback Deleted', description: `Feedback submission has been successfully deleted.` });
     } catch (error) {
       console.error('Error deleting feedback: ', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to delete feedback. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsDeletingFeedback(false);
-      setFeedbackToDelete(null);
+      toast({ title: 'Error', description: 'Failed to delete feedback.', variant: 'destructive' });
     }
   };
 
@@ -327,19 +313,11 @@ export default function AdminPage() {
           updateData.subscriptionExpiresAt = null;
         }
   
-        await updateDoc(userDocRef, updateData);
-        
-        toast({
-          title: 'User Updated',
-          description: toastDescription,
-        });
+        updateDocumentNonBlocking(userDocRef, updateData);
+        toast({ title: 'User Updated', description: toastDescription });
       } catch (error) {
         console.error('Error updating user:', error);
-        toast({
-          title: 'Update Failed',
-          description: `Could not update ${targetUser.email}'s status.`,
-          variant: 'destructive',
-        });
+        toast({ title: 'Update Failed', description: `Could not update ${targetUser.email}'s status.`, variant: 'destructive' });
       }
     });
   };
@@ -350,18 +328,11 @@ export default function AdminPage() {
     startTransition(async () => {
       const userDocRef = doc(firestore, 'users', targetUser.id);
       try {
-        await updateDoc(userDocRef, { role: isAdmin ? 'admin' : 'student' });
-        toast({
-          title: 'User Role Updated',
-          description: `${targetUser.email} has been made an ${isAdmin ? 'Admin' : 'Student'}.`,
-        });
+        updateDocumentNonBlocking(userDocRef, { role: isAdmin ? 'admin' : 'student' });
+        toast({ title: 'User Role Updated', description: `${targetUser.email} has been made an ${isAdmin ? 'Admin' : 'Student'}.` });
       } catch (error) {
         console.error('Error updating user role:', error);
-        toast({
-          title: 'Update Failed',
-          description: `Could not update ${targetUser.email}'s role.`,
-          variant: 'destructive',
-        });
+        toast({ title: 'Update Failed', description: `Could not update ${targetUser.email}'s role.`, variant: 'destructive' });
       }
     });
   };
@@ -378,17 +349,10 @@ export default function AdminPage() {
             verifiedByAdmin: isVerified 
         }, { merge: true });
 
-        toast({
-            title: 'User Updated',
-            description: `${targetUser.email} has been ${isVerified ? 'verified' : 'unverified'} as a creator.`,
-        });
+        toast({ title: 'User Updated', description: `${targetUser.email} has been ${isVerified ? 'verified' : 'unverified'} as a creator.` });
       } catch (error) {
         console.error('Error updating creator profile:', error);
-        toast({
-            title: 'Update Failed',
-            description: `Could not update ${targetUser.email}'s verification status.`,
-            variant: 'destructive',
-        });
+        toast({ title: 'Update Failed', description: `Could not update ${targetUser.email}'s verification status.`, variant: 'destructive' });
       }
     });
   };
@@ -415,24 +379,16 @@ export default function AdminPage() {
         await setDoc(targetDocRef, newMaterialData);
         await deleteDoc(originalDocRef);
         
-        toast({
-          title: 'Content Updated',
-          description: `"${material.title}" has been moved to ${newPremiumStatus ? 'Premium' : 'Free'}.`,
-        });
-
+        toast({ title: 'Content Updated', description: `"${material.title}" has been moved to ${newPremiumStatus ? 'Premium' : 'Free'}.` });
       } catch (error) {
         console.error('Error moving document:', error);
-        toast({
-          title: 'Update Failed',
-          description: `Could not move "${material.title}".`,
-          variant: 'destructive',
-        });
+        toast({ title: 'Update Failed', description: `Could not move "${material.title}".`, variant: 'destructive' });
       }
     });
   };
 
   const totalDownloads = allMaterials.reduce((acc, c) => acc + (c.downloads || 0), 0);
-  const premiumUsersCount = users ? users.filter((u) => u.isPremium).length : 0;
+  const premiumUsersCount = uniqueUsers ? uniqueUsers.filter((u) => u.isPremium).length : 0;
   
   if (isLoading) {
     return (
@@ -712,10 +668,9 @@ export default function AdminPage() {
             <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
-              disabled={isDeleting}
               className="bg-destructive hover:bg-destructive/90"
             >
-              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Delete'}
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -730,13 +685,12 @@ export default function AdminPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeletingFeedback}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDeleteFeedback}
-              disabled={isDeletingFeedback}
               className="bg-destructive hover:bg-destructive/90"
             >
-              {isDeletingFeedback ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Delete'}
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -765,7 +719,6 @@ export default function AdminPage() {
                             type="file"
                             accept="image/*"
                             onChange={(e) => setEditCoverFile(e.target.files?.[0] || null)}
-                            disabled={isUpdating || isUploadingImage}
                             className="cursor-pointer"
                         />
                         <Upload className="h-4 w-4 text-muted-foreground" />
@@ -773,14 +726,14 @@ export default function AdminPage() {
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="edit-cover">Cover Image URL (Fallback)</Label>
-                    <p className="text-[10px] text-muted-foreground">Leave empty to keep current image. Use this only to provide a new link as a backup.</p>
+                    <p className="text-[10px] text-muted-foreground">Leave empty to keep current image or upload a file above.</p>
                     <Input id="edit-cover" value={editCoverUrl} onChange={(e) => setEditCoverUrl(e.target.value)} placeholder="https://..." disabled={!!editCoverFile} />
                 </div>
             </div>
             <DialogFooter>
                 <Button variant="outline" onClick={() => setMaterialToEdit(null)}>Cancel</Button>
-                <Button onClick={handleEditSubmit} disabled={isUpdating || isUploadingImage}>
-                    {isUpdating || isUploadingImage ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                <Button onClick={handleEditSubmit}>
+                    <Save className="mr-2 h-4 w-4" />
                     Save Changes
                 </Button>
             </DialogFooter>

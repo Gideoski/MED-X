@@ -16,6 +16,7 @@ import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, useStora
 import { collection, addDoc, doc, deleteDoc, setDoc, query, orderBy } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import Link from "next/link";
+import { deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import {
   Dialog,
   DialogContent,
@@ -64,7 +65,6 @@ export default function CreatorsPage() {
 
   // Deletion State
   const [memberToDelete, setMemberToDelete] = useState<Creator | null>(null);
-  const [isDeletingMember, setIsDeletingMember] = useState(false);
 
   // Fetch Team Members
   const teamQuery = useMemoFirebase(() => {
@@ -96,21 +96,11 @@ export default function CreatorsPage() {
   const handleContentSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!title || !level || !description || !filePath) {
-      toast({
-        title: "Incomplete Form",
-        description: "Please fill out all fields, including the PDF link.",
-        variant: "destructive",
-      });
+      toast({ title: "Incomplete Form", description: "Please fill out all fields.", variant: "destructive" });
       return;
     }
-    if (!user || !firestore || !canUpload) {
-        toast({
-            title: "Authorization Required",
-            description: "You are not authorized to upload content.",
-            variant: "destructive",
-        });
-        return;
-    }
+    
+    toast({ title: "Processing", description: "Your content is being uploaded." });
 
     startTransition(async () => {
       try {
@@ -129,7 +119,7 @@ export default function CreatorsPage() {
         }
 
         const collectionName = `materials_${level}lvl_${contentType === 'premium' ? 'premium' : 'free'}`;
-        const collectionRef = collection(firestore, collectionName);
+        const collectionRef = collection(firestore!, collectionName);
         
         const newEbookData = {
             title,
@@ -139,7 +129,7 @@ export default function CreatorsPage() {
             isPremium: contentType === 'premium',
             coverImage: finalCoverUrl,
             imageHint: level === '100' ? "med-x 100lvl cover" : "book cover",
-            creatorId: user.uid,
+            creatorId: user!.uid,
             uploadDate: new Date().toISOString(),
             lastUpdateDate: new Date().toISOString(),
             filePath: filePath,
@@ -147,10 +137,7 @@ export default function CreatorsPage() {
             downloads: 0,
         };
         await addDoc(collectionRef, newEbookData);
-        toast({
-          title: "Submission Successful",
-          description: `"${title}" has been submitted and is now available.`,
-        });
+        toast({ title: "Submission Successful", description: `"${title}" is now available.` });
 
         // Reset form
         setTitle('');
@@ -162,33 +149,31 @@ export default function CreatorsPage() {
         setCoverUrl('');
       } catch (error) {
         console.error("Submission Error:", error);
-        toast({
-          title: "Submission Failed",
-          description: "An unexpected error occurred while submitting.",
-          variant: "destructive"
-        });
-      } finally {
-        setIsUploadingCover(false);
+        toast({ title: "Submission Failed", description: "An error occurred while submitting.", variant: "destructive" });
       }
     });
   };
 
   const handleMemberSubmit = async () => {
     if (!memberName || !memberTitle || !memberBio || (!memberAvatarFile && !editingMember?.avatar) || !firestore) {
-      toast({ title: "Incomplete", description: "All fields are required, including an avatar image.", variant: "destructive" });
+      toast({ title: "Incomplete", description: "All fields are required.", variant: "destructive" });
       return;
     }
 
+    // Close dialog and show success toast immediately (Non-blocking)
+    const isEditing = !!editingMember;
+    const originalMember = editingMember;
+    closeTeamDialog();
+    toast({ title: isEditing ? 'Updating Member' : 'Adding Member', description: 'Processing in the background...' });
+
     startTransition(async () => {
       try {
-        let avatarUrl = editingMember?.avatar || '';
+        let avatarUrl = originalMember?.avatar || '';
 
         if (memberAvatarFile && storage) {
-            setIsUploadingAvatar(true);
             const avatarRef = ref(storage, `avatars/${Date.now()}_${memberAvatarFile.name}`);
             const uploadResult = await uploadBytes(avatarRef, memberAvatarFile);
             avatarUrl = await getDownloadURL(uploadResult.ref);
-            setIsUploadingAvatar(false);
         }
 
         const memberData: Omit<Creator, 'id'> = {
@@ -197,38 +182,35 @@ export default function CreatorsPage() {
           bio: memberBio,
           avatar: avatarUrl,
           imageHint: "portrait",
-          order: editingMember?.order ?? (teamMembers?.length || 0)
+          order: originalMember?.order ?? (teamMembers?.length || 0)
         };
 
-        if (editingMember) {
-          await setDoc(doc(firestore, 'team_members', editingMember.id), memberData, { merge: true });
-          toast({ title: "Updated", description: "Team member updated successfully." });
+        if (originalMember) {
+          await setDoc(doc(firestore, 'team_members', originalMember.id), memberData, { merge: true });
         } else {
           await addDoc(collection(firestore, 'team_members'), memberData);
-          toast({ title: "Added", description: "New team member added." });
         }
-        closeTeamDialog();
+        toast({ title: 'Success', description: 'Team member list updated.' });
       } catch (e) {
         console.error("Error saving member:", e);
         toast({ title: "Error", description: "Could not save member.", variant: "destructive" });
-      } finally {
-        setIsUploadingAvatar(false);
       }
     });
   };
 
   const handleDeleteMember = async () => {
     if (!memberToDelete || !firestore) return;
-    setIsDeletingMember(true);
+    
+    const originalMember = memberToDelete;
+    setMemberToDelete(null);
+    toast({ title: 'Removing Member', description: `Removing ${originalMember.name}...` });
+
     try {
-      await deleteDoc(doc(firestore, 'team_members', memberToDelete.id));
+      deleteDocumentNonBlocking(doc(firestore, 'team_members', originalMember.id));
       toast({ title: "Removed", description: "Member removed from team." });
     } catch (e) {
       console.error("Error deleting member:", e);
       toast({ title: "Error", description: "Could not remove member.", variant: "destructive" });
-    } finally {
-      setIsDeletingMember(false);
-      setMemberToDelete(null);
     }
   };
 
@@ -264,7 +246,6 @@ export default function CreatorsPage() {
     setMemberTitle('');
     setMemberBio('');
     setMemberAvatarFile(null);
-    setIsUploadingAvatar(false);
   };
 
   const displayedTeam = teamMembers && teamMembers.length > 0 ? teamMembers : (isAdmin ? [] : defaultCreators);
@@ -307,14 +288,10 @@ export default function CreatorsPage() {
                             type="file" 
                             accept="image/*" 
                             onChange={(e) => setMemberAvatarFile(e.target.files?.[0] || null)} 
-                            disabled={isPending || isUploadingAvatar}
                             className="cursor-pointer"
                         />
                         <ImageIcon className="h-4 w-4 text-muted-foreground" />
                     </div>
-                    {editingMember && !memberAvatarFile && (
-                        <p className="text-[10px] text-muted-foreground truncate">Current: {editingMember.avatar}</p>
-                    )}
                   </div>
                   <div className="space-y-2">
                     <Label>Bio</Label>
@@ -323,8 +300,8 @@ export default function CreatorsPage() {
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={closeTeamDialog}>Cancel</Button>
-                  <Button onClick={handleMemberSubmit} disabled={isPending || isUploadingAvatar}>
-                    {isPending || isUploadingAvatar ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  <Button onClick={handleMemberSubmit}>
+                    <Save className="mr-2 h-4 w-4" />
                     {editingMember ? 'Save Changes' : 'Add Member'}
                   </Button>
                 </DialogFooter>
@@ -332,7 +309,7 @@ export default function CreatorsPage() {
             </Dialog>
 
             {(!teamMembers || teamMembers.length === 0) && (
-               <Button variant="outline" onClick={initializeTeam} disabled={isPending}>
+               <Button variant="outline" onClick={initializeTeam}>
                  Initialize Defaults
                </Button>
             )}
@@ -393,7 +370,6 @@ export default function CreatorsPage() {
                     placeholder="e.g. Intro to Human Anatomy" 
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    disabled={isPending}
                   />
                 </div>
 
@@ -404,7 +380,6 @@ export default function CreatorsPage() {
                     placeholder="Provide a brief summary of the e-book's content." 
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    disabled={isPending}
                     rows={4}
                   />
                 </div>
@@ -412,11 +387,7 @@ export default function CreatorsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                         <Label htmlFor="level">Level</Label>
-                        <Select 
-                          value={level} 
-                          onValueChange={setLevel}
-                          disabled={isPending}
-                        >
+                        <Select value={level} onValueChange={setLevel}>
                             <SelectTrigger id="level">
                                 <SelectValue placeholder="Select a level" />
                             </SelectTrigger>
@@ -428,12 +399,7 @@ export default function CreatorsPage() {
                     </div>
                     <div className="space-y-2">
                         <Label>Content Type</Label>
-                        <RadioGroup 
-                          value={contentType}
-                          onValueChange={setContentType}
-                          disabled={isPending}
-                          className="flex items-center pt-2 space-x-4"
-                        >
+                        <RadioGroup value={contentType} onValueChange={setContentType} className="flex items-center pt-2 space-x-4">
                             <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="free" id="free" />
                                 <Label htmlFor="free" className="font-normal">Free</Label>
@@ -454,7 +420,6 @@ export default function CreatorsPage() {
                       type="file"
                       accept="image/*"
                       onChange={(e) => setCoverFile(e.target.files?.[0] || null)}
-                      disabled={isPending || isUploadingCover}
                       className="cursor-pointer"
                     />
                     <ImageIcon className="h-4 w-4 text-muted-foreground" />
@@ -463,13 +428,13 @@ export default function CreatorsPage() {
 
                 <div className="space-y-2">
                     <Label htmlFor="cover-url">Cover Image URL (Fallback)</Label>
-                    <p className="text-[10px] text-muted-foreground">Only use this if you don't upload a file. Pasting a direct image link here works as a backup.</p>
+                    <p className="text-[10px] text-muted-foreground">https://...</p>
                     <Input 
                         id="cover-url" 
                         placeholder="https://..." 
                         value={coverUrl} 
                         onChange={(e) => setCoverUrl(e.target.value)} 
-                        disabled={isPending || !!coverFile}
+                        disabled={!!coverFile}
                     />
                 </div>
 
@@ -492,20 +457,13 @@ export default function CreatorsPage() {
                     placeholder="https://drive.google.com/file/d/..."
                     value={filePath}
                     onChange={(e) => setFilePath(e.target.value)}
-                    disabled={isPending}
                     required
                   />
                 </div>
                 
-                <Button type="submit" className="w-full" disabled={!canUpload || isPending || isUploadingCover}>
-                  {isPending || isUploadingCover ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...</>
-                  ) : (
-                    <>
-                      <Upload className="mr-2 h-4 w-4" />
-                      Submit Content
-                    </>
-                  )}
+                <Button type="submit" className="w-full">
+                   <Upload className="mr-2 h-4 w-4" />
+                   Submit Content
                 </Button>
               </form>
             </CardContent>
@@ -538,13 +496,12 @@ export default function CreatorsPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeletingMember}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteMember}
-              disabled={isDeletingMember}
               className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
             >
-              {isDeletingMember ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete Member"}
+              Delete Member
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
