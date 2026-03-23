@@ -3,13 +3,14 @@
 import { useState, useEffect, useTransition } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BrainCircuit, Loader2, Star, CheckCircle2, ChevronRight, BookOpen } from "lucide-react";
+import { BrainCircuit, Loader2, Star, CheckCircle2, ChevronRight, BookOpen, Search, Sparkles } from "lucide-react";
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { aiQuizGenerator, AiQuizGeneratorOutput } from '@/ai/flows/ai-quiz-generator-flow';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { Input } from "@/components/ui/input";
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
@@ -18,6 +19,7 @@ type QuizQuestion = AiQuizGeneratorOutput['quiz'][0];
 
 export default function QuizzesPage() {
   const [selectedBook, setSelectedBook] = useState<EBook | null>(null);
+  const [customTopic, setCustomTopic] = useState('');
   const [quiz, setQuiz] = useState<QuizQuestion[] | null>(null);
   const [isPending, startTransition] = useTransition();
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
@@ -87,6 +89,29 @@ export default function QuizzesPage() {
     });
   };
 
+  const handleStartCustomQuiz = () => {
+    if (!customTopic.trim()) return;
+    
+    setSelectedBook({ 
+      id: 'custom', 
+      title: customTopic, 
+      description: `AI generated quiz for ${customTopic}`, 
+      isPremium: false, 
+      collection: 'custom' 
+    });
+    setQuiz(null);
+    setShowResults(false);
+    setSelectedAnswers({});
+
+    startTransition(async () => {
+      const result = await aiQuizGenerator({ 
+        topic: customTopic, 
+        description: `Practice questions for university level ${customTopic}` 
+      });
+      setQuiz(result.quiz);
+    });
+  };
+
   const handleAnswerSelect = (index: number, option: string) => {
     setSelectedAnswers(prev => ({ ...prev, [index]: option }));
   };
@@ -101,16 +126,47 @@ export default function QuizzesPage() {
       </div>
 
       {!selectedBook ? (
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card className="md:col-span-2">
+        <div className="grid gap-8">
+          {/* Custom Topic Generation */}
+          <Card className="border-primary/20 bg-primary/5">
             <CardHeader>
-              <CardTitle>Select a Topic</CardTitle>
-              <CardDescription>Choose an e-book to generate a practice quiz.</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                Quick Topic Quiz
+              </CardTitle>
+              <CardDescription>Enter any study topic to generate a quiz instantly.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-2">
+                <Input 
+                  placeholder="e.g. Upper Limb Anatomy, Cellular Biology..." 
+                  value={customTopic}
+                  onChange={(e) => setCustomTopic(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleStartCustomQuiz()}
+                />
+                <Button onClick={handleStartCustomQuiz} disabled={!customTopic.trim()}>
+                  Generate
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* E-book Selection */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BookOpen className="h-5 w-5" />
+                Select from Materials
+              </CardTitle>
+              <CardDescription>Choose an existing e-book to generate a focused practice quiz.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid gap-2">
                 {allBooks.length === 0 ? (
-                  <p className="text-center py-8 text-muted-foreground">No materials found.</p>
+                  <div className="text-center py-12 border rounded-lg border-dashed">
+                    <p className="text-muted-foreground">No study materials available yet.</p>
+                    <p className="text-sm text-muted-foreground mt-1">Try using the "Quick Topic Quiz" above instead!</p>
+                  </div>
                 ) : (
                   allBooks.map(book => (
                     <button
@@ -146,12 +202,11 @@ export default function QuizzesPage() {
       ) : (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" onClick={() => setSelectedBook(null)}>
-                Change Topic
-              </Button>
-              <h2 className="text-xl font-bold">Quiz: {selectedBook.title}</h2>
-            </div>
+            <Button variant="ghost" onClick={() => setSelectedBook(null)} className="gap-2">
+              <ChevronRight className="h-4 w-4 rotate-180" />
+              Change Topic
+            </Button>
+            <h2 className="text-xl font-bold">Quiz: {selectedBook.title}</h2>
           </div>
 
           <Card className="min-h-[500px] flex flex-col">
@@ -166,7 +221,7 @@ export default function QuizzesPage() {
                   {quiz.map((q, i) => (
                     <div key={i} className="space-y-4">
                       <div className="flex gap-4">
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-sm">
                           {i + 1}
                         </span>
                         <p className="text-lg font-semibold leading-tight pt-1">{q.question}</p>
@@ -223,7 +278,7 @@ export default function QuizzesPage() {
                           Retry Quiz
                         </Button>
                         <Button variant="outline" onClick={() => setSelectedBook(null)}>
-                          Choose Another Topic
+                          Exit
                         </Button>
                       </CardContent>
                     </Card>
