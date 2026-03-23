@@ -154,7 +154,6 @@ export default function AdminPage() {
     if (!users) return [];
     const map = new Map<string, UserData>();
     users.forEach(u => {
-      // Prioritize documents with legitimate Firebase UIDs (usually 28 chars)
       const existing = map.get(u.email);
       if (!existing || u.id.length >= 28) {
         map.set(u.email, u);

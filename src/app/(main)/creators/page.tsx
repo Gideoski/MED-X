@@ -49,6 +49,8 @@ export default function CreatorsPage() {
   const [level, setLevel] = useState('');
   const [contentType, setContentType] = useState('free');
   const [filePath, setFilePath] = useState('');
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
 
   // Team Member Management State
   const [isTeamDialogOpen, setIsTeamDialogOpen] = useState(false);
@@ -111,9 +113,17 @@ export default function CreatorsPage() {
 
     startTransition(async () => {
       try {
-        const coverImageUrl = level === '100' 
+        let coverImageUrl = level === '100' 
           ? '/images/med-x 100lvl ebook cover.jpeg' 
           : `https://picsum.photos/seed/${Math.random().toString().slice(2)}/300/400`;
+
+        if (coverFile && storage) {
+            setIsUploadingCover(true);
+            const coverRef = ref(storage, `covers/${Date.now()}_${coverFile.name}`);
+            const uploadResult = await uploadBytes(coverRef, coverFile);
+            coverImageUrl = await getDownloadURL(uploadResult.ref);
+            setIsUploadingCover(false);
+        }
 
         const collectionName = `materials_${level}lvl_${contentType === 'premium' ? 'premium' : 'free'}`;
         const collectionRef = collection(firestore, collectionName);
@@ -145,6 +155,7 @@ export default function CreatorsPage() {
         setLevel('');
         setContentType('free');
         setFilePath('');
+        setCoverFile(null);
       } catch (error) {
         console.error("Submission Error:", error);
         toast({
@@ -152,6 +163,8 @@ export default function CreatorsPage() {
           description: "An unexpected error occurred while submitting.",
           variant: "destructive"
         });
+      } finally {
+        setIsUploadingCover(false);
       }
     });
   };
@@ -221,7 +234,6 @@ export default function CreatorsPage() {
       try {
         for (const [index, member] of defaultCreators.entries()) {
           const { id, ...data } = member;
-          // Use setDoc with the static ID to ensure it's deletable using its predictable path
           await setDoc(doc(firestore, 'team_members', id), { ...data, order: index });
         }
         toast({ title: "Initialized", description: "Default team members added." });
@@ -431,6 +443,21 @@ export default function CreatorsPage() {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="cover-image">Cover Image</Label>
+                  <div className="flex items-center gap-4">
+                    <Input
+                      id="cover-image"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setCoverFile(e.target.files?.[0] || null)}
+                      disabled={isPending || isUploadingCover}
+                      className="cursor-pointer"
+                    />
+                    <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="file-path">PDF Link</Label>
                   <div className="rounded-md bg-muted p-3 text-[10px] md:text-xs text-muted-foreground space-y-1">
                     <p className="font-semibold text-foreground flex items-center gap-1">
@@ -454,8 +481,8 @@ export default function CreatorsPage() {
                   />
                 </div>
                 
-                <Button type="submit" className="w-full" disabled={!canUpload || isPending}>
-                  {isPending ? (
+                <Button type="submit" className="w-full" disabled={!canUpload || isPending || isUploadingCover}>
+                  {isPending || isUploadingCover ? (
                     <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...</>
                   ) : (
                     <>
