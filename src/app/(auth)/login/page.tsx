@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation";
 import { useAuth, useUser, useFirestore } from "@/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
@@ -46,22 +46,15 @@ export default function LoginPage() {
             .then(async (userCredential) => {
               const loggedInUser = userCredential.user;
               const userDocRef = doc(firestore, 'users', loggedInUser.uid);
-              const userDoc = await getDoc(userDocRef);
-
-              if (!userDoc.exists()) {
-                  const userProfile = {
-                      id: loggedInUser.uid,
-                      email: loggedInUser.email,
-                      role: "student",
-                      isPremium: false,
-                      createdAt: new Date().toISOString(),
-                      updatedAt: new Date().toISOString(),
-                      lastLoginAt: new Date().toISOString()
-                  };
-                  await setDoc(userDocRef, userProfile);
-              } else {
-                  await setDoc(userDocRef, { lastLoginAt: new Date().toISOString() }, { merge: true });
-              }
+              
+              // We use setDoc with merge: true to update the lastLoginAt without risking duplicates
+              // This is idempotent and strictly uses the UID as the document key.
+              await setDoc(userDocRef, { 
+                id: loggedInUser.uid,
+                email: loggedInUser.email,
+                lastLoginAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+              }, { merge: true });
             })
             .catch((error) => {
                 let errorMessage = "An unknown error occurred.";

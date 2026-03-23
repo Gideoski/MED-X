@@ -56,6 +56,7 @@ export default function SignupPage() {
             createUserWithEmailAndPassword(auth, email, password)
                 .then(async (userCredential) => {
                     const newUser = userCredential.user;
+                    // Critical: We use the unique Firebase UID as the document ID to prevent duplicates.
                     const userDocRef = doc(firestore, "users", newUser.uid);
                     
                     const userProfile = {

@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -149,6 +148,20 @@ export default function AdminPage() {
   // Fetch users
   const usersCollectionRef = useMemoFirebase(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
   const { data: users, isLoading: isLoadingUsers } = useCollection<UserData>(usersCollectionRef);
+
+  // Deduplicate users by email for visual display
+  const uniqueUsers = useMemo(() => {
+    if (!users) return [];
+    const map = new Map<string, UserData>();
+    users.forEach(u => {
+      // Prioritize documents with legitimate Firebase UIDs (usually 28 chars)
+      const existing = map.get(u.email);
+      if (!existing || u.id.length >= 28) {
+        map.set(u.email, u);
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => a.email.localeCompare(b.email));
+  }, [users]);
 
   // Fetch creator profiles
   const creatorProfilesCollectionRef = useMemoFirebase(() => (firestore ? collection(firestore, 'creator_profiles') : null), [firestore]);
@@ -467,7 +480,7 @@ export default function AdminPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {isLoadingUsers ? <Loader2 className="h-6 w-6 animate-spin" /> : formatNumber(users?.length || 0)}
+                {isLoadingUsers ? <Loader2 className="h-6 w-6 animate-spin" /> : formatNumber(uniqueUsers.length)}
               </div>
             </CardContent>
           </Card>
@@ -590,14 +603,14 @@ export default function AdminPage() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ) : !users?.length ? (
+                ) : !uniqueUsers?.length ? (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center text-muted-foreground">
                       No users found.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  users.map((tableUser) => (
+                  uniqueUsers.map((tableUser) => (
                     <TableRow key={tableUser.id}>
                       <TableCell>{tableUser.email}</TableCell>
                       <TableCell>
