@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Upload, MessageSquare, Loader2, ImageIcon, Plus, Trash2, Edit2, Save, X } from "lucide-react";
+import { Upload, MessageSquare, Loader2, ImageIcon, Plus, Trash2, Edit2, Save, X, Info } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useState, useTransition, useMemo } from "react";
@@ -432,10 +432,21 @@ export default function CreatorsPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="file-path">PDF Link</Label>
+                  <div className="rounded-md bg-muted p-3 text-[10px] md:text-xs text-muted-foreground space-y-1">
+                    <p className="font-semibold text-foreground flex items-center gap-1">
+                      <Info className="h-3 w-3" /> How to get a public link?
+                    </p>
+                    <ol className="list-decimal list-inside space-y-0.5">
+                      <li>Upload your PDF to Google Drive.</li>
+                      <li>Right-click the file and select <strong>Share</strong>.</li>
+                      <li>Change access from "Restricted" to <strong>"Anyone with the link"</strong>.</li>
+                      <li>Click <strong>Copy link</strong> and paste it below.</li>
+                    </ol>
+                  </div>
                   <Input
                     id="file-path"
                     type="url"
-                    placeholder="https://your-public-pdf-link.com/file.pdf"
+                    placeholder="https://drive.google.com/file/d/..."
                     value={filePath}
                     onChange={(e) => setFilePath(e.target.value)}
                     disabled={isPending}
