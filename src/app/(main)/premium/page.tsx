@@ -6,11 +6,22 @@ import { Button } from "@/components/ui/button";
 import { Star, Check, ArrowLeft, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useUser, useFirestore } from "@/firebase";
-import { usePaystackPayment } from "react-paystack";
 import { useToast } from "@/hooks/use-toast";
 import { doc, updateDoc } from "firebase/firestore";
 import { useState } from "react";
 import { addMonths } from "date-fns";
+
+/**
+ * PAYSTACK KEY CONFIGURATION
+ * Replace the value below with your actual Public Key from your Paystack Dashboard.
+ */
+const PAYSTACK_PUBLIC_KEY = "pk_test_your_public_key_here";
+
+declare global {
+  interface Window {
+    PaystackPop: any;
+  }
+}
 
 export default function PremiumPage() {
   const router = useRouter();
@@ -19,58 +30,75 @@ export default function PremiumPage() {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Configuration for Paystack
-  // IMPORTANT: Replace this with your actual Public Key from the Paystack Dashboard
-  // This is a test key for development.
-  const publicKey = "pk_test_your_public_key_here";
-  const amount = 2000 * 100; // Amount in kobo (2000 NGN)
+  const handleUpgrade = () => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to upgrade your account.",
+        variant: "destructive",
+      });
+      router.push('/login');
+      return;
+    }
 
-  const config = {
-    reference: (new Date()).getTime().toString(),
-    email: user?.email || "",
-    amount: amount,
-    publicKey: publicKey,
+    if (!window.PaystackPop) {
+      toast({
+        title: "Payment Error",
+        description: "Payment system is still loading. Please try again in a moment.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const handler = window.PaystackPop.setup({
+      key: PAYSTACK_PUBLIC_KEY,
+      email: user.email,
+      amount: 2000 * 100, // 2000 NGN in kobo
+      currency: 'NGN',
+      callback: (response: any) => {
+        // Payment successful! Let's update the database.
+        handlePaymentSuccess(response.reference);
+      },
+      onClose: () => {
+        toast({
+          title: "Payment Cancelled",
+          description: "You closed the payment window.",
+        });
+      }
+    });
+
+    handler.openIframe();
   };
 
-  const initializePayment = usePaystackPayment(config);
-
-  const handleSuccess = (reference: any) => {
+  const handlePaymentSuccess = async (reference: string) => {
     if (!user || !firestore) return;
     
     setIsProcessing(true);
     const userDocRef = doc(firestore, 'users', user.uid);
     const expiryDate = addMonths(new Date(), 1);
 
-    updateDoc(userDocRef, {
-      isPremium: true,
-      subscriptionExpiresAt: expiryDate.toISOString(),
-      updatedAt: new Date().toISOString()
-    })
-    .then(() => {
+    try {
+      await updateDoc(userDocRef, {
+        isPremium: true,
+        subscriptionExpiresAt: expiryDate.toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+      
       toast({
         title: "Upgrade Successful!",
-        description: "Your account has been automatically upgraded to Premium.",
+        description: "Your account has been automatically upgraded to Premium. Enjoy!",
       });
       router.replace("/home");
-    })
-    .catch((error) => {
+    } catch (error) {
       console.error("Error upgrading account:", error);
       toast({
-        title: "Upgrade Failed",
-        description: "Payment was successful, but we couldn't update your account. Please contact support with your reference: " + reference.reference,
+        title: "Upgrade Error",
+        description: "Your payment was successful, but we couldn't update your status automatically. Please contact support with reference: " + reference,
         variant: "destructive",
       });
-    })
-    .finally(() => {
+    } finally {
       setIsProcessing(false);
-    });
-  };
-
-  const handleClose = () => {
-    toast({
-      title: "Payment Cancelled",
-      description: "You closed the payment window.",
-    });
+    }
   };
 
   if (isUserLoading) {
@@ -127,7 +155,7 @@ export default function PremiumPage() {
           <CardFooter>
             <Button 
                 className="w-full h-12 text-lg font-bold" 
-                onClick={() => initializePayment({onSuccess: handleSuccess, onClose: handleClose})}
+                onClick={handleUpgrade}
                 disabled={isProcessing}
             >
               {isProcessing ? (
