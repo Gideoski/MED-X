@@ -1,4 +1,3 @@
-
 'use client';
 
 import { defaultCreators, type Creator } from "@/lib/data";
@@ -13,8 +12,9 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useState, useTransition, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
-import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from "@/firebase";
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, useStorage } from "@/firebase";
 import { collection, addDoc, doc, deleteDoc, setDoc, query, orderBy } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import Link from "next/link";
 import {
   Dialog,
@@ -29,6 +29,7 @@ import {
 export default function CreatorsPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const storage = useStorage();
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
 
@@ -45,8 +46,8 @@ export default function CreatorsPage() {
   const [memberName, setMemberName] = useState('');
   const [memberTitle, setMemberTitle] = useState('');
   const [memberBio, setMemberBio] = useState('');
-  const [memberAvatar, setMemberAvatar] = useState('');
-  const [memberHint, setMemberHint] = useState('');
+  const [memberAvatarFile, setMemberAvatarFile] = useState<File | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   // Fetch Team Members
   const teamQuery = useMemoFirebase(() => {
@@ -142,19 +143,29 @@ export default function CreatorsPage() {
   };
 
   const handleMemberSubmit = async () => {
-    if (!memberName || !memberTitle || !memberBio || !memberAvatar || !firestore) {
-      toast({ title: "Incomplete", description: "All fields are required.", variant: "destructive" });
+    if (!memberName || !memberTitle || !memberBio || (!memberAvatarFile && !editingMember?.avatar) || !firestore) {
+      toast({ title: "Incomplete", description: "All fields are required, including an avatar image.", variant: "destructive" });
       return;
     }
 
     startTransition(async () => {
       try {
+        let avatarUrl = editingMember?.avatar || '';
+
+        if (memberAvatarFile && storage) {
+            setIsUploadingAvatar(true);
+            const avatarRef = ref(storage, `avatars/${Date.now()}_${memberAvatarFile.name}`);
+            const uploadResult = await uploadBytes(avatarRef, memberAvatarFile);
+            avatarUrl = await getDownloadURL(uploadResult.ref);
+            setIsUploadingAvatar(false);
+        }
+
         const memberData: Omit<Creator, 'id'> = {
           name: memberName,
           title: memberTitle,
           bio: memberBio,
-          avatar: memberAvatar,
-          imageHint: memberHint || "portrait",
+          avatar: avatarUrl,
+          imageHint: "portrait",
           order: editingMember?.order ?? (teamMembers?.length || 0)
         };
 
@@ -167,7 +178,10 @@ export default function CreatorsPage() {
         }
         closeTeamDialog();
       } catch (e) {
+        console.error("Error saving member:", e);
         toast({ title: "Error", description: "Could not save member.", variant: "destructive" });
+      } finally {
+        setIsUploadingAvatar(false);
       }
     });
   };
@@ -204,8 +218,7 @@ export default function CreatorsPage() {
     setMemberName(member.name);
     setMemberTitle(member.title);
     setMemberBio(member.bio);
-    setMemberAvatar(member.avatar);
-    setMemberHint(member.imageHint);
+    setMemberAvatarFile(null);
     setIsTeamDialogOpen(true);
   };
 
@@ -215,8 +228,8 @@ export default function CreatorsPage() {
     setMemberName('');
     setMemberTitle('');
     setMemberBio('');
-    setMemberAvatar('');
-    setMemberHint('');
+    setMemberAvatarFile(null);
+    setIsUploadingAvatar(false);
   };
 
   const displayedTeam = teamMembers && teamMembers.length > 0 ? teamMembers : (isAdmin ? [] : defaultCreators);
@@ -253,8 +266,20 @@ export default function CreatorsPage() {
                     <Input value={memberTitle} onChange={(e) => setMemberTitle(e.target.value)} placeholder="e.g. Lead Designer" />
                   </div>
                   <div className="space-y-2">
-                    <Label>Avatar URL</Label>
-                    <Input value={memberAvatar} onChange={(e) => setMemberAvatar(e.target.value)} placeholder="/images/member.jpg or URL" />
+                    <Label>Avatar Image</Label>
+                    <div className="flex items-center gap-4">
+                        <Input 
+                            type="file" 
+                            accept="image/*" 
+                            onChange={(e) => setMemberAvatarFile(e.target.files?.[0] || null)} 
+                            disabled={isPending || isUploadingAvatar}
+                            className="cursor-pointer"
+                        />
+                        <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    {editingMember && !memberAvatarFile && (
+                        <p className="text-[10px] text-muted-foreground truncate">Current: {editingMember.avatar}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label>Bio</Label>
@@ -263,8 +288,8 @@ export default function CreatorsPage() {
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={closeTeamDialog}>Cancel</Button>
-                  <Button onClick={handleMemberSubmit} disabled={isPending}>
-                    {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  <Button onClick={handleMemberSubmit} disabled={isPending || isUploadingAvatar}>
+                    {isPending || isUploadingAvatar ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                     {editingMember ? 'Save Changes' : 'Add Member'}
                   </Button>
                 </DialogFooter>
