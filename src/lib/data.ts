@@ -1,6 +1,5 @@
-
 import type { LucideIcon } from "lucide-react";
-import { BookCopy, FileText, Presentation, Laptop, Scroll, Mic, PenTool, Lightbulb, FolderKanban, Users, BrainCircuit } from "lucide-react";
+import { BookCopy, FileText, Presentation, Laptop, Scroll, Mic, PenTool, Lightbulb, FolderKanban, Users } from "lucide-react";
 
 export interface Service {
   title: string;
@@ -13,15 +12,6 @@ export interface Service {
 }
 
 export const services: Service[] = [
-  {
-    category: "Academic Services",
-    icon: BrainCircuit,
-    title: "AI Practice Quizzes",
-    description: "Generate high-yield, multiple-choice practice questions instantly from any study topic. Test your knowledge with MED-X AI.",
-    idealFor: "Active recall and exam preparation.",
-    deliverables: "Interactive real-time quizzes.",
-    addOns: "Detailed model answers."
-  },
   {
     category: "Academic Services",
     icon: BookCopy,

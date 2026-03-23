@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,11 +10,6 @@ import { doc, updateDoc } from "firebase/firestore";
 import { useState } from "react";
 import { addMonths } from "date-fns";
 
-/**
- * PAYSTACK PUBLIC KEY
- * Replace the value below with your actual Public Key from your Paystack Dashboard.
- * For client-side "Inline" payments, you ONLY need the Public Key.
- */
 const PAYSTACK_PUBLIC_KEY = "pk_live_061de069f6b6297fa83776862db1293e738899ec";
 
 declare global {
@@ -57,7 +51,6 @@ export default function PremiumPage() {
       amount: 2500 * 100, // 2500 NGN in kobo
       currency: 'NGN',
       callback: (response: any) => {
-        // Payment successful! The callback provides a reference number.
         handlePaymentSuccess(response.reference);
       },
       onClose: () => {
@@ -144,9 +137,6 @@ export default function PremiumPage() {
               </li>
               <li className="flex items-center">
                 <Check className="mr-2 h-4 w-4 text-green-500" /> Access to exclusive Q&A packs.
-              </li>
-              <li className="flex items-center">
-                <Check className="mr-2 h-4 w-4 text-green-500" /> AI-powered practice quizzes.
               </li>
               <li className="flex items-center">
                 <Check className="mr-2 h-4 w-4 text-green-500" /> Priority support.
