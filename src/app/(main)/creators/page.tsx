@@ -1,37 +1,60 @@
 
 'use client';
 
-import { creators } from "@/lib/data";
+import { defaultCreators, type Creator } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Upload, MessageSquare, Loader2, ImageIcon } from "lucide-react";
+import { Upload, MessageSquare, Loader2, ImageIcon, Plus, Trash2, Edit2, Save, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useState, useTransition } from "react";
+import { useState, useTransition, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
-import { useUser, useFirestore, useDoc, useMemoFirebase, useStorage } from "@/firebase";
-import { collection, addDoc, doc } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from "@/firebase";
+import { collection, addDoc, doc, deleteDoc, setDoc, query, orderBy } from "firebase/firestore";
 import Link from "next/link";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 export default function CreatorsPage() {
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  const [isPending, startTransition] = useTransition();
+
+  // Content Submission State
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [level, setLevel] = useState('');
   const [contentType, setContentType] = useState('free');
   const [filePath, setFilePath] = useState('');
-  const [coverImage, setCoverImage] = useState<File | null>(null);
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [isPending, startTransition] = useTransition();
-  const { toast } = useToast();
-  
-  const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
-  const storage = useStorage();
+
+  // Team Member Management State
+  const [isTeamDialogOpen, setIsTeamDialogOpen] = useState(false);
+  const [editingMember, setEditingMember] = useState<Creator | null>(null);
+  const [memberName, setMemberName] = useState('');
+  const [memberTitle, setMemberTitle] = useState('');
+  const [memberBio, setMemberBio] = useState('');
+  const [memberAvatar, setMemberAvatar] = useState('');
+  const [memberHint, setMemberHint] = useState('');
+
+  // Fetch Team Members
+  const teamQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'team_members'), orderBy('order', 'asc'));
+  }, [firestore]);
+
+  const { data: teamMembers, isLoading: isTeamLoading } = useCollection<Creator>(teamQuery);
 
   // Check for admin role
   const userDocRef = useMemoFirebase(() => {
@@ -50,9 +73,9 @@ export default function CreatorsPage() {
   const isVerifiedCreator = creatorProfile?.verifiedByAdmin === true;
 
   const canUpload = isAdmin || isVerifiedCreator;
-  const isLoading = isUserLoading || isProfileLoading || isCreatorLoading;
+  const isLoading = isUserLoading || isProfileLoading || isCreatorLoading || isTeamLoading;
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleContentSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!title || !level || !description || !filePath) {
       toast({
@@ -73,18 +96,9 @@ export default function CreatorsPage() {
 
     startTransition(async () => {
       try {
-        let coverImageUrl = level === '100' 
+        const coverImageUrl = level === '100' 
           ? '/images/med-x 100lvl ebook cover.jpeg' 
           : `https://picsum.photos/seed/${Math.random().toString().slice(2)}/300/400`;
-
-        // Handle cover image upload if provided
-        if (coverImage && storage) {
-            setIsUploadingImage(true);
-            const imageRef = ref(storage, `covers/${Date.now()}_${coverImage.name}`);
-            const uploadResult = await uploadBytes(imageRef, coverImage);
-            coverImageUrl = await getDownloadURL(uploadResult.ref);
-            setIsUploadingImage(false);
-        }
 
         const collectionName = `materials_${level}lvl_${contentType === 'premium' ? 'premium' : 'free'}`;
         const collectionRef = collection(firestore, collectionName);
@@ -116,41 +130,169 @@ export default function CreatorsPage() {
         setLevel('');
         setContentType('free');
         setFilePath('');
-        setCoverImage(null);
-        if (e.target instanceof HTMLFormElement) {
-          e.target.reset();
-        }
       } catch (error) {
         console.error("Submission Error:", error);
         toast({
           title: "Submission Failed",
-          description: "An unexpected error occurred while submitting. Please try again.",
+          description: "An unexpected error occurred while submitting.",
           variant: "destructive"
         });
-      } finally {
-          setIsUploadingImage(false);
       }
     });
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (e.target.files && e.target.files[0]) {
-          setCoverImage(e.target.files[0]);
+  const handleMemberSubmit = async () => {
+    if (!memberName || !memberTitle || !memberBio || !memberAvatar || !firestore) {
+      toast({ title: "Incomplete", description: "All fields are required.", variant: "destructive" });
+      return;
+    }
+
+    startTransition(async () => {
+      try {
+        const memberData: Omit<Creator, 'id'> = {
+          name: memberName,
+          title: memberTitle,
+          bio: memberBio,
+          avatar: memberAvatar,
+          imageHint: memberHint || "portrait",
+          order: editingMember?.order ?? (teamMembers?.length || 0)
+        };
+
+        if (editingMember) {
+          await setDoc(doc(firestore, 'team_members', editingMember.id), memberData, { merge: true });
+          toast({ title: "Updated", description: "Team member updated successfully." });
+        } else {
+          await addDoc(collection(firestore, 'team_members'), memberData);
+          toast({ title: "Added", description: "New team member added." });
+        }
+        closeTeamDialog();
+      } catch (e) {
+        toast({ title: "Error", description: "Could not save member.", variant: "destructive" });
       }
+    });
   };
+
+  const deleteMember = async (id: string) => {
+    if (!firestore || !confirm("Are you sure you want to remove this member?")) return;
+    startTransition(async () => {
+      try {
+        await deleteDoc(doc(firestore, 'team_members', id));
+        toast({ title: "Removed", description: "Member removed from team." });
+      } catch (e) {
+        toast({ title: "Error", description: "Could not remove member.", variant: "destructive" });
+      }
+    });
+  };
+
+  const initializeTeam = async () => {
+    if (!firestore || !isAdmin) return;
+    startTransition(async () => {
+      try {
+        for (const [index, member] of defaultCreators.entries()) {
+          const { id, ...data } = member;
+          await addDoc(collection(firestore, 'team_members'), { ...data, order: index });
+        }
+        toast({ title: "Initialized", description: "Default team members added." });
+      } catch (e) {
+        toast({ title: "Error", description: "Failed to initialize team.", variant: "destructive" });
+      }
+    });
+  };
+
+  const openEditDialog = (member: Creator) => {
+    setEditingMember(member);
+    setMemberName(member.name);
+    setMemberTitle(member.title);
+    setMemberBio(member.bio);
+    setMemberAvatar(member.avatar);
+    setMemberHint(member.imageHint);
+    setIsTeamDialogOpen(true);
+  };
+
+  const closeTeamDialog = () => {
+    setIsTeamDialogOpen(false);
+    setEditingMember(null);
+    setMemberName('');
+    setMemberTitle('');
+    setMemberBio('');
+    setMemberAvatar('');
+    setMemberHint('');
+  };
+
+  const displayedTeam = teamMembers && teamMembers.length > 0 ? teamMembers : (isAdmin ? [] : defaultCreators);
 
   return (
     <div className="space-y-12">
-      <section className="text-center">
+      <section className="text-center relative">
         <h1 className="text-4xl font-bold tracking-tight">Meet the MED-X Creators</h1>
         <p className="mt-2 text-lg text-muted-foreground">
           The team dedicated to helping you study smarter.
         </p>
+
+        {isAdmin && (
+          <div className="mt-6 flex justify-center gap-4">
+            <Dialog open={isTeamDialogOpen} onOpenChange={(open) => !open && closeTeamDialog()}>
+              <DialogTrigger asChild>
+                <Button onClick={() => setIsTeamDialogOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Team Member
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>{editingMember ? 'Edit Team Member' : 'Add Team Member'}</DialogTitle>
+                  <DialogDescription>Fill in the details for the team member profile.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label>Full Name</Label>
+                    <Input value={memberName} onChange={(e) => setMemberName(e.target.value)} placeholder="e.g. John Doe" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Title / Role</Label>
+                    <Input value={memberTitle} onChange={(e) => setMemberTitle(e.target.value)} placeholder="e.g. Lead Designer" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Avatar URL</Label>
+                    <Input value={memberAvatar} onChange={(e) => setMemberAvatar(e.target.value)} placeholder="/images/member.jpg or URL" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Bio</Label>
+                    <Textarea value={memberBio} onChange={(e) => setMemberBio(e.target.value)} placeholder="Short professional bio..." rows={4} />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={closeTeamDialog}>Cancel</Button>
+                  <Button onClick={handleMemberSubmit} disabled={isPending}>
+                    {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    {editingMember ? 'Save Changes' : 'Add Member'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            {(!teamMembers || teamMembers.length === 0) && (
+               <Button variant="outline" onClick={initializeTeam} disabled={isPending}>
+                 Initialize Defaults
+               </Button>
+            )}
+          </div>
+        )}
       </section>
 
-      <section className="grid grid-cols-1 gap-8 md:grid-cols-3">
-        {creators.map((creator) => (
-          <Card key={creator.id} className="text-center border-border/40 shadow-sm overflow-hidden flex flex-col">
+      <section className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+        {displayedTeam.map((creator) => (
+          <Card key={creator.id} className="relative text-center border-border/40 shadow-sm overflow-hidden flex flex-col group">
+            {isAdmin && teamMembers && teamMembers.length > 0 && (
+              <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                <Button variant="secondary" size="icon" className="h-8 w-8" onClick={() => openEditDialog(creator)}>
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+                <Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => deleteMember(creator.id)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
             <CardHeader className="items-center pb-0 pt-8">
               <Avatar className="h-44 w-32 rounded-2xl border-2 border-primary/10">
                 <AvatarImage 
@@ -159,7 +301,7 @@ export default function CreatorsPage() {
                   className="aspect-auto object-cover h-full w-full"
                   data-ai-hint={creator.imageHint} 
                 />
-                <AvatarFallback className="rounded-2xl">{creator.name.charAt(0)}</AvatarFallback>
+                <AvatarFallback className="rounded-2xl text-2xl font-bold">{creator.name.charAt(0)}</AvatarFallback>
               </Avatar>
             </CardHeader>
             <CardContent className="flex-grow flex flex-col justify-center px-6 py-8">
@@ -183,7 +325,7 @@ export default function CreatorsPage() {
               <CardDescription>Submit your new e-book using the form below.</CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleContentSubmit} className="space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor="title">E-Book Title</Label>
                   <Input 
@@ -191,7 +333,7 @@ export default function CreatorsPage() {
                     placeholder="e.g. Intro to Human Anatomy" 
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    disabled={isPending || isUploadingImage}
+                    disabled={isPending}
                   />
                 </div>
 
@@ -202,7 +344,7 @@ export default function CreatorsPage() {
                     placeholder="Provide a brief summary of the e-book's content." 
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    disabled={isPending || isUploadingImage}
+                    disabled={isPending}
                     rows={4}
                   />
                 </div>
@@ -213,7 +355,7 @@ export default function CreatorsPage() {
                         <Select 
                           value={level} 
                           onValueChange={setLevel}
-                          disabled={isPending || isUploadingImage}
+                          disabled={isPending}
                         >
                             <SelectTrigger id="level">
                                 <SelectValue placeholder="Select a level" />
@@ -229,7 +371,7 @@ export default function CreatorsPage() {
                         <RadioGroup 
                           value={contentType}
                           onValueChange={setContentType}
-                          disabled={isPending || isUploadingImage}
+                          disabled={isPending}
                           className="flex items-center pt-2 space-x-4"
                         >
                             <div className="flex items-center space-x-2">
@@ -245,22 +387,6 @@ export default function CreatorsPage() {
                 </div>
 
                 <div className="space-y-2">
-                    <Label htmlFor="cover-image">Custom Cover Image (Optional)</Label>
-                    <div className="flex items-center gap-4">
-                        <Input
-                            id="cover-image"
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageChange}
-                            disabled={isPending || isUploadingImage}
-                            className="cursor-pointer"
-                        />
-                        <ImageIcon className="h-6 w-6 text-muted-foreground shrink-0" />
-                    </div>
-                    <p className="text-xs text-muted-foreground">Upload a custom thumbnail for your e-book. Recommended aspect ratio: 3:4.</p>
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="file-path">PDF Link</Label>
                   <Input
                     id="file-path"
@@ -268,16 +394,13 @@ export default function CreatorsPage() {
                     placeholder="https://your-public-pdf-link.com/file.pdf"
                     value={filePath}
                     onChange={(e) => setFilePath(e.target.value)}
-                    disabled={isPending || isUploadingImage}
+                    disabled={isPending}
                     required
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Upload your PDF to a service like Google Drive and provide the share link here.
-                  </p>
                 </div>
                 
-                <Button type="submit" className="w-full" disabled={!canUpload || isPending || isUploadingImage}>
-                  {isPending || isUploadingImage ? (
+                <Button type="submit" className="w-full" disabled={!canUpload || isPending}>
+                  {isPending ? (
                     <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...</>
                   ) : (
                     <>

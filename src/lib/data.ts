@@ -1,6 +1,6 @@
+
 import type { LucideIcon } from "lucide-react";
 import { BookCopy, FileText, Presentation, Laptop, Scroll, Mic, PenTool, Lightbulb, FolderKanban, Users, BrainCircuit } from "lucide-react";
-import { PlaceHolderImages } from "./placeholder-images";
 
 export interface Service {
   title: string;
@@ -114,6 +114,10 @@ export interface EBook {
   coverImage: string;
   imageHint: string;
   filePath: string;
+  creatorId?: string;
+  uploadDate?: string;
+  lastUpdateDate?: string;
+  downloads?: number;
 }
 
 export interface Creator {
@@ -123,11 +127,12 @@ export interface Creator {
     avatar: string;
     bio: string;
     imageHint: string;
+    order?: number;
 }
 
-export const creators: Creator[] = [
+export const defaultCreators: Creator[] = [
     {
-        id: "c1",
+        id: "denzel",
         name: "Denzel",
         title: "Founder & Study Designer",
         avatar: "/images/Tyrese.jpeg",
@@ -135,19 +140,11 @@ export const creators: Creator[] = [
         bio: "A med-student turned study-designer, Denzel founded MED-X with the goal of helping students study smarter, not harder. His focus is on creating clear, concise, and beautifully formatted study materials."
     },
     {
-        id: "c2",
+        id: "ekemini",
         name: "Ekemini-Abasi",
         title: "Publicity lead and HR manager.",
         avatar: "/images/ekems.jpeg",
         imageHint: "man portrait",
         bio: "A medical student who doubles as the engine room behind Med X’s visibility and people management. He shapes the brand’s voice, amplifies its reach, and builds a driven team."
-    },
-    {
-        id: "c3",
-        name: "Ben Eze",
-        title: "Creative Director",
-        avatar: "https://images.unsplash.com/photo-1684853884851-00f0d8667f58?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8bWFuJTIwZ2xhc3Nlc3xlbnwwfHx8fDE3NzEzOTU3OTZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
-        imageHint: "man glasses",
-        bio: "Ben is the creative force behind MED-X's visual identity. He specializes in turning complex information into beautiful, engaging e-books."
     }
 ]
