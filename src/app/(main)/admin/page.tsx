@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -55,6 +56,9 @@ type UserData = { id: string, email: string, isPremium: boolean, role: string, s
 type Feedback = { id: string; message: string; submittedAt: string; status: string; userId: string | null; email: string | null; };
 type CreatorProfile = { id: string, userId: string, verifiedByAdmin: boolean };
 
+/**
+ * A countdown timer for premium subscriptions.
+ */
 const SubscriptionTimer = ({ expiryDate, onExpire }: { expiryDate: string; onExpire: () => void }) => {
     const [timeLeft, setTimeLeft] = useState<{
         days: number;
@@ -113,7 +117,6 @@ const SubscriptionTimer = ({ expiryDate, onExpire }: { expiryDate: string; onExp
     );
 };
 
-
 export default function AdminPage() {
   const firestore = useFirestore();
   const storage = useStorage();
@@ -134,7 +137,6 @@ export default function AdminPage() {
   const [editCover, setEditCover] = useState('');
   const [editCoverFile, setEditCoverFile] = useState<File | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
-
 
   // Fetch current user's profile to check for admin role
   const userDocRef = useMemoFirebase(() => {
@@ -446,7 +448,6 @@ export default function AdminPage() {
         </div>
     );
   }
-
 
   return (
     <>

@@ -12,10 +12,11 @@ import { useState } from "react";
 import { addMonths } from "date-fns";
 
 /**
- * PAYSTACK KEY CONFIGURATION
+ * PAYSTACK PUBLIC KEY
  * Replace the value below with your actual Public Key from your Paystack Dashboard.
+ * For client-side "Inline" payments, you ONLY need the Public Key.
  */
-const PAYSTACK_PUBLIC_KEY = "pk_test_your_public_key_here";
+const PAYSTACK_PUBLIC_KEY = "pk_live_061de069f6b6297fa83776862db1293e738899ec";
 
 declare global {
   interface Window {
@@ -56,7 +57,7 @@ export default function PremiumPage() {
       amount: 2000 * 100, // 2000 NGN in kobo
       currency: 'NGN',
       callback: (response: any) => {
-        // Payment successful! Let's update the database.
+        // Payment successful! The callback provides a reference number.
         handlePaymentSuccess(response.reference);
       },
       onClose: () => {
