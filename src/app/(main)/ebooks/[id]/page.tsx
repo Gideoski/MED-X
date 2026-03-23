@@ -48,13 +48,16 @@ export default function EbookReaderPage() {
     const [showResults, setShowResults] = useState(false);
 
     const handleGenerateQuiz = () => {
-        if (!ebook || !ebook.description) return; 
+        if (!ebook) return; 
         
         startQuizTransition(async () => {
             setQuiz(null);
             setShowResults(false);
             setSelectedAnswers({});
-            const result = await aiQuizGenerator({ eBookContent: ebook.description });
+            const result = await aiQuizGenerator({ 
+                topic: ebook.title,
+                description: ebook.description 
+            });
             setQuiz(result.quiz);
         });
     };
@@ -73,17 +76,14 @@ export default function EbookReaderPage() {
     const handleReadClick = () => {
         if (!ebook || !ebook.filePath) return;
 
-        // Increment download count in Firestore (non-blocking)
         if (ebookDocRef) {
             updateDoc(ebookDocRef, {
                 downloads: increment(1)
             }).catch(err => {
                 console.error("Failed to increment download count", err);
-                // We don't block the user or show an error for this, as it's a non-critical background task.
             });
         }
 
-        // Open the PDF in a new tab for the user
         window.open(ebook.filePath, '_blank');
     };
     
@@ -180,7 +180,6 @@ export default function EbookReaderPage() {
                                 <FileText className="mr-2 h-4 w-4" />
                                 Open PDF in Reader
                             </Button>
-                            <p className="text-xs text-muted-foreground mt-2 text-center">This will open the PDF in your browser's default viewer or your preferred PDF application.</p>
                         </CardContent>
                     </Card>
                 </div>
