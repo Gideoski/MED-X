@@ -54,7 +54,7 @@ export default function PremiumPage() {
     const handler = window.PaystackPop.setup({
       key: PAYSTACK_PUBLIC_KEY,
       email: user.email,
-      amount: 2000 * 100, // 2000 NGN in kobo
+      amount: 2500 * 100, // 2500 NGN in kobo
       currency: 'NGN',
       callback: (response: any) => {
         // Payment successful! The callback provides a reference number.
@@ -132,7 +132,7 @@ export default function PremiumPage() {
                 <Star className="h-8 w-8 text-primary fill-primary" />
             </div>
             <CardTitle className="text-2xl">Premium Plan</CardTitle>
-            <CardDescription>Get full access to all materials for ₦2,000/month.</CardDescription>
+            <CardDescription>Get full access to all materials for ₦2,500/month.</CardDescription>
           </CardHeader>
           <CardContent>
             <ul className="space-y-3 text-muted-foreground mt-4">
