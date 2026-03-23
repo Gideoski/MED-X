@@ -173,7 +173,7 @@ export default function QuizzesPage() {
                       key={book.id}
                       onClick={() => handleStartQuiz(book)}
                       className={cn(
-                        "flex items-center justify-between p-4 rounded-lg border text-left transition-all hover:bg-accent group",
+                        "flex items-center justify-between p-4 rounded-lg border text-left transition-all hover:bg-muted/50 group",
                         book.isPremium && !isUserPremium && "opacity-60 cursor-not-allowed"
                       )}
                     >
@@ -241,7 +241,7 @@ export default function QuizzesPage() {
                               key={j}
                               htmlFor={`q-${i}-o-${j}`}
                               className={cn(
-                                "flex items-center space-x-3 p-4 rounded-xl border transition-all cursor-pointer hover:bg-accent",
+                                "flex items-center space-x-3 p-4 rounded-xl border transition-all cursor-pointer hover:bg-muted/50",
                                 isSelected && !showResults && "border-primary bg-primary/5",
                                 showResults && isCorrect && "border-green-500 bg-green-50 dark:bg-green-950/30",
                                 showResults && isSelected && !isCorrect && "border-destructive bg-destructive/5"

@@ -224,7 +224,7 @@ export default function EbookReaderPage() {
                                                             }
 
                                                             return (
-                                                                <Label key={j} htmlFor={`q${i}-o${j}`} className={cn('flex items-center space-x-3 p-3 rounded-md border cursor-pointer hover:bg-accent', containerClass, {'border-primary': isSelected && !showResults})}>
+                                                                <Label key={j} htmlFor={`q${i}-o${j}`} className={cn('flex items-center space-x-3 p-3 rounded-md border cursor-pointer hover:bg-muted/50', containerClass, {'border-primary': isSelected && !showResults})}>
                                                                     <RadioGroupItem value={option} id={`q${i}-o${j}`} />
                                                                     <span className={cn('flex-1', labelClass)}>{option}</span>
                                                                 </Label>
