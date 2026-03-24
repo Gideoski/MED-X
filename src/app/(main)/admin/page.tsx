@@ -214,8 +214,14 @@ export default function AdminPage() {
   const handleEditSubmit = async () => {
     if (!materialToEdit || !firestore) return;
     
-    // Close dialog and show success toast immediately (Non-blocking pattern)
+    // Capture state values before closing dialog
     const originalMaterial = materialToEdit;
+    const newTitle = editTitle;
+    const newDesc = editDesc;
+    const newUrl = editCoverUrl;
+    const newFile = editCoverFile;
+
+    // Close dialog and show feedback immediately
     setMaterialToEdit(null);
     toast({ title: 'Processing Changes', description: 'Your updates are being saved in the background.' });
 
@@ -223,18 +229,18 @@ export default function AdminPage() {
         try {
             let finalCoverUrl = originalMaterial.coverImage;
 
-            if (editCoverFile && storage) {
-                const imageRef = ref(storage, `covers/${Date.now()}_${editCoverFile.name}`);
-                const uploadResult = await uploadBytes(imageRef, editCoverFile);
+            if (newFile && storage) {
+                const imageRef = ref(storage, `covers/${Date.now()}_${newFile.name}`);
+                const uploadResult = await uploadBytes(imageRef, newFile);
                 finalCoverUrl = await getDownloadURL(uploadResult.ref);
-            } else if (editCoverUrl.trim()) {
-                finalCoverUrl = editCoverUrl.trim();
+            } else if (newUrl.trim()) {
+                finalCoverUrl = newUrl.trim();
             }
 
             const docRef = doc(firestore, originalMaterial.collection, originalMaterial.id);
             updateDocumentNonBlocking(docRef, {
-                title: editTitle,
-                description: editDesc,
+                title: newTitle,
+                description: newDesc,
                 coverImage: finalCoverUrl,
                 lastUpdateDate: new Date().toISOString(),
             });
