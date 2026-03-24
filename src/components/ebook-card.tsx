@@ -21,27 +21,25 @@ export function EBookCard({ ebook, collection, isUserPremium }: { ebook: EBook; 
   /**
    * Logic to determine the best cover image.
    * Priority 1: User Uploads (Firebase Storage URLs or Base64) - MUST ALWAYS WIN
-   * Priority 2: Themed keyword defaults
-   * Priority 3: Academic Level defaults
-   * Priority 4: Fallback generic placeholders
+   * Priority 2: Custom URLs provided via the "Cover Image URL" field (not generic placeholders)
+   * Priority 3: High-Quality Themed Defaults (Keyword matching for recognized topics)
+   * Priority 4: Level-Based Defaults
+   * Priority 5: Fallback Logo
    */
   const getCoverImage = () => {
     const customImage = ebook.coverImage;
     
-    // PRIORITY 1: Check for verified user uploads or custom URLs that are NOT generic placeholders
-    // This is the absolute win condition. If there's a Firebase Storage link, it's a user upload.
-    if (customImage && (customImage.startsWith('http') || customImage.startsWith('data:'))) {
-        const isFirebaseStorage = customImage.includes('firebasestorage.googleapis.com');
-        const isDataUri = customImage.startsWith('data:');
-        const isGenericPlaceholder = customImage.includes('placehold.co') || customImage.includes('picsum.photos');
-
-        // If it's a direct user upload (Firebase or Data URI) OR a custom non-generic URL, return it immediately
-        if (isFirebaseStorage || isDataUri || !isGenericPlaceholder) {
-          return customImage;
-        }
+    // PRIORITY 1: Check for verified user uploads (Firebase Storage or Base64)
+    if (customImage && (customImage.includes('firebasestorage.googleapis.com') || customImage.startsWith('data:'))) {
+        return customImage;
     }
 
-    // PRIORITY 2: High-Quality Themed Defaults (Keyword matching for recognized topics)
+    // PRIORITY 2: Custom non-generic URLs
+    if (customImage && customImage.startsWith('http') && !customImage.includes('placehold.co') && !customImage.includes('picsum.photos')) {
+        return customImage;
+    }
+
+    // PRIORITY 3: High-Quality Themed Defaults (Keyword matching)
     const title = ebook.title.toLowerCase();
     if (title.includes('embryology')) return '/images/embryology.png';
     if (title.includes('anatomy of the leg')) return '/images/anatomy of the leg.png';
@@ -51,12 +49,12 @@ export function EBookCard({ ebook, collection, isUserPremium }: { ebook: EBook; 
     if (title.includes('upper limb')) return '/images/upper limb.png';
     if (title.includes('respiratory system histology')) return '/images/respiratory system histology.png';
 
-    // PRIORITY 3: Level-Based Defaults
+    // PRIORITY 4: Level-Based Defaults
     const is100Lvl = collection.includes('100lvl') || ebook.level === 100;
     if (is100Lvl) return '/images/med-x 100lvl ebook cover.jpeg';
 
-    // PRIORITY 4: Fallbacks (Either the generic picsum/placehold URL or the logo)
-    return customImage || '/images/MED-X logo.jpeg';
+    // PRIORITY 5: Ultimate Fallback
+    return '/images/MED-X logo.jpeg';
   };
 
   const coverSrc = getCoverImage();
