@@ -23,8 +23,7 @@ export function EBookCard({ ebook, collection, isUserPremium }: { ebook: EBook; 
    * Prioritizes custom uploads and URLs over level-based defaults.
    */
   const getCoverImage = () => {
-    // 1. HIGHEST PRIORITY: Custom uploaded image (from Firebase Storage) or a manual URL provided by admin/creator.
-    // We check if it looks like a real image URL and not the placeholder seeds.
+    // 1. HIGHEST PRIORITY: Custom uploaded image (from Firebase Storage) or a manual URL.
     if (ebook.coverImage && 
         !ebook.coverImage.includes('placehold.co') && 
         !ebook.coverImage.includes('picsum.photos') && 

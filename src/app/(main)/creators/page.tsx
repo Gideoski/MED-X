@@ -97,60 +97,70 @@ export default function CreatorsPage() {
       return;
     }
     
+    // Capture state values for closure
+    const currentTitle = title;
+    const currentLevel = level;
+    const currentDesc = description;
+    const currentPath = filePath;
+    const currentContentType = contentType;
+    const currentFile = coverFile;
+    const currentUrl = coverUrl;
+
     // Non-blocking pattern: Show feedback and clear form immediately
     toast({ title: "Processing", description: "Your content is being uploaded in the background." });
 
-    startTransition(async () => {
+    // Reset form UI instantly
+    setTitle('');
+    setDescription('');
+    setLevel('');
+    setContentType('free');
+    setFilePath('');
+    setCoverFile(null);
+    setCoverUrl('');
+
+    // Kick off background work
+    (async () => {
       try {
-        let finalCoverUrl = level === '100' 
+        let finalCoverUrl = currentLevel === '100' 
           ? '/images/med-x 100lvl ebook cover.jpeg' 
           : `https://picsum.photos/seed/${Math.random().toString().slice(2)}/300/400`;
 
-        if (coverFile && storage) {
-            const coverRef = ref(storage, `covers/${Date.now()}_${coverFile.name}`);
-            const uploadResult = await uploadBytes(coverRef, coverFile);
+        if (currentFile && storage) {
+            const coverRef = ref(storage, `covers/${Date.now()}_${currentFile.name}`);
+            const uploadResult = await uploadBytes(coverRef, currentFile);
             finalCoverUrl = await getDownloadURL(uploadResult.ref);
-        } else if (coverUrl.trim()) {
-            finalCoverUrl = coverUrl.trim();
+        } else if (currentUrl.trim()) {
+            finalCoverUrl = currentUrl.trim();
         }
 
-        const collectionName = `materials_${level}lvl_${contentType === 'premium' ? 'premium' : 'free'}`;
+        const collectionName = `materials_${currentLevel}lvl_${currentContentType === 'premium' ? 'premium' : 'free'}`;
         const collectionRef = collection(firestore!, collectionName);
         
         const newEbookData = {
-            title,
-            description,
+            title: currentTitle,
+            description: currentDesc,
             author: 'MED-X',
-            level: parseInt(level),
-            isPremium: contentType === 'premium',
+            level: parseInt(currentLevel),
+            isPremium: currentContentType === 'premium',
             coverImage: finalCoverUrl,
-            imageHint: level === '100' ? "med-x 100lvl cover" : "book cover",
+            imageHint: currentLevel === '100' ? "med-x 100lvl cover" : "book cover",
             creatorId: user!.uid,
             uploadDate: new Date().toISOString(),
             lastUpdateDate: new Date().toISOString(),
-            filePath: filePath,
+            filePath: currentPath,
             type: 'E-Book',
             downloads: 0,
         };
         await addDoc(collectionRef, newEbookData);
-        toast({ title: "Submission Successful", description: `"${title}" is now live.` });
-
-        // Reset form
-        setTitle('');
-        setDescription('');
-        setLevel('');
-        setContentType('free');
-        setFilePath('');
-        setCoverFile(null);
-        setCoverUrl('');
+        toast({ title: "Submission Successful", description: `"${currentTitle}" is now live.` });
       } catch (error) {
         console.error("Submission Error:", error);
         toast({ title: "Submission Failed", description: "An error occurred during upload.", variant: "destructive" });
       }
-    });
+    })();
   };
 
-  const handleMemberSubmit = async () => {
+  const handleMemberSubmit = () => {
     if (!memberName || !memberTitle || !memberBio || (!memberAvatarFile && !editingMember?.avatar) || !firestore) {
       toast({ title: "Incomplete", description: "All fields are required.", variant: "destructive" });
       return;
@@ -158,23 +168,29 @@ export default function CreatorsPage() {
 
     const isEditing = !!editingMember;
     const originalMember = editingMember;
+    const currentName = memberName;
+    const currentTitle = memberTitle;
+    const currentBio = memberBio;
+    const currentFile = memberAvatarFile;
+
+    // Close instantly
     closeTeamDialog();
     toast({ title: isEditing ? 'Updating Member' : 'Adding Member', description: 'Processing in the background...' });
 
-    startTransition(async () => {
+    (async () => {
       try {
         let avatarUrl = originalMember?.avatar || '';
 
-        if (memberAvatarFile && storage) {
-            const avatarRef = ref(storage, `avatars/${Date.now()}_${memberAvatarFile.name}`);
-            const uploadResult = await uploadBytes(avatarRef, memberAvatarFile);
+        if (currentFile && storage) {
+            const avatarRef = ref(storage, `avatars/${Date.now()}_${currentFile.name}`);
+            const uploadResult = await uploadBytes(avatarRef, currentFile);
             avatarUrl = await getDownloadURL(uploadResult.ref);
         }
 
         const memberData: Omit<Creator, 'id'> = {
-          name: memberName,
-          title: memberTitle,
-          bio: memberBio,
+          name: currentName,
+          title: currentTitle,
+          bio: currentBio,
           avatar: avatarUrl,
           imageHint: "portrait",
           order: originalMember?.order ?? (teamMembers?.length || 0)
@@ -185,24 +201,25 @@ export default function CreatorsPage() {
         } else {
           await addDoc(collection(firestore, 'team_members'), memberData);
         }
-        toast({ title: 'Success', description: 'Team list updated.' });
+        toast({ title: 'Success', description: `Team member ${currentName} updated.` });
       } catch (e) {
         console.error("Error saving member:", e);
         toast({ title: "Error", description: "Could not save changes.", variant: "destructive" });
       }
-    });
+    })();
   };
 
-  const handleDeleteMember = async () => {
+  const handleDeleteMember = () => {
     if (!memberToDelete || !firestore) return;
     
     const originalMember = memberToDelete;
+    // Close instantly
     setMemberToDelete(null);
     toast({ title: 'Removing Member', description: `Removing ${originalMember.name}...` });
 
     try {
       deleteDocumentNonBlocking(doc(firestore, 'team_members', originalMember.id));
-      toast({ title: "Removed", description: "Member removed successfully." });
+      toast({ title: "Removed", description: `${originalMember.name} has been removed successfully.` });
     } catch (e) {
       console.error("Error deleting member:", e);
       toast({ title: "Error", description: "Could not remove member.", variant: "destructive" });
@@ -454,7 +471,7 @@ export default function CreatorsPage() {
                   />
                 </div>
                 
-                <Button type="submit" className="w-full h-11 text-lg">
+                <Button type="submit" className="w-full h-11 text-lg" disabled={isPending}>
                    <Upload className="mr-2 h-5 w-5" />
                    Publish Material
                 </Button>

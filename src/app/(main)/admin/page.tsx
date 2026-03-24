@@ -211,21 +211,22 @@ export default function AdminPage() {
       setEditCoverFile(null);
   };
 
-  const handleEditSubmit = async () => {
+  const handleEditSubmit = () => {
     if (!materialToEdit || !firestore) return;
     
-    // Capture state values before closing dialog
+    // Capture state values
     const originalMaterial = materialToEdit;
     const newTitle = editTitle;
     const newDesc = editDesc;
     const newUrl = editCoverUrl;
     const newFile = editCoverFile;
 
-    // Close dialog and show feedback immediately
+    // 1. Close UI immediately to prevent "freezing"
     setMaterialToEdit(null);
     toast({ title: 'Processing Changes', description: 'Your updates are being saved in the background.' });
 
-    startTransition(async () => {
+    // 2. Perform work in a truly backgrounded async block
+    (async () => {
         try {
             let finalCoverUrl = originalMaterial.coverImage;
 
@@ -245,22 +246,23 @@ export default function AdminPage() {
                 lastUpdateDate: new Date().toISOString(),
             });
             
-            toast({ title: 'Success', description: 'Material updated successfully.' });
+            toast({ title: 'Success', description: `"${newTitle}" has been updated.` });
         } catch (error) {
             console.error('Error updating material:', error);
             toast({ title: 'Error', description: 'Failed to update material.', variant: 'destructive' });
         }
-    });
+    })();
   };
 
   const handleDeleteClick = (material: MaterialWithCollection) => {
     setMaterialToDelete(material);
   };
 
-  const confirmDelete = async () => {
+  const confirmDelete = () => {
     if (!materialToDelete || !firestore) return;
     
     const originalMaterial = materialToDelete;
+    // Close instantly
     setMaterialToDelete(null);
     toast({ title: 'Processing Deletion', description: 'Deleting content...' });
 
@@ -269,7 +271,7 @@ export default function AdminPage() {
       deleteDocumentNonBlocking(docRef);
       toast({
         title: 'Content Deleted',
-        description: `"${originalMaterial.title}" has been successfully deleted.`,
+        description: `"${originalMaterial.title}" has been successfully removed.`,
       });
     } catch (error) {
       console.error('Error deleting document: ', error);
@@ -281,10 +283,11 @@ export default function AdminPage() {
     setFeedbackToDelete(feedbackItem);
   };
 
-  const confirmDeleteFeedback = async () => {
+  const confirmDeleteFeedback = () => {
     if (!feedbackToDelete || !firestore) return;
     
     const originalFeedback = feedbackToDelete;
+    // Close instantly
     setFeedbackToDelete(null);
 
     try {
