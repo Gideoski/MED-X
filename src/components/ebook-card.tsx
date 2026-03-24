@@ -20,22 +20,24 @@ export function EBookCard({ ebook, collection, isUserPremium }: { ebook: EBook; 
 
   /**
    * Logic to determine the best cover image.
-   * Priority 1: Firebase Storage URL (User Uploads)
-   * Priority 2: Custom external URL
-   * Priority 3: Themed keyword defaults
-   * Priority 4: Academic Level defaults
+   * Priority 1: User Uploads (Firebase Storage URLs or Base64) - MUST ALWAYS WIN
+   * Priority 2: Themed keyword defaults
+   * Priority 3: Academic Level defaults
+   * Priority 4: Fallback generic placeholders
    */
   const getCoverImage = () => {
     const customImage = ebook.coverImage;
     
-    // Check for high-priority custom uploads (Storage or manual URL)
+    // PRIORITY 1: Check for verified user uploads or custom URLs that are NOT generic placeholders
     if (customImage && (customImage.startsWith('http') || customImage.startsWith('data:'))) {
-        // We only fallback if it's one of our standard placeholder generators and not a user upload
         const isGenericPlaceholder = customImage.includes('placehold.co') || customImage.includes('picsum.photos');
-        if (!isGenericPlaceholder) return customImage;
+        const isUserUpload = customImage.includes('firebasestorage.googleapis.com') || customImage.startsWith('data:');
+
+        // If it's a direct user upload or a custom non-generic URL, return it immediately
+        if (isUserUpload || !isGenericPlaceholder) return customImage;
     }
 
-    // High-Quality Themed Defaults (Keyword matching for recognized topics)
+    // PRIORITY 2: High-Quality Themed Defaults (Keyword matching for recognized topics)
     const title = ebook.title.toLowerCase();
     if (title.includes('embryology')) return '/images/embryology.png';
     if (title.includes('anatomy of the leg')) return '/images/anatomy of the leg.png';
@@ -45,11 +47,11 @@ export function EBookCard({ ebook, collection, isUserPremium }: { ebook: EBook; 
     if (title.includes('upper limb')) return '/images/upper limb.png';
     if (title.includes('respiratory system histology')) return '/images/respiratory system histology.png';
 
-    // Level-Based Defaults
+    // PRIORITY 3: Level-Based Defaults
     const is100Lvl = collection.includes('100lvl') || ebook.level === 100;
     if (is100Lvl) return '/images/med-x 100lvl ebook cover.jpeg';
 
-    // Absolute Fallbacks
+    // PRIORITY 4: Fallbacks (Either the generic picsum/placehold URL or the logo)
     return customImage || '/images/MED-X logo.jpeg';
   };
 

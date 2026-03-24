@@ -214,23 +214,22 @@ export default function AdminPage() {
   const handleEditSubmit = () => {
     if (!materialToEdit || !firestore) return;
     
-    // Capture state values for background processing
     const originalMaterial = materialToEdit;
     const newTitle = editTitle;
     const newDesc = editDesc;
     const newFile = editCoverFile;
     const newUrl = editCoverUrl;
 
-    // 1. Close UI immediately to prevent "freezing"
+    // Instant UI feedback
     setMaterialToEdit(null);
     toast({ title: 'Processing Changes', description: 'Your updates are being saved in the background.' });
 
-    // 2. Perform background task without awaiting here
     (async () => {
         try {
             let finalCoverUrl = originalMaterial.coverImage;
 
             if (newFile && storage) {
+                // Generate a unique filename to avoid caching issues
                 const imageRef = ref(storage, `covers/${Date.now()}_${newFile.name}`);
                 const uploadResult = await uploadBytes(imageRef, newFile);
                 finalCoverUrl = await getDownloadURL(uploadResult.ref);
@@ -249,7 +248,7 @@ export default function AdminPage() {
             toast({ title: 'Success', description: `"${newTitle}" has been updated.` });
         } catch (error) {
             console.error('Error updating material:', error);
-            toast({ title: 'Error', description: 'Failed to update material.', variant: 'destructive' });
+            toast({ title: 'Error', description: 'Failed to update material. Check console for details.', variant: 'destructive' });
         }
     })();
   };
@@ -262,7 +261,6 @@ export default function AdminPage() {
     if (!materialToDelete || !firestore) return;
     
     const originalMaterial = materialToDelete;
-    // Close instantly
     setMaterialToDelete(null);
     toast({ title: 'Processing Deletion', description: 'Removing content from database...' });
 
@@ -287,7 +285,6 @@ export default function AdminPage() {
     if (!feedbackToDelete || !firestore) return;
     
     const originalFeedback = feedbackToDelete;
-    // Close instantly
     setFeedbackToDelete(null);
 
     try {
