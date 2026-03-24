@@ -29,12 +29,16 @@ export function EBookCard({ ebook, collection, isUserPremium }: { ebook: EBook; 
     const customImage = ebook.coverImage;
     
     // PRIORITY 1: Check for verified user uploads or custom URLs that are NOT generic placeholders
+    // This is the absolute win condition. If there's a Firebase Storage link, it's a user upload.
     if (customImage && (customImage.startsWith('http') || customImage.startsWith('data:'))) {
+        const isFirebaseStorage = customImage.includes('firebasestorage.googleapis.com');
+        const isDataUri = customImage.startsWith('data:');
         const isGenericPlaceholder = customImage.includes('placehold.co') || customImage.includes('picsum.photos');
-        const isUserUpload = customImage.includes('firebasestorage.googleapis.com') || customImage.startsWith('data:');
 
-        // If it's a direct user upload or a custom non-generic URL, return it immediately
-        if (isUserUpload || !isGenericPlaceholder) return customImage;
+        // If it's a direct user upload (Firebase or Data URI) OR a custom non-generic URL, return it immediately
+        if (isFirebaseStorage || isDataUri || !isGenericPlaceholder) {
+          return customImage;
+        }
     }
 
     // PRIORITY 2: High-Quality Themed Defaults (Keyword matching for recognized topics)

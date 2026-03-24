@@ -220,7 +220,7 @@ export default function AdminPage() {
     const newFile = editCoverFile;
     const newUrl = editCoverUrl;
 
-    // Instant UI feedback
+    // Instant UI feedback: close dialog immediately
     setMaterialToEdit(null);
     toast({ title: 'Processing Changes', description: 'Your updates are being saved in the background.' });
 
