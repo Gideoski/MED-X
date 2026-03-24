@@ -25,11 +25,10 @@ export function EBookCard({ ebook, collection, isUserPremium }: { ebook: EBook; 
   const getCoverImage = () => {
     const customImage = ebook.coverImage;
     
-    // 1. HIGHEST PRIORITY: If we have a custom uploaded image or a specific manual URL.
-    // We only skip it if it's explicitly one of our generic "placeholder" seeds 
-    // AND we have a high-quality themed default matching the title below.
+    // 1. HIGHEST PRIORITY: If we have a custom uploaded image (Storage URL) or a specific manual URL.
     if (customImage && (customImage.startsWith('http') || customImage.startsWith('data:'))) {
         const isGenericPlaceholder = customImage.includes('placehold.co') || customImage.includes('picsum.photos');
+        // If it's NOT a generic placeholder (e.g. it's from Firebase Storage), return it immediately.
         if (!isGenericPlaceholder) return customImage;
     }
 
@@ -47,7 +46,7 @@ export function EBookCard({ ebook, collection, isUserPremium }: { ebook: EBook; 
     const is100Lvl = collection.includes('100lvl') || ebook.level === 100;
     if (is100Lvl) return '/images/med-x 100lvl ebook cover.jpeg';
 
-    // 4. Absolute Fallback
+    // 4. Absolute Fallback (Use custom image if generic, otherwise logo)
     return customImage || '/images/MED-X logo.jpeg';
   };
 

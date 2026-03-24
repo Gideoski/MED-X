@@ -14,7 +14,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/Table';
+} from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -221,11 +221,11 @@ export default function AdminPage() {
     const newFile = editCoverFile;
     const newUrl = editCoverUrl;
 
-    // 1. Close UI immediately to prevent "freezing" or "stuck" interface
+    // 1. Close UI immediately to prevent "freezing"
     setMaterialToEdit(null);
     toast({ title: 'Processing Changes', description: 'Your updates are being saved in the background.' });
 
-    // 2. Perform work in a background async block to keep UI fluid
+    // 2. Background task
     (async () => {
         try {
             let finalCoverUrl = originalMaterial.coverImage;
