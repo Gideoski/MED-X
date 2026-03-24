@@ -23,17 +23,18 @@ export function EBookCard({ ebook, collection, isUserPremium }: { ebook: EBook; 
    * Prioritizes custom uploads and URLs over level-based defaults.
    */
   const getCoverImage = () => {
-    // 1. HIGHEST PRIORITY: Custom uploaded image (from Firebase Storage) or a manual URL.
-    if (ebook.coverImage && 
-        !ebook.coverImage.includes('placehold.co') && 
-        !ebook.coverImage.includes('picsum.photos') && 
-        ebook.coverImage.startsWith('http')) {
-      return ebook.coverImage;
+    const customImage = ebook.coverImage;
+    
+    // 1. HIGHEST PRIORITY: If we have a custom uploaded image or a specific manual URL.
+    // We only skip it if it's explicitly one of our generic "placeholder" seeds 
+    // AND we have a high-quality themed default matching the title below.
+    if (customImage && (customImage.startsWith('http') || customImage.startsWith('data:'))) {
+        const isGenericPlaceholder = customImage.includes('placehold.co') || customImage.includes('picsum.photos');
+        if (!isGenericPlaceholder) return customImage;
     }
 
+    // 2. High-Quality Themed Defaults (Matches based on title keywords)
     const title = ebook.title.toLowerCase();
-    
-    // 2. Specific 200 Level Overrides (High-quality themed defaults)
     if (title.includes('embryology')) return '/images/embryology.png';
     if (title.includes('anatomy of the leg')) return '/images/anatomy of the leg.png';
     if (title.includes('csc study guide')) return '/images/csc study guide.png';
@@ -42,12 +43,12 @@ export function EBookCard({ ebook, collection, isUserPremium }: { ebook: EBook; 
     if (title.includes('upper limb')) return '/images/upper limb.png';
     if (title.includes('respiratory system histology')) return '/images/respiratory system histology.png';
 
-    // 3. Level-Based Defaults
+    // 3. Level-Based Defaults (If no custom image or themed default is available)
     const is100Lvl = collection.includes('100lvl') || ebook.level === 100;
     if (is100Lvl) return '/images/med-x 100lvl ebook cover.jpeg';
 
     // 4. Absolute Fallback
-    return ebook.coverImage || '/images/MED-X logo.jpeg';
+    return customImage || '/images/MED-X logo.jpeg';
   };
 
   const coverSrc = getCoverImage();

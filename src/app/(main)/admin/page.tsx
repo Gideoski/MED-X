@@ -14,7 +14,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from '@/Table';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -218,14 +218,14 @@ export default function AdminPage() {
     const originalMaterial = materialToEdit;
     const newTitle = editTitle;
     const newDesc = editDesc;
-    const newUrl = editCoverUrl;
     const newFile = editCoverFile;
+    const newUrl = editCoverUrl;
 
-    // 1. Close UI immediately to prevent "freezing"
+    // 1. Close UI immediately to prevent "freezing" or "stuck" interface
     setMaterialToEdit(null);
     toast({ title: 'Processing Changes', description: 'Your updates are being saved in the background.' });
 
-    // 2. Perform work in a truly backgrounded async block
+    // 2. Perform work in a background async block to keep UI fluid
     (async () => {
         try {
             let finalCoverUrl = originalMaterial.coverImage;
@@ -515,10 +515,10 @@ export default function AdminPage() {
                        <TableCell>{formatNumber(material.downloads || 0)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="icon" onClick={() => handleEditClick(material)} disabled={isUpdating}>
+                            <Button variant="ghost" size="icon" onClick={() => handleEditClick(material)}>
                                 <Edit className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(material)} disabled={isUpdating}>
+                            <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(material)}>
                                 <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                         </div>
@@ -646,7 +646,7 @@ export default function AdminPage() {
                         <Badge variant={item.status === 'New' ? 'default' : 'secondary'}>{item.status}</Badge>
                       </TableCell>
                        <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteFeedbackClick(item)} disabled={isUpdating}>
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteFeedbackClick(item)}>
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </TableCell>
