@@ -20,19 +20,22 @@ export function EBookCard({ ebook, collection, isUserPremium }: { ebook: EBook; 
 
   /**
    * Logic to determine the best cover image.
-   * Prioritizes custom uploads and URLs over level-based defaults.
+   * Priority 1: Firebase Storage URL (User Uploads)
+   * Priority 2: Custom external URL
+   * Priority 3: Themed keyword defaults
+   * Priority 4: Academic Level defaults
    */
   const getCoverImage = () => {
     const customImage = ebook.coverImage;
     
-    // 1. HIGHEST PRIORITY: If we have a custom uploaded image (Storage URL) or a specific manual URL.
+    // Check for high-priority custom uploads (Storage or manual URL)
     if (customImage && (customImage.startsWith('http') || customImage.startsWith('data:'))) {
+        // We only fallback if it's one of our standard placeholder generators and not a user upload
         const isGenericPlaceholder = customImage.includes('placehold.co') || customImage.includes('picsum.photos');
-        // If it's NOT a generic placeholder (e.g. it's from Firebase Storage), return it immediately.
         if (!isGenericPlaceholder) return customImage;
     }
 
-    // 2. High-Quality Themed Defaults (Matches based on title keywords)
+    // High-Quality Themed Defaults (Keyword matching for recognized topics)
     const title = ebook.title.toLowerCase();
     if (title.includes('embryology')) return '/images/embryology.png';
     if (title.includes('anatomy of the leg')) return '/images/anatomy of the leg.png';
@@ -42,11 +45,11 @@ export function EBookCard({ ebook, collection, isUserPremium }: { ebook: EBook; 
     if (title.includes('upper limb')) return '/images/upper limb.png';
     if (title.includes('respiratory system histology')) return '/images/respiratory system histology.png';
 
-    // 3. Level-Based Defaults (If no custom image or themed default is available)
+    // Level-Based Defaults
     const is100Lvl = collection.includes('100lvl') || ebook.level === 100;
     if (is100Lvl) return '/images/med-x 100lvl ebook cover.jpeg';
 
-    // 4. Absolute Fallback (Use custom image if generic, otherwise logo)
+    // Absolute Fallbacks
     return customImage || '/images/MED-X logo.jpeg';
   };
 

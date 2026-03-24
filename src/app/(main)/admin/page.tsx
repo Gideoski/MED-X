@@ -214,7 +214,7 @@ export default function AdminPage() {
   const handleEditSubmit = () => {
     if (!materialToEdit || !firestore) return;
     
-    // Capture state values
+    // Capture state values for background processing
     const originalMaterial = materialToEdit;
     const newTitle = editTitle;
     const newDesc = editDesc;
@@ -225,7 +225,7 @@ export default function AdminPage() {
     setMaterialToEdit(null);
     toast({ title: 'Processing Changes', description: 'Your updates are being saved in the background.' });
 
-    // 2. Background task
+    // 2. Perform background task without awaiting here
     (async () => {
         try {
             let finalCoverUrl = originalMaterial.coverImage;
@@ -264,7 +264,7 @@ export default function AdminPage() {
     const originalMaterial = materialToDelete;
     // Close instantly
     setMaterialToDelete(null);
-    toast({ title: 'Processing Deletion', description: 'Deleting content...' });
+    toast({ title: 'Processing Deletion', description: 'Removing content from database...' });
 
     try {
       const docRef = doc(firestore, originalMaterial.collection, originalMaterial.id);
@@ -293,7 +293,7 @@ export default function AdminPage() {
     try {
       const docRef = doc(firestore, 'feedback', originalFeedback.id);
       deleteDocumentNonBlocking(docRef);
-      toast({ title: 'Feedback Deleted', description: `Feedback submission has been successfully deleted.` });
+      toast({ title: 'Feedback Deleted', description: `Feedback submission has been successfully removed.` });
     } catch (error) {
       console.error('Error deleting feedback: ', error);
       toast({ title: 'Error', description: 'Failed to delete feedback.', variant: 'destructive' });
