@@ -229,7 +229,6 @@ export default function AdminPage() {
             let finalCoverUrl = originalMaterial.coverImage;
 
             if (newFile && storage) {
-                // Generate a unique filename to avoid caching issues
                 const imageRef = ref(storage, `covers/${Date.now()}_${newFile.name}`);
                 const uploadResult = await uploadBytes(imageRef, newFile);
                 finalCoverUrl = await getDownloadURL(uploadResult.ref);
