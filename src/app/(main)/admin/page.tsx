@@ -39,9 +39,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ShieldAlert, Trash2, Loader2, ShieldX, Edit, Save, Upload } from 'lucide-react';
 import { formatNumber } from '@/lib/utils';
-import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc, useStorage } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, deleteDoc, doc, setDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useState, useEffect, useTransition, useMemo } from 'react';
 import type { EBook } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
@@ -116,7 +115,6 @@ const SubscriptionTimer = ({ expiryDate, onExpire }: { expiryDate: string; onExp
 
 export default function AdminPage() {
   const firestore = useFirestore();
-  const storage = useStorage();
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
 
@@ -220,18 +218,22 @@ export default function AdminPage() {
     const newFile = editCoverFile;
     const newUrl = editCoverUrl;
 
-    // Instant UI feedback: close dialog immediately
+    // Instant UI feedback
     setMaterialToEdit(null);
-    toast({ title: 'Processing Changes', description: 'Your updates are being saved in the background.' });
+    toast({ title: 'Processing Changes', description: 'Your updates are being saved.' });
 
-    (async () => {
+    const performUpdate = async () => {
         try {
             let finalCoverUrl = originalMaterial.coverImage;
 
-            if (newFile && storage) {
-                const imageRef = ref(storage, `covers/${Date.now()}_${newFile.name}`);
-                const uploadResult = await uploadBytes(imageRef, newFile);
-                finalCoverUrl = await getDownloadURL(uploadResult.ref);
+            if (newFile) {
+                // Convert to Base64 for instant storage
+                finalCoverUrl = await new Promise<string>((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result as string);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(newFile);
+                });
             } else if (newUrl.trim()) {
                 finalCoverUrl = newUrl.trim();
             }
@@ -249,7 +251,9 @@ export default function AdminPage() {
             console.error('Error updating material:', error);
             toast({ title: 'Error', description: 'Failed to update material.', variant: 'destructive' });
         }
-    })();
+    };
+
+    performUpdate();
   };
 
   const handleDeleteClick = (material: MaterialWithCollection) => {

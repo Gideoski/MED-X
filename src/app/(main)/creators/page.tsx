@@ -12,9 +12,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useState, useTransition, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
-import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, useStorage } from "@/firebase";
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from "@/firebase";
 import { collection, addDoc, doc, setDoc, query, orderBy } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import Link from "next/link";
 import { deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import {
@@ -40,7 +39,6 @@ import {
 export default function CreatorsPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
-  const storage = useStorage();
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
 
@@ -97,7 +95,7 @@ export default function CreatorsPage() {
       return;
     }
     
-    // Capture state values for closure
+    // Capture state values
     const currentTitle = title;
     const currentLevel = level;
     const currentDesc = description;
@@ -106,10 +104,7 @@ export default function CreatorsPage() {
     const currentFile = coverFile;
     const currentUrl = coverUrl;
 
-    // Non-blocking pattern: Show feedback and clear form immediately
-    toast({ title: "Processing", description: "Your content is being uploaded in the background." });
-
-    // Reset form UI instantly
+    // Reset UI instantly
     setTitle('');
     setDescription('');
     setLevel('');
@@ -117,18 +112,21 @@ export default function CreatorsPage() {
     setFilePath('');
     setCoverFile(null);
     setCoverUrl('');
+    toast({ title: "Processing", description: "Your content is being published." });
 
-    // Kick off background work
-    (async () => {
+    const performSubmission = async () => {
       try {
         let finalCoverUrl = currentLevel === '100' 
           ? '/images/med-x 100lvl ebook cover.jpeg' 
           : `https://picsum.photos/seed/${Math.random().toString().slice(2)}/300/400`;
 
-        if (currentFile && storage) {
-            const coverRef = ref(storage, `covers/${Date.now()}_${currentFile.name}`);
-            const uploadResult = await uploadBytes(coverRef, currentFile);
-            finalCoverUrl = await getDownloadURL(uploadResult.ref);
+        if (currentFile) {
+            finalCoverUrl = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(currentFile);
+            });
         } else if (currentUrl.trim()) {
             finalCoverUrl = currentUrl.trim();
         }
@@ -157,7 +155,9 @@ export default function CreatorsPage() {
         console.error("Submission Error:", error);
         toast({ title: "Submission Failed", description: "An error occurred during upload.", variant: "destructive" });
       }
-    })();
+    };
+
+    performSubmission();
   };
 
   const handleMemberSubmit = () => {
@@ -175,16 +175,19 @@ export default function CreatorsPage() {
 
     // Close instantly
     closeTeamDialog();
-    toast({ title: isEditing ? 'Updating Member' : 'Adding Member', description: 'Processing in the background...' });
+    toast({ title: isEditing ? 'Updating Member' : 'Adding Member', description: 'Processing changes.' });
 
-    (async () => {
+    const performSave = async () => {
       try {
         let avatarUrl = originalMember?.avatar || '';
 
-        if (currentFile && storage) {
-            const avatarRef = ref(storage, `avatars/${Date.now()}_${currentFile.name}`);
-            const uploadResult = await uploadBytes(avatarRef, currentFile);
-            avatarUrl = await getDownloadURL(uploadResult.ref);
+        if (currentFile) {
+            avatarUrl = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(currentFile);
+            });
         }
 
         const memberData: Omit<Creator, 'id'> = {
@@ -206,7 +209,9 @@ export default function CreatorsPage() {
         console.error("Error saving member:", e);
         toast({ title: "Error", description: "Could not save changes.", variant: "destructive" });
       }
-    })();
+    };
+
+    performSave();
   };
 
   const handleDeleteMember = () => {

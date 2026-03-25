@@ -20,7 +20,7 @@ export function EBookCard({ ebook, collection, isUserPremium }: { ebook: EBook; 
 
   /**
    * Logic to determine the best cover image.
-   * Priority 1: User Uploads (Firebase Storage URLs or Base64) - MUST ALWAYS WIN
+   * Priority 1: User Uploads (Base64 data:image or Firebase Storage URLs) - ABSOLUTE PRIORITY
    * Priority 2: Custom URLs provided via the "Cover Image URL" field
    * Priority 3: High-Quality Themed Defaults
    * Priority 4: Level-Based Defaults
@@ -29,9 +29,9 @@ export function EBookCard({ ebook, collection, isUserPremium }: { ebook: EBook; 
   const getCoverImage = () => {
     const customImage = ebook.coverImage;
     
-    // PRIORITY 1: Check for verified user uploads (Firebase Storage or Base64)
-    // If the string contains firebase storage or is a data URI, it's a specific user upload.
-    if (customImage && (customImage.includes('firebasestorage.googleapis.com') || customImage.startsWith('data:'))) {
+    // PRIORITY 1: Check for verified user uploads (Base64 strings or Firebase Storage)
+    // These must win every time to ensure Bioinformatics etc. show up correctly.
+    if (customImage && (customImage.startsWith('data:image/') || customImage.includes('firebasestorage.googleapis.com'))) {
         return customImage;
     }
 
