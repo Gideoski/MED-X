@@ -248,7 +248,7 @@ export default function AdminPage() {
             toast({ title: 'Success', description: `"${newTitle}" has been updated.` });
         } catch (error) {
             console.error('Error updating material:', error);
-            toast({ title: 'Error', description: 'Failed to update material. Check console for details.', variant: 'destructive' });
+            toast({ title: 'Error', description: 'Failed to update material.', variant: 'destructive' });
         }
     })();
   };
