@@ -104,6 +104,7 @@ export interface EBook {
   coverImage: string;
   imageHint: string;
   filePath: string;
+  categoryId?: string;
   creatorId?: string;
   uploadDate?: string;
   lastUpdateDate?: string;
