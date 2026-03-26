@@ -29,7 +29,6 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -59,7 +58,7 @@ import { Badge } from '@/components/ui/badge';
 import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-type Material = Omit<EBook, 'id' | 'level'> & { level: string | number, categoryId?: string, type: string, downloads?: number, coverImage: string };
+type Material = Omit<EBook, 'id'> & { categoryId?: string, type: string, downloads?: number, coverImage: string };
 type MaterialWithCollection = Material & { id: string; collection: string };
 type UserData = { id: string, email: string, isPremium: boolean, role: string, subscriptionExpiresAt?: string | null };
 type CourseCategory = { id: string; name: string; level: number; order: number };
@@ -175,7 +174,14 @@ export default function AdminPage() {
     dataHooks.forEach((hook, index) => {
       if (hook.data) {
         hook.data.forEach((item) => {
-          combinedContent.push({ ...item, id: item.id, collection: collectionsToFetch[index] });
+          // Derive level from collection if missing for older docs
+          const derivedLevel = collectionsToFetch[index].includes('100lvl') ? 100 : 200;
+          combinedContent.push({ 
+            ...item, 
+            id: item.id, 
+            level: item.level || derivedLevel,
+            collection: collectionsToFetch[index] 
+          });
         });
       }
     });
@@ -486,7 +492,7 @@ export default function AdminPage() {
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="none">Uncategorized</SelectItem>
-                                {categories?.filter(c => c.level === (materialToEdit?.level as number)).map(cat => (
+                                {categories?.filter(c => Number(c.level) === Number(materialToEdit?.level)).map(cat => (
                                     <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                                 ))}
                             </SelectContent>

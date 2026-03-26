@@ -29,12 +29,12 @@ export function EBookCard({ ebook, collection, isUserPremium }: { ebook: EBook; 
   const getCoverImage = () => {
     const customImage = ebook.coverImage;
     
-    // PRIORITY 1: Check for verified user uploads (Base64 strings or Firebase Storage)
+    // PRIORITY 1: User Uploads (Base64 or Firebase Storage) ALWAYS win
     if (customImage && (customImage.startsWith('data:image/') || customImage.includes('firebasestorage.googleapis.com'))) {
         return customImage;
     }
 
-    // PRIORITY 2: Custom non-generic URLs
+    // PRIORITY 2: Custom URLs (external sites)
     if (customImage && customImage.startsWith('http') && !customImage.includes('placehold.co') && !customImage.includes('picsum.photos')) {
         return customImage;
     }
