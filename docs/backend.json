@@ -93,180 +93,81 @@
           }
         },
         "level": {
+          "type": "number",
+          "description": "The academic level or target audience for which the material is designed (100 or 200)."
+        },
+        "categoryId": {
           "type": "string",
-          "description": "The academic level or target audience for which the material is designed.",
-          "format": "enum",
-          "items": {
-            "type": "string"
-          }
+          "description": "The ID of the course category this material belongs to (e.g., Anatomy ID)."
         },
         "filePath": {
           "type": "string",
           "description": "The URI path to the actual digital file of the educational material (e.g., PDF).",
           "format": "uri"
         },
-        "thumbnailPath": {
+        "coverImage": {
           "type": "string",
-          "description": "The URI path to a thumbnail or cover image for the material.",
-          "format": "uri"
+          "description": "The cover image for the material, stored as a Base64 string or URI."
         },
-        "isPremiumContent": {
+        "isPremium": {
           "type": "boolean",
           "description": "Indicates if this material is part of the premium subscription content."
         },
         "creatorId": {
           "type": "string",
-          "description": "Reference to the User (creator) who uploaded or authored this material. (Relationship: User 1:N Material)"
+          "description": "Reference to the User (creator) who uploaded or authored this material."
         },
         "uploadDate": {
           "type": "string",
-          "description": "Timestamp indicating when the material was first uploaded to the platform.",
+          "description": "Timestamp indicating when the material was first uploaded.",
           "format": "date-time"
         },
         "lastUpdateDate": {
           "type": "string",
-          "description": "Timestamp indicating when the material's details or file were last updated.",
+          "description": "Timestamp indicating when the material was last updated.",
           "format": "date-time"
         },
         "downloads": {
           "type": "number",
-          "description": "The total number of times the material's file has been accessed or downloaded."
+          "description": "The total number of times the material's file has been accessed."
         }
       },
       "required": [
         "id",
         "title",
         "description",
-        "type",
         "level",
         "filePath",
-        "isPremiumContent",
-        "creatorId",
-        "uploadDate",
-        "lastUpdateDate"
+        "isPremium",
+        "uploadDate"
       ]
+    },
+    "CourseCategory": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CourseCategory",
+      "type": "object",
+      "description": "A category for organizing e-books (e.g., Anatomy, ICT).",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "level": { "type": "number" },
+        "order": { "type": "number" }
+      },
+      "required": ["id", "name", "level"]
     },
     "CreatorProfile": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "CreatorProfile",
       "type": "object",
-      "description": "Stores public-facing profile information for users who are creators on the Med-X platform.",
+      "description": "Stores public-facing profile information for creators.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the CreatorProfile entity, matching the associated User's ID."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User account associated with this creator profile. (Relationship: User 1:1 CreatorProfile)"
-        },
-        "bio": {
-          "type": "string",
-          "description": "A short biographical description of the creator, highlighting their expertise or background."
-        },
-        "profilePictureUrl": {
-          "type": "string",
-          "description": "The URI path to the creator's profile picture.",
-          "format": "uri"
-        },
-        "socialMediaLinks": {
-          "type": "array",
-          "description": "An array of URIs linking to the creator's social media profiles or personal website.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "verifiedByAdmin": {
-          "type": "boolean",
-          "description": "Indicates if this creator's profile has been officially verified by an administrator."
-        }
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "bio": { "type": "string" },
+        "profilePictureUrl": { "type": "string", "format": "uri" },
+        "verifiedByAdmin": { "type": "boolean" }
       },
-      "required": [
-        "id",
-        "userId",
-        "verifiedByAdmin"
-      ]
-    },
-    "TeamMember": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "TeamMember",
-      "type": "object",
-      "description": "Represents a public-facing team member profile on the Creators page.",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "title": {
-          "type": "string"
-        },
-        "bio": {
-          "type": "string"
-        },
-        "avatar": {
-          "type": "string",
-          "format": "uri"
-        },
-        "imageHint": {
-          "type": "string"
-        },
-        "order": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "title",
-        "bio",
-        "avatar"
-      ]
-    },
-    "Feedback": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Feedback",
-      "type": "object",
-      "description": "Captures feedback submissions from users, which can be reviewed and managed by administrators.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Feedback entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User who submitted the feedback, if they were logged in. (Relationship: User 1:N Feedback)"
-        },
-        "email": {
-          "type": "string",
-          "description": "The email address provided by the user if they were not logged in or preferred to use a different email.",
-          "format": "email"
-        },
-        "message": {
-          "type": "string",
-          "description": "The actual content of the feedback message from the user."
-        },
-        "submittedAt": {
-          "type": "string",
-          "description": "Timestamp indicating when the feedback was submitted.",
-          "format": "date-time"
-        },
-        "status": {
-          "type": "string",
-          "description": "The current processing status of the feedback (e.g., New, Reviewed, Archived).",
-          "format": "enum",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "required": [
-        "id",
-        "message",
-        "submittedAt",
-        "status"
-      ]
+      "required": ["id", "userId", "verifiedByAdmin"]
     }
   },
   "auth": {
@@ -281,32 +182,48 @@
         "path": "/users/{userId}",
         "definition": {
           "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Stores private user profile information and account details.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            }
-          ]
+          "schema": { "$ref": "#/backend/entities/User" },
+          "description": "Stores private user profile information."
         }
       },
       {
-        "path": "/team_members/{memberId}",
+        "path": "/course_categories/{categoryId}",
         "definition": {
-          "entityName": "TeamMember",
-          "schema": {
-            "$ref": "#/backend/entities/TeamMember"
-          },
-          "description": "Publicly readable collection of team members for the Creators page.",
-          "params": [
-            {
-              "name": "memberId",
-              "description": "Unique identifier for the team member."
-            }
-          ]
+          "entityName": "CourseCategory",
+          "schema": { "$ref": "#/backend/entities/CourseCategory" },
+          "description": "Categories for organizing materials."
+        }
+      },
+      {
+        "path": "/materials_100lvl_free/{materialId}",
+        "definition": {
+          "entityName": "Material",
+          "schema": { "$ref": "#/backend/entities/Material" },
+          "description": "Free materials for 100 level."
+        }
+      },
+      {
+        "path": "/materials_100lvl_premium/{materialId}",
+        "definition": {
+          "entityName": "Material",
+          "schema": { "$ref": "#/backend/entities/Material" },
+          "description": "Premium materials for 100 level."
+        }
+      },
+      {
+        "path": "/materials_200lvl_free/{materialId}",
+        "definition": {
+          "entityName": "Material",
+          "schema": { "$ref": "#/backend/entities/Material" },
+          "description": "Free materials for 200 level."
+        }
+      },
+      {
+        "path": "/materials_200lvl_premium/{materialId}",
+        "definition": {
+          "entityName": "Material",
+          "schema": { "$ref": "#/backend/entities/Material" },
+          "description": "Premium materials for 200 level."
         }
       }
     ]

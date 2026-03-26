@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -37,10 +38,22 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ShieldAlert, Trash2, Loader2, ShieldX, Edit, Save, Upload } from 'lucide-react';
+import { 
+  ShieldAlert, 
+  Trash2, 
+  Loader2, 
+  ShieldX, 
+  Edit, 
+  Save, 
+  Upload, 
+  Plus,
+  LayoutGrid,
+  ChevronRight,
+  ChevronDown
+} from 'lucide-react';
 import { formatNumber } from '@/lib/utils';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { collection, deleteDoc, doc, setDoc } from 'firebase/firestore';
+import { collection, deleteDoc, doc, setDoc, addDoc, query, orderBy } from 'firebase/firestore';
 import { useState, useEffect, useTransition, useMemo } from 'react';
 import type { EBook } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
@@ -48,12 +61,13 @@ import { Switch } from '@/components/ui/switch';
 import { addMonths, format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-type Material = Omit<EBook, 'id' | 'level'> & { level: string | number, type: string, downloads?: number, coverImage: string };
+type Material = Omit<EBook, 'id' | 'level'> & { level: string | number, categoryId?: string, type: string, downloads?: number, coverImage: string };
 type MaterialWithCollection = Material & { id: string; collection: string };
 type UserData = { id: string, email: string, isPremium: boolean, role: string, subscriptionExpiresAt?: string | null };
 type Feedback = { id: string; message: string; submittedAt: string; status: string; userId: string | null; email: string | null; };
-type CreatorProfile = { id: string, userId: string, verifiedByAdmin: boolean };
+type CourseCategory = { id: string; name: string; level: number; order: number };
 
 const SubscriptionTimer = ({ expiryDate, onExpire }: { expiryDate: string; onExpire: () => void }) => {
     const [timeLeft, setTimeLeft] = useState<{
@@ -65,11 +79,9 @@ const SubscriptionTimer = ({ expiryDate, onExpire }: { expiryDate: string; onExp
 
     useEffect(() => {
         const expiry = new Date(expiryDate);
-
         const calculateTimeLeft = () => {
             const difference = +expiry - +new Date();
             let newTimeLeft = null;
-
             if (difference > 0) {
                 newTimeLeft = {
                     days: Math.floor(difference / (1000 * 60 * 60 * 24)),
@@ -80,15 +92,12 @@ const SubscriptionTimer = ({ expiryDate, onExpire }: { expiryDate: string; onExp
             }
             return newTimeLeft;
         };
-
         const initialTimeLeft = calculateTimeLeft();
         if (!initialTimeLeft) {
             onExpire();
             return;
         }
-
         setTimeLeft(initialTimeLeft);
-
         const interval = setInterval(() => {
             const updatedTimeLeft = calculateTimeLeft();
             if (updatedTimeLeft) {
@@ -98,14 +107,11 @@ const SubscriptionTimer = ({ expiryDate, onExpire }: { expiryDate: string; onExp
                 onExpire();
             }
         }, 1000);
-
         return () => clearInterval(interval);
     }, [expiryDate, onExpire]);
 
     if (!timeLeft) return null;
-
     const formatTime = (val: number) => val.toString().padStart(2, '0');
-
     return (
         <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
             ({timeLeft.days > 0 && `${timeLeft.days}d `}{formatTime(timeLeft.hours)}h:{formatTime(timeLeft.minutes)}m:{formatTime(timeLeft.seconds)}s left)
@@ -126,8 +132,15 @@ export default function AdminPage() {
 
   const [editTitle, setEditTitle] = useState('');
   const [editDesc, setEditDesc] = useState('');
-  const [editCoverUrl, setEditCoverUrl] = useState('');
+  const [editCategoryId, setEditCategoryId] = useState('');
   const [editCoverFile, setEditCoverFile] = useState<File | null>(null);
+
+  // Category State
+  const [isCatDialogOpen, setIsCatDialogOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<CourseCategory | null>(null);
+  const [catName, setCatName] = useState('');
+  const [catLevel, setCatLevel] = useState('100');
+  const [catToDelete, setCatToDelete] = useState<CourseCategory | null>(null);
 
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -144,20 +157,13 @@ export default function AdminPage() {
     const map = new Map<string, UserData>();
     users.forEach(u => {
       const existing = map.get(u.email);
-      if (!existing || u.id.length >= 28) {
-        map.set(u.email, u);
-      }
+      if (!existing || u.id.length >= 28) map.set(u.email, u);
     });
     return Array.from(map.values()).sort((a, b) => a.email.localeCompare(b.email));
   }, [users]);
 
-  const creatorProfilesCollectionRef = useMemoFirebase(() => (firestore ? collection(firestore, 'creator_profiles') : null), [firestore]);
-  const { data: creatorProfiles, isLoading: isLoadingCreatorProfiles } = useCollection<CreatorProfile>(creatorProfilesCollectionRef);
-
-  const verificationStatusMap = useMemo(() => {
-    if (!creatorProfiles) return new Map<string, boolean>();
-    return new Map(creatorProfiles.map(p => [p.userId, p.verifiedByAdmin]));
-  }, [creatorProfiles]);
+  const categoriesQuery = useMemoFirebase(() => (firestore ? query(collection(firestore, 'course_categories'), orderBy('order', 'asc')) : null), [firestore]);
+  const { data: categories, isLoading: isLoadingCategories } = useCollection<CourseCategory>(categoriesQuery);
 
   const feedbackCollectionRef = useMemoFirebase(() => (firestore ? collection(firestore, 'feedback') : null), [firestore]);
   const { data: allFeedback, isLoading: isLoadingFeedback } = useCollection<Feedback>(feedbackCollectionRef);
@@ -169,28 +175,16 @@ export default function AdminPage() {
     'materials_200lvl_premium',
   ];
 
-  const collectionRefs = collectionsToFetch.map((c) =>
-    useMemoFirebase(() => (firestore ? collection(firestore, c) : null), [firestore, c])
+  const dataHooks = collectionsToFetch.map(c => 
+    useCollection<Material>(useMemoFirebase(() => (firestore ? collection(firestore, c) : null), [firestore, c]))
   );
-
-  const dataHooks = [
-    useCollection<Material>(collectionRefs[0]),
-    useCollection<Material>(collectionRefs[1]),
-    useCollection<Material>(collectionRefs[2]),
-    useCollection<Material>(collectionRefs[3]),
-  ];
 
   useEffect(() => {
     const combinedContent: MaterialWithCollection[] = [];
     dataHooks.forEach((hook, index) => {
       if (hook.data) {
-        const collectionName = collectionsToFetch[index];
         hook.data.forEach((item) => {
-          combinedContent.push({
-            ...item,
-            id: item.id,
-            collection: collectionName,
-          });
+          combinedContent.push({ ...item, id: item.id, collection: collectionsToFetch[index] });
         });
       }
     });
@@ -198,14 +192,11 @@ export default function AdminPage() {
     setAllMaterials(combinedContent);
   }, [dataHooks[0].data, dataHooks[1].data, dataHooks[2].data, dataHooks[3].data]);
 
-  const isLoadingMaterials = dataHooks.some((h) => h.isLoading);
-  const isLoading = isLoadingUsers || isLoadingMaterials || isLoadingFeedback || isUserLoading || isProfileLoading || isLoadingCreatorProfiles;
-
   const handleEditClick = (material: MaterialWithCollection) => {
       setMaterialToEdit(material);
       setEditTitle(material.title);
       setEditDesc(material.description);
-      setEditCoverUrl(''); 
+      setEditCategoryId(material.categoryId || 'none');
       setEditCoverFile(null);
   };
 
@@ -216,533 +207,357 @@ export default function AdminPage() {
     const newTitle = editTitle;
     const newDesc = editDesc;
     const newFile = editCoverFile;
-    const newUrl = editCoverUrl;
+    const newCatId = editCategoryId === 'none' ? '' : editCategoryId;
 
-    // Instant UI feedback
     setMaterialToEdit(null);
-    toast({ title: 'Processing Changes', description: 'Your updates are being saved.' });
+    toast({ title: 'Saving...', description: 'Updates are being saved to the database.' });
 
     const performUpdate = async () => {
         try {
             let finalCoverUrl = originalMaterial.coverImage;
-
             if (newFile) {
-                // Convert to Base64 for instant storage
                 finalCoverUrl = await new Promise<string>((resolve, reject) => {
                     const reader = new FileReader();
                     reader.onload = () => resolve(reader.result as string);
                     reader.onerror = reject;
                     reader.readAsDataURL(newFile);
                 });
-            } else if (newUrl.trim()) {
-                finalCoverUrl = newUrl.trim();
             }
 
             const docRef = doc(firestore, originalMaterial.collection, originalMaterial.id);
             updateDocumentNonBlocking(docRef, {
                 title: newTitle,
                 description: newDesc,
+                categoryId: newCatId,
                 coverImage: finalCoverUrl,
                 lastUpdateDate: new Date().toISOString(),
             });
-            
-            toast({ title: 'Success', description: `"${newTitle}" has been updated.` });
+            toast({ title: 'Success', description: `"${newTitle}" updated.` });
         } catch (error) {
-            console.error('Error updating material:', error);
+            console.error('Error updating:', error);
             toast({ title: 'Error', description: 'Failed to update material.', variant: 'destructive' });
         }
     };
-
     performUpdate();
-  };
-
-  const handleDeleteClick = (material: MaterialWithCollection) => {
-    setMaterialToDelete(material);
   };
 
   const confirmDelete = () => {
     if (!materialToDelete || !firestore) return;
-    
     const originalMaterial = materialToDelete;
     setMaterialToDelete(null);
-    toast({ title: 'Processing Deletion', description: 'Removing content from database...' });
-
     try {
-      const docRef = doc(firestore, originalMaterial.collection, originalMaterial.id);
-      deleteDocumentNonBlocking(docRef);
-      toast({
-        title: 'Content Deleted',
-        description: `"${originalMaterial.title}" has been successfully removed.`,
-      });
+      deleteDocumentNonBlocking(doc(firestore, originalMaterial.collection, originalMaterial.id));
+      toast({ title: 'Deleted', description: `"${originalMaterial.title}" removed.` });
     } catch (error) {
-      console.error('Error deleting document: ', error);
-      toast({ title: 'Error', description: 'Failed to delete content.', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Failed to delete.', variant: 'destructive' });
     }
   };
 
-  const handleDeleteFeedbackClick = (feedbackItem: Feedback) => {
-    setFeedbackToDelete(feedbackItem);
-  };
+  const handleCategorySave = () => {
+    if (!catName || !firestore) return;
+    const name = catName;
+    const level = parseInt(catLevel);
+    const original = editingCategory;
 
-  const confirmDeleteFeedback = () => {
-    if (!feedbackToDelete || !firestore) return;
-    
-    const originalFeedback = feedbackToDelete;
-    setFeedbackToDelete(null);
+    setIsCatDialogOpen(false);
+    setEditingCategory(null);
+    setCatName('');
+    toast({ title: 'Processing', description: 'Saving course category...' });
 
-    try {
-      const docRef = doc(firestore, 'feedback', originalFeedback.id);
-      deleteDocumentNonBlocking(docRef);
-      toast({ title: 'Feedback Deleted', description: `Feedback submission has been successfully removed.` });
-    } catch (error) {
-      console.error('Error deleting feedback: ', error);
-      toast({ title: 'Error', description: 'Failed to delete feedback.', variant: 'destructive' });
-    }
-  };
-
-  const handleUserPremiumChange = (targetUser: UserData, isPremium: boolean) => {
-    if (!firestore) return;
-  
-    startTransition(async () => {
-      const userDocRef = doc(firestore, 'users', targetUser.id);
+    const performSave = async () => {
       try {
-        const updateData: { isPremium: boolean; subscriptionExpiresAt?: string | null } = { isPremium };
-        let toastDescription = `${targetUser.email}'s status has been set to ${isPremium ? 'Premium' : 'Free'}.`;
-
-        if (isPremium) {
-          const expiryDate = addMonths(new Date(), 1);
-          updateData.subscriptionExpiresAt = expiryDate.toISOString();
-          toastDescription = `${targetUser.email} has been upgraded to Premium for one month.`
+        const catData = { name, level, order: original?.order ?? (categories?.length || 0) };
+        if (original) {
+          await setDoc(doc(firestore, 'course_categories', original.id), catData, { merge: true });
         } else {
-          updateData.subscriptionExpiresAt = null;
+          await addDoc(collection(firestore, 'course_categories'), catData);
         }
-  
-        updateDocumentNonBlocking(userDocRef, updateData);
-        toast({ title: 'User Updated', description: toastDescription });
-      } catch (error) {
-        console.error('Error updating user:', error);
-        toast({ title: 'Update Failed', description: `Could not update ${targetUser.email}'s status.`, variant: 'destructive' });
+        toast({ title: 'Success', description: `Category "${name}" saved.` });
+      } catch (e) {
+        toast({ title: 'Error', description: 'Failed to save category.', variant: 'destructive' });
       }
-    });
+    };
+    performSave();
   };
 
-  const handleUserRoleChange = (targetUser: UserData, isAdmin: boolean) => {
+  const initializeDefaultCategories = async () => {
     if (!firestore) return;
-
     startTransition(async () => {
-      const userDocRef = doc(firestore, 'users', targetUser.id);
-      try {
-        updateDocumentNonBlocking(userDocRef, { role: isAdmin ? 'admin' : 'student' });
-        toast({ title: 'User Role Updated', description: `${targetUser.email} has been made an ${isAdmin ? 'Admin' : 'Student'}.` });
-      } catch (error) {
-        console.error('Error updating user role:', error);
-        toast({ title: 'Update Failed', description: `Could not update ${targetUser.email}'s role.`, variant: 'destructive' });
-      }
+        const defaults = [
+            { name: 'ICT', level: 100 },
+            { name: 'Physics', level: 100 },
+            { name: 'Chemistry', level: 100 },
+            { name: 'Biology', level: 100 },
+            { name: 'General Studies', level: 100 },
+            { name: 'Anatomy', level: 200 },
+            { name: 'Physiology', level: 200 },
+            { name: 'Biochemistry', level: 200 },
+            { name: 'IGMC', level: 200 },
+            { name: 'Histology', level: 200 },
+        ];
+        try {
+            for (const [idx, cat] of defaults.entries()) {
+                await addDoc(collection(firestore, 'course_categories'), { ...cat, order: idx });
+            }
+            toast({ title: 'Initialized', description: 'Standard categories have been added.' });
+        } catch (e) {
+            toast({ title: 'Error', description: 'Initialization failed.', variant: 'destructive' });
+        }
     });
   };
 
-  const handleUserVerificationChange = (targetUser: UserData, isVerified: boolean) => {
-    if (!firestore) return;
-
-    startTransition(async () => {
-      const creatorProfileRef = doc(firestore, 'creator_profiles', targetUser.id);
-      try {
-        await setDoc(creatorProfileRef, { 
-            id: targetUser.id,
-            userId: targetUser.id,
-            verifiedByAdmin: isVerified 
-        }, { merge: true });
-
-        toast({ title: 'User Updated', description: `${targetUser.email} has been ${isVerified ? 'verified' : 'unverified'} as a creator.` });
-      } catch (error) {
-        console.error('Error updating creator profile:', error);
-        toast({ title: 'Update Failed', description: `Could not update ${targetUser.email}'s verification status.`, variant: 'destructive' });
-      }
-    });
-  };
-
-  const handleMaterialPremiumChange = (material: MaterialWithCollection, newPremiumStatus: boolean) => {
-    if (!firestore) return;
-    
-    startTransition(async () => {
-      const currentCollection = material.collection;
-      const targetCollection = currentCollection.includes('_free')
-        ? currentCollection.replace('_free', '_premium')
-        : currentCollection.replace('_premium', '_free');
-
-      const originalDocRef = doc(firestore, currentCollection, material.id);
-      const targetDocRef = doc(firestore, targetCollection, material.id);
-
-      const { collection: _, ...materialData } = material;
-      const newMaterialData = {
-        ...materialData,
-        isPremium: newPremiumStatus,
-      };
-
-      try {
-        await setDoc(targetDocRef, newMaterialData);
-        await deleteDoc(originalDocRef);
-        
-        toast({ title: 'Content Updated', description: `"${material.title}" has been moved to ${newPremiumStatus ? 'Premium' : 'Free'}.` });
-      } catch (error) {
-        console.error('Error moving document:', error);
-        toast({ title: 'Update Failed', description: `Could not move "${material.title}".`, variant: 'destructive' });
-      }
-    });
-  };
-
-  const totalDownloads = allMaterials.reduce((acc, c) => acc + (c.downloads || 0), 0);
-  const premiumUsersCount = uniqueUsers ? uniqueUsers.filter((u) => u.isPremium).length : 0;
-  
-  if (isLoading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
-  const isAdmin = userProfile?.role === 'admin';
-
-  if (!isAdmin) {
-    return (
-        <div className="flex flex-col items-center justify-center h-full min-h-[60vh] text-center">
-            <ShieldX className="h-16 w-16 text-destructive mb-4" />
-            <h1 className="text-3xl font-bold">Access Denied</h1>
-            <p className="text-muted-foreground mt-2">You do not have permission to view this page.</p>
-        </div>
-    );
-  }
+  if (isUserLoading || isProfileLoading) return <div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  if (userProfile?.role !== 'admin') return <div className="flex flex-col items-center justify-center h-full min-h-[60vh]"><ShieldX className="h-16 w-16 text-destructive mb-4" /><h1 className="text-3xl font-bold">Access Denied</h1></div>;
 
   return (
-    <>
-      <div className="space-y-8">
-        <div className="flex items-center gap-4">
-          <ShieldAlert className="h-10 w-10 text-primary" />
-          <div>
-            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-            <p className="text-muted-foreground">Manage users, content, and site settings.</p>
+    <div className="space-y-8 max-w-6xl mx-auto pb-12">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <ShieldAlert className="h-10 w-10 text-primary" />
+            <div>
+                <h1 className="text-3xl font-bold tracking-tight">Admin Console</h1>
+                <p className="text-muted-foreground">System-wide management for MED-X.</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={initializeDefaultCategories}>
+                <Plus className="mr-2 h-4 w-4" /> Initialize Categories
+            </Button>
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+        {/* Categories Section */}
+        <Card className="border-primary/10 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                    <CardTitle className="text-xl flex items-center gap-2">
+                        <LayoutGrid className="h-5 w-5 text-primary" /> Category Management
+                    </CardTitle>
+                    <CardDescription>Organize materials by course subject.</CardDescription>
+                </div>
+                <Button size="sm" onClick={() => { setEditingCategory(null); setCatName(''); setIsCatDialogOpen(true); }}>
+                    <Plus className="mr-2 h-4 w-4" /> Add Subject
+                </Button>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {isLoadingUsers ? <Loader2 className="h-6 w-6 animate-spin" /> : formatNumber(uniqueUsers.length)}
-              </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 className="font-semibold mb-3 text-sm text-primary">100 Level Subjects</h3>
+                        <div className="space-y-2">
+                            {categories?.filter(c => c.level === 100).map(cat => (
+                                <div key={cat.id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/30 group">
+                                    <span className="text-sm font-medium">{cat.name}</span>
+                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingCategory(cat); setCatName(cat.name); setCatLevel('100'); setIsCatDialogOpen(true); }}>
+                                            <Edit className="h-3 w-3" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setCatToDelete(cat)}>
+                                            <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <div>
+                        <h3 className="font-semibold mb-3 text-sm text-primary">200 Level Subjects</h3>
+                        <div className="space-y-2">
+                            {categories?.filter(c => c.level === 200).map(cat => (
+                                <div key={cat.id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/30 group">
+                                    <span className="text-sm font-medium">{cat.name}</span>
+                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingCategory(cat); setCatName(cat.name); setCatLevel('200'); setIsCatDialogOpen(true); }}>
+                                            <Edit className="h-3 w-3" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setCatToDelete(cat)}>
+                                            <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
             </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Premium Users</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {isLoadingUsers ? <Loader2 className="h-6 w-6 animate-spin" /> : formatNumber(premiumUsersCount)}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Content</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {isLoadingMaterials ? <Loader2 className="h-6 w-6 animate-spin" /> : formatNumber(allMaterials.length)}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Downloads</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                 {isLoadingMaterials ? <Loader2 className="h-6 w-6 animate-spin" /> : formatNumber(totalDownloads)}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        </Card>
 
-        <Card>
+        {/* Content Management Card */}
+        <Card className="shadow-sm">
           <CardHeader>
             <CardTitle>Content Management</CardTitle>
-            <CardDescription>View and manage all uploaded materials.</CardDescription>
+            <CardDescription>Update material metadata and availability.</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Title</TableHead>
-                  <TableHead>Level</TableHead>
-                  <TableHead>Status (Premium)</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Premium</TableHead>
                   <TableHead>Downloads</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoadingMaterials ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center">
-                      <div className="flex items-center justify-center p-4">
-                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : !allMaterials.length ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground">
-                      No content found.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  allMaterials.map((material) => (
-                    <TableRow key={`${material.id}-${material.collection}`}>
-                      <TableCell className="font-medium">{material.title}</TableCell>
-                      <TableCell>{material.level} Level</TableCell>
-                      <TableCell>
-                        <Switch
-                          checked={material.isPremium}
-                          onCheckedChange={(checked) => handleMaterialPremiumChange(material, checked)}
-                          disabled={isUpdating}
-                          aria-label="Toggle premium status for content"
-                        />
-                      </TableCell>
-                       <TableCell>{formatNumber(material.downloads || 0)}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="icon" onClick={() => handleEditClick(material)}>
-                                <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(material)}>
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>User Management</CardTitle>
-            <CardDescription>View and manage all registered users.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Premium Status</TableHead>
-                  <TableHead>Admin</TableHead>
-                  <TableHead>Verified Creator</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoadingUsers ? (
-                  <TableRow>
-                     <TableCell colSpan={4} className="text-center">
-                      <div className="flex items-center justify-center p-4">
-                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : !uniqueUsers?.length ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground">
-                      No users found.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  uniqueUsers.map((tableUser) => (
-                    <TableRow key={tableUser.id}>
-                      <TableCell>{tableUser.email}</TableCell>
-                      <TableCell>
-                         <div className="flex items-center gap-2">
-                           <Switch
-                            checked={tableUser.isPremium}
-                            onCheckedChange={(checked) => handleUserPremiumChange(tableUser, checked)}
-                            disabled={isUpdating}
-                            aria-label="Toggle premium status for user"
-                          />
-                          {tableUser.isPremium && tableUser.subscriptionExpiresAt && (
-                            <SubscriptionTimer 
-                                expiryDate={tableUser.subscriptionExpiresAt} 
-                                onExpire={() => handleUserPremiumChange(tableUser, false)} 
+                {allMaterials.map((material) => (
+                    <TableRow key={material.id}>
+                        <TableCell className="font-medium">{material.title}</TableCell>
+                        <TableCell>
+                            <Badge variant="outline">
+                                {categories?.find(c => c.id === material.categoryId)?.name || 'Uncategorized'}
+                            </Badge>
+                        </TableCell>
+                        <TableCell>
+                            <Switch 
+                                checked={material.isPremium} 
+                                onCheckedChange={(checked) => {
+                                    const targetCollection = material.collection.includes('_free') 
+                                        ? material.collection.replace('_free', '_premium') 
+                                        : material.collection.replace('_premium', '_free');
+                                    
+                                    const { collection: _, ...data } = material;
+                                    setDoc(doc(firestore!, targetCollection, material.id), { ...data, isPremium: checked });
+                                    deleteDoc(doc(firestore!, material.collection, material.id));
+                                    toast({ title: 'Access Updated', description: `Moved to ${checked ? 'Premium' : 'Free'}.` });
+                                }}
                             />
-                          )}
-                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <Switch
-                          checked={tableUser.role === 'admin'}
-                          onCheckedChange={(checked) => handleUserRoleChange(tableUser, checked)}
-                          disabled={isUpdating || tableUser.id === user?.uid}
-                          aria-label="Toggle admin status for user"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Switch
-                          checked={verificationStatusMap.get(tableUser.id) || false}
-                          onCheckedChange={(checked) => handleUserVerificationChange(tableUser, checked)}
-                          disabled={isUpdating}
-                          aria-label="Toggle creator verification"
-                        />
-                      </TableCell>
+                        </TableCell>
+                        <TableCell>{formatNumber(material.downloads || 0)}</TableCell>
+                        <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditClick(material)}>
+                                    <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setMaterialToDelete(material)}>
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </TableCell>
                     </TableRow>
-                  ))
-                )}
+                ))}
               </TableBody>
             </Table>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>User Feedback</CardTitle>
-            <CardDescription>Review and manage user submissions.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[50%]">Message</TableHead>
-                  <TableHead>From</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoadingFeedback ? (
-                   <TableRow>
-                     <TableCell colSpan={5} className="text-center">
-                      <div className="flex items-center justify-center p-4">
-                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : !allFeedback?.length ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground">
-                      No feedback submissions yet.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  allFeedback.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="max-w-sm truncate">{item.message}</TableCell>
-                      <TableCell>{item.email || 'Anonymous'}</TableCell>
-                      <TableCell className="whitespace-nowrap">{format(new Date(item.submittedAt), 'PP')}</TableCell>
-                      <TableCell>
-                        <Badge variant={item.status === 'New' ? 'default' : 'secondary'}>{item.status}</Badge>
-                      </TableCell>
-                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteFeedbackClick(item)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
+        {/* User Management */}
+        <Card className="shadow-sm">
+            <CardHeader><CardTitle>User Records</CardTitle></CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>User Email</TableHead>
+                            <TableHead>Plan</TableHead>
+                            <TableHead>Privileges</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {uniqueUsers.map(u => (
+                            <TableRow key={u.id}>
+                                <TableCell>{u.email}</TableCell>
+                                <TableCell>
+                                    <div className="flex items-center gap-2">
+                                        <Switch checked={u.isPremium} onCheckedChange={(checked) => {
+                                            updateDocumentNonBlocking(doc(firestore!, 'users', u.id), {
+                                                isPremium: checked,
+                                                subscriptionExpiresAt: checked ? addMonths(new Date(), 1).toISOString() : null
+                                            });
+                                        }} />
+                                        {u.isPremium && u.subscriptionExpiresAt && <SubscriptionTimer expiryDate={u.subscriptionExpiresAt} onExpire={() => {}} />}
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <Badge variant={u.role === 'admin' ? 'default' : 'secondary'}>{u.role}</Badge>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
         </Card>
-      </div>
 
-      <AlertDialog open={!!materialToDelete} onOpenChange={(open) => !open && setMaterialToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the content titled{' '}
-              <span className="font-bold">"{materialToDelete?.title}"</span> from the database.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={!!feedbackToDelete} onOpenChange={(open) => !open && setFeedbackToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete this feedback submission from the database.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDeleteFeedback}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <Dialog open={!!materialToEdit} onOpenChange={(open) => !open && setMaterialToEdit(null)}>
-        <DialogContent className="max-w-md">
-            <DialogHeader>
-                <DialogTitle>Edit Material</DialogTitle>
-                <DialogDescription>Update the details for "{materialToEdit?.title}".</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                    <Label htmlFor="edit-title">Title</Label>
-                    <Input id="edit-title" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="edit-desc">Description</Label>
-                    <Textarea id="edit-desc" value={editDesc} onChange={(e) => setEditDesc(e.target.value)} rows={4} />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="edit-cover-file">Update Cover Image (Preferred)</Label>
-                    <div className="flex items-center gap-4">
-                        <Input
-                            id="edit-cover-file"
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => setEditCoverFile(e.target.files?.[0] || null)}
-                            className="cursor-pointer"
-                        />
-                        <Upload className="h-4 w-4 text-muted-foreground" />
+        {/* Dialogs */}
+        <Dialog open={!!materialToEdit} onOpenChange={(open) => !open && setMaterialToEdit(null)}>
+            <DialogContent className="max-w-md">
+                <DialogHeader><DialogTitle>Edit Content</DialogTitle></DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                        <Label>Title</Label>
+                        <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Subject Category</Label>
+                        <Select value={editCategoryId} onValueChange={setEditCategoryId}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a subject" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">Uncategorized</SelectItem>
+                                {categories?.filter(c => c.level === (materialToEdit?.level as number)).map(cat => (
+                                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Update Cover (Choose File)</Label>
+                        <Input type="file" accept="image/*" onChange={(e) => setEditCoverFile(e.target.files?.[0] || null)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Description</Label>
+                        <Textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} rows={3} />
                     </div>
                 </div>
-                <div className="space-y-2">
-                    <Label htmlFor="edit-cover">Cover Image URL (Fallback)</Label>
-                    <p className="text-[10px] text-muted-foreground">Leave empty to keep current image or upload a file above.</p>
-                    <Input id="edit-cover" value={editCoverUrl} onChange={(e) => setEditCoverUrl(e.target.value)} placeholder="https://..." disabled={!!editCoverFile} />
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setMaterialToEdit(null)}>Cancel</Button>
+                    <Button onClick={handleEditSubmit}>Save Changes</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog open={isCatDialogOpen} onOpenChange={(open) => !open && setIsCatDialogOpen(false)}>
+            <DialogContent>
+                <DialogHeader><DialogTitle>{editingCategory ? 'Edit Subject' : 'Add Subject'}</DialogTitle></DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                        <Label>Subject Name</Label>
+                        <Input value={catName} onChange={(e) => setCatName(e.target.value)} placeholder="e.g. Anatomy" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Level</Label>
+                        <RadioGroup value={catLevel} onValueChange={setCatLevel} className="flex gap-4">
+                            <div className="flex items-center gap-2"><RadioGroupItem value="100" id="l100" /><Label htmlFor="l100">100 Level</Label></div>
+                            <div className="flex items-center gap-2"><RadioGroupItem value="200" id="l200" /><Label htmlFor="l200">200 Level</Label></div>
+                        </RadioGroup>
+                    </div>
                 </div>
-            </div>
-            <DialogFooter>
-                <Button variant="outline" onClick={() => setMaterialToEdit(null)}>Cancel</Button>
-                <Button onClick={handleEditSubmit}>
-                    <Save className="mr-2 h-4 w-4" />
-                    Save Changes
-                </Button>
-            </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsCatDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={handleCategorySave}>Save Subject</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <AlertDialog open={!!catToDelete} onOpenChange={(open) => !open && setCatToDelete(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader><AlertDialogTitle>Delete Subject?</AlertDialogTitle><AlertDialogDescription>This will remove the category. Materials assigned to it will become uncategorized.</AlertDialogDescription></AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction className="bg-destructive" onClick={() => { deleteDoc(doc(firestore!, 'course_categories', catToDelete!.id)); setCatToDelete(null); }}>Delete</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={!!materialToDelete} onOpenChange={(open) => !open && setMaterialToDelete(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader><AlertDialogTitle>Delete Content?</AlertDialogTitle></AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction className="bg-destructive" onClick={confirmDelete}>Delete Permanently</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    </div>
   );
 }
