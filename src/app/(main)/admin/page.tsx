@@ -158,7 +158,7 @@ export default function AdminPage() {
   const categoriesQuery = useMemoFirebase(() => (firestore ? query(collection(firestore, 'course_categories'), orderBy('order', 'asc')) : null), [firestore]);
   const { data: categories, isLoading: isLoadingCategories } = useCollection<CourseCategory>(categoriesQuery);
 
-  // Fetch Materials individually to respect rules of hooks (No mapping inside render)
+  // Call collection hooks individually to avoid re-render loops
   const q1 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_100lvl_free') : null), [firestore]);
   const q2 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_100lvl_premium') : null), [firestore]);
   const q3 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_200lvl_free') : null), [firestore]);
@@ -208,7 +208,7 @@ export default function AdminPage() {
     const newFile = editCoverFile;
     const newCatId = editCategoryId === 'none' ? '' : editCategoryId;
 
-    // Instantly close dialog and notify
+    // Instantly close dialog
     setMaterialToEdit(null);
     toast({ title: 'Processing', description: 'Updates are being saved to the database.' });
 
