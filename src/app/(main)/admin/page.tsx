@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -38,18 +37,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { 
   ShieldAlert, 
   Trash2, 
   Loader2, 
   ShieldX, 
   Edit, 
-  Save, 
-  Upload, 
   Plus,
-  LayoutGrid,
-  ChevronRight,
-  ChevronDown
+  LayoutGrid
 } from 'lucide-react';
 import { formatNumber } from '@/lib/utils';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
@@ -58,7 +54,7 @@ import { useState, useEffect, useTransition, useMemo } from 'react';
 import type { EBook } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
-import { addMonths, format } from 'date-fns';
+import { addMonths } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -66,7 +62,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 type Material = Omit<EBook, 'id' | 'level'> & { level: string | number, categoryId?: string, type: string, downloads?: number, coverImage: string };
 type MaterialWithCollection = Material & { id: string; collection: string };
 type UserData = { id: string, email: string, isPremium: boolean, role: string, subscriptionExpiresAt?: string | null };
-type Feedback = { id: string; message: string; submittedAt: string; status: string; userId: string | null; email: string | null; };
 type CourseCategory = { id: string; name: string; level: number; order: number };
 
 const SubscriptionTimer = ({ expiryDate, onExpire }: { expiryDate: string; onExpire: () => void }) => {
@@ -127,8 +122,7 @@ export default function AdminPage() {
   const [allMaterials, setAllMaterials] = useState<MaterialWithCollection[]>([]);
   const [materialToDelete, setMaterialToDelete] = useState<MaterialWithCollection | null>(null);
   const [materialToEdit, setMaterialToEdit] = useState<MaterialWithCollection | null>(null);
-  const [isUpdating, startTransition] = useTransition();
-  const [feedbackToDelete, setFeedbackToDelete] = useState<Feedback | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   const [editTitle, setEditTitle] = useState('');
   const [editDesc, setEditDesc] = useState('');
@@ -164,9 +158,6 @@ export default function AdminPage() {
 
   const categoriesQuery = useMemoFirebase(() => (firestore ? query(collection(firestore, 'course_categories'), orderBy('order', 'asc')) : null), [firestore]);
   const { data: categories, isLoading: isLoadingCategories } = useCollection<CourseCategory>(categoriesQuery);
-
-  const feedbackCollectionRef = useMemoFirebase(() => (firestore ? collection(firestore, 'feedback') : null), [firestore]);
-  const { data: allFeedback, isLoading: isLoadingFeedback } = useCollection<Feedback>(feedbackCollectionRef);
 
   const collectionsToFetch = [
     'materials_100lvl_free',
@@ -209,8 +200,9 @@ export default function AdminPage() {
     const newFile = editCoverFile;
     const newCatId = editCategoryId === 'none' ? '' : editCategoryId;
 
+    // Instantly close dialog and notify
     setMaterialToEdit(null);
-    toast({ title: 'Saving...', description: 'Updates are being saved to the database.' });
+    toast({ title: 'Processing', description: 'Updates are being saved to the database.' });
 
     const performUpdate = async () => {
         try {

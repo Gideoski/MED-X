@@ -30,7 +30,7 @@ export function EBookCard({ ebook, collection, isUserPremium }: { ebook: EBook; 
     const customImage = ebook.coverImage;
     
     // PRIORITY 1: Check for verified user uploads (Base64 strings or Firebase Storage)
-    // These must win every time to ensure Bioinformatics etc. show up correctly.
+    // This is the CRITICAL fix for bioinformatics and other uploaded images.
     if (customImage && (customImage.startsWith('data:image/') || customImage.includes('firebasestorage.googleapis.com'))) {
         return customImage;
     }
