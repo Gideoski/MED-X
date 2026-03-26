@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -25,12 +24,10 @@ export default function Level200Page() {
   const { data: userProfile } = useDoc<{ isPremium: boolean }>(userDocRef);
   const isUserPremium = userProfile?.isPremium ?? false;
 
-  // Fetch Categories
   const catQuery = useMemoFirebase(() => (firestore ? query(collection(firestore, 'course_categories'), orderBy('order', 'asc')) : null), [firestore]);
   const { data: categories } = useCollection<{ id: string; name: string; level: number }>(catQuery);
   const lvl200Categories = useMemo(() => categories?.filter(c => c.level === 200) || [], [categories]);
 
-  // Fetch Materials
   const freeRef = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_200lvl_free') : null), [firestore]);
   const premiumRef = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_200lvl_premium') : null), [firestore]);
 
@@ -45,11 +42,11 @@ export default function Level200Page() {
 
   const filteredEbooks = allEbooks
     .filter(ebook => {
-      const matchesSearch = ebook.title.toLowerCase().includes(searchQuery.toLowerCase()) || (ebook.description?.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchesSearch = (ebook.title?.toLowerCase().includes(searchQuery.toLowerCase())) || (ebook.description?.toLowerCase().includes(searchQuery.toLowerCase()));
       const matchesCategory = !selectedCategory || ebook.categoryId === selectedCategory;
       return matchesSearch && matchesCategory;
     })
-    .sort((a, b) => a.title.localeCompare(b.title));
+    .sort((a, b) => (a.title || "").localeCompare(b.title || ""));
 
   const isLoading = isUserLoading || isLoadingFree || isLoadingPremium;
 
@@ -71,7 +68,6 @@ export default function Level200Page() {
           />
         </div>
 
-        {/* Category Navigation */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-sm font-semibold text-primary/80 px-1">
             <Filter className="h-4 w-4" /> Filter by Subject

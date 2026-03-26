@@ -1,4 +1,3 @@
-
 'use client';
 
 import { defaultCreators, type Creator } from "@/lib/data";
@@ -7,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Upload, MessageSquare, Loader2, ImageIcon, Plus, Trash2, Edit2, Save, Info } from "lucide-react";
+import { Upload, MessageSquare, Loader2, Plus, Trash2, Edit2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useState, useTransition, useMemo } from "react";
@@ -20,7 +19,6 @@ import { deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -105,7 +103,6 @@ export default function CreatorsPage() {
       return;
     }
     
-    // Capture state
     const currentTitle = title;
     const currentLevel = level;
     const currentCatId = categoryId;
@@ -251,9 +248,15 @@ export default function CreatorsPage() {
 
         {isAdmin && (
           <div className="mt-6 flex justify-center gap-4">
-            <Dialog open={isTeamDialogOpen} onOpenChange={(open) => !open && closeTeamDialog()}>
+            <Dialog 
+              open={isTeamDialogOpen} 
+              onOpenChange={(val) => {
+                if (val) setIsTeamDialogOpen(true);
+                else closeTeamDialog();
+              }}
+            >
               <DialogTrigger asChild>
-                <Button>
+                <Button onClick={() => { setEditingMember(null); setMemberName(''); setIsTeamDialogOpen(true); }}>
                   <Plus className="mr-2 h-4 w-4" /> Add Team Member
                 </Button>
               </DialogTrigger>

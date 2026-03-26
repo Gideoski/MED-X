@@ -158,7 +158,6 @@ export default function AdminPage() {
   const categoriesQuery = useMemoFirebase(() => (firestore ? query(collection(firestore, 'course_categories'), orderBy('order', 'asc')) : null), [firestore]);
   const { data: categories, isLoading: isLoadingCategories } = useCollection<CourseCategory>(categoriesQuery);
 
-  // Call collection hooks individually to avoid re-render loops
   const q1 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_100lvl_free') : null), [firestore]);
   const q2 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_100lvl_premium') : null), [firestore]);
   const q3 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_200lvl_free') : null), [firestore]);
@@ -208,7 +207,6 @@ export default function AdminPage() {
     const newFile = editCoverFile;
     const newCatId = editCategoryId === 'none' ? '' : editCategoryId;
 
-    // Instantly close dialog
     setMaterialToEdit(null);
     toast({ title: 'Processing', description: 'Updates are being saved to the database.' });
 
@@ -234,7 +232,6 @@ export default function AdminPage() {
             });
             toast({ title: 'Success', description: `"${newTitle}" updated.` });
         } catch (error) {
-            console.error('Error updating:', error);
             toast({ title: 'Error', description: 'Failed to update material.', variant: 'destructive' });
         }
     };
@@ -326,7 +323,6 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Categories Section */}
         <Card className="border-primary/10 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between">
                 <div>
@@ -381,7 +377,6 @@ export default function AdminPage() {
             </CardContent>
         </Card>
 
-        {/* Content Management Card */}
         <Card className="shadow-sm">
           <CardHeader>
             <CardTitle>Content Management</CardTitle>
@@ -444,7 +439,6 @@ export default function AdminPage() {
           </CardContent>
         </Card>
 
-        {/* User Management */}
         <Card className="shadow-sm">
             <CardHeader><CardTitle>User Records</CardTitle></CardHeader>
             <CardContent>
@@ -481,7 +475,6 @@ export default function AdminPage() {
             </CardContent>
         </Card>
 
-        {/* Dialogs */}
         <Dialog open={!!materialToEdit} onOpenChange={(open) => !open && setMaterialToEdit(null)}>
             <DialogContent className="max-w-md">
                 <DialogHeader><DialogTitle>Edit Content</DialogTitle></DialogHeader>
@@ -520,7 +513,7 @@ export default function AdminPage() {
             </DialogContent>
         </Dialog>
 
-        <Dialog open={isCatDialogOpen} onOpenChange={(open) => !open && setIsCatDialogOpen(false)}>
+        <Dialog open={isCatDialogOpen} onOpenChange={setIsCatDialogOpen}>
             <DialogContent>
                 <DialogHeader><DialogTitle>{editingCategory ? 'Edit Subject' : 'Add Subject'}</DialogTitle></DialogHeader>
                 <div className="space-y-4 py-4">
