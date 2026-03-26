@@ -390,6 +390,7 @@ export default function AdminPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Title</TableHead>
+                  <TableHead>Level</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Premium</TableHead>
                   <TableHead>Downloads</TableHead>
@@ -400,6 +401,9 @@ export default function AdminPage() {
                 {allMaterials.map((material) => (
                     <TableRow key={material.id}>
                         <TableCell className="font-medium">{material.title}</TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">{material.level} Lvl</Badge>
+                        </TableCell>
                         <TableCell>
                             <Badge variant="outline">
                                 {categories?.find(c => c.id === material.categoryId)?.name || 'Uncategorized'}
@@ -531,7 +535,7 @@ export default function AdminPage() {
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsCatDialogOpen(false)}>Cancel</Button>
+                    <Button variant="outline" onClick={setIsCatDialogOpen(false)}>Cancel</Button>
                     <Button onClick={handleCategorySave}>Save Subject</Button>
                 </DialogFooter>
             </DialogContent>
