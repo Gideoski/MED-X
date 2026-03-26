@@ -158,36 +158,38 @@ export default function AdminPage() {
   const categoriesQuery = useMemoFirebase(() => (firestore ? query(collection(firestore, 'course_categories'), orderBy('order', 'asc')) : null), [firestore]);
   const { data: categories, isLoading: isLoadingCategories } = useCollection<CourseCategory>(categoriesQuery);
 
-  const collectionsToFetch = [
-    'materials_100lvl_free',
-    'materials_100lvl_premium',
-    'materials_200lvl_free',
-    'materials_200lvl_premium',
-  ];
+  // Fetch Materials individually to respect rules of hooks (No mapping inside render)
+  const q1 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_100lvl_free') : null), [firestore]);
+  const q2 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_100lvl_premium') : null), [firestore]);
+  const q3 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_200lvl_free') : null), [firestore]);
+  const q4 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_200lvl_premium') : null), [firestore]);
 
-  const dataHooks = collectionsToFetch.map(c => 
-    useCollection<Material>(useMemoFirebase(() => (firestore ? collection(firestore, c) : null), [firestore, c]))
-  );
+  const h1 = useCollection<Material>(q1);
+  const h2 = useCollection<Material>(q2);
+  const h3 = useCollection<Material>(q3);
+  const h4 = useCollection<Material>(q4);
 
   useEffect(() => {
     const combinedContent: MaterialWithCollection[] = [];
-    dataHooks.forEach((hook, index) => {
+    const hooks = [h1, h2, h3, h4];
+    const collections = ['materials_100lvl_free', 'materials_100lvl_premium', 'materials_200lvl_free', 'materials_200lvl_premium'];
+
+    hooks.forEach((hook, index) => {
       if (hook.data) {
         hook.data.forEach((item) => {
-          // Derive level from collection if missing for older docs
-          const derivedLevel = collectionsToFetch[index].includes('100lvl') ? 100 : 200;
+          const derivedLevel = collections[index].includes('100lvl') ? 100 : 200;
           combinedContent.push({ 
             ...item, 
             id: item.id, 
             level: item.level || derivedLevel,
-            collection: collectionsToFetch[index] 
+            collection: collections[index] 
           });
         });
       }
     });
     combinedContent.sort((a, b) => a.title.localeCompare(b.title));
     setAllMaterials(combinedContent);
-  }, [dataHooks[0].data, dataHooks[1].data, dataHooks[2].data, dataHooks[3].data]);
+  }, [h1.data, h2.data, h3.data, h4.data]);
 
   const handleEditClick = (material: MaterialWithCollection) => {
       setMaterialToEdit(material);
@@ -535,7 +537,7 @@ export default function AdminPage() {
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button variant="outline" onClick={setIsCatDialogOpen(false)}>Cancel</Button>
+                    <Button variant="outline" onClick={() => setIsCatDialogOpen(false)}>Cancel</Button>
                     <Button onClick={handleCategorySave}>Save Subject</Button>
                 </DialogFooter>
             </DialogContent>
