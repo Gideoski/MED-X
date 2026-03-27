@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +18,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
-import { collection, query, limit } from "firebase/firestore";
+import { collection, query, orderBy } from "firebase/firestore";
 import { EBookCard } from "@/components/ebook-card";
 import type { EBook } from "@/lib/data";
 
@@ -49,8 +50,9 @@ export default function HomePage() {
   const [current, setCurrent] = useState(0);
   const firestore = useFirestore();
 
-  const free100Query = useMemoFirebase(() => (firestore ? query(collection(firestore, 'materials_100lvl_free'), limit(20)) : null), [firestore]);
-  const free200Query = useMemoFirebase(() => (firestore ? query(collection(firestore, 'materials_200lvl_free'), limit(20)) : null), [firestore]);
+  // We query the collections without a strict limit to ensure we find all e-books marked as featured.
+  const free100Query = useMemoFirebase(() => (firestore ? query(collection(firestore, 'materials_100lvl_free'), orderBy('title', 'asc')) : null), [firestore]);
+  const free200Query = useMemoFirebase(() => (firestore ? query(collection(firestore, 'materials_200lvl_free'), orderBy('title', 'asc')) : null), [firestore]);
 
   const { data: free100 } = useCollection<EBook & { isFeatured?: boolean }>(free100Query);
   const { data: free200 } = useCollection<EBook & { isFeatured?: boolean }>(free200Query);
@@ -60,9 +62,10 @@ export default function HomePage() {
         ...(free100 ? free100.map(e => ({ ...e, collection: 'materials_100lvl_free' })) : []),
         ...(free200 ? free200.map(e => ({ ...e, collection: 'materials_200lvl_free' })) : [])
     ];
-    const featured = all.filter(e => e.isFeatured === true);
-    // Fallback to recent 4 if no featured items are manually toggled ON
-    return featured.length > 0 ? featured.slice(0, 4) : all.slice(0, 4);
+    
+    // Strictly display ONLY items toggled as Featured in the Admin Console.
+    // This gives the Admin absolute control over this section.
+    return all.filter(e => e.isFeatured === true).slice(0, 4);
   }, [free100, free200]);
 
   useEffect(() => {
@@ -103,19 +106,22 @@ export default function HomePage() {
         </Carousel>
       </section>
 
-      <section className="px-4 space-y-8">
-        <div className="text-center space-y-2">
-            <h2 className="text-2xl md:text-4xl font-bold tracking-tight">🆓 Evaluation Content</h2>
-            <p className="text-muted-foreground text-sm">Experience our high-yield materials for free.</p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {featuredFree.map((ebook, idx) => (
-            <ScrollReveal key={ebook.id} delay={idx * 100}>
-              <EBookCard ebook={ebook as EBook} collection={(ebook as any).collection} isUserPremium={false} />
-            </ScrollReveal>
-          ))}
-        </div>
-      </section>
+      {/* Evaluation Content Section - Controlled by the Admin 'Featured' Toggle */}
+      {featuredFree.length > 0 && (
+        <section className="px-4 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="text-center space-y-2">
+              <h2 className="text-2xl md:text-4xl font-bold tracking-tight">🆓 Evaluation Content</h2>
+              <p className="text-muted-foreground text-sm">Experience our high-yield materials for free.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {featuredFree.map((ebook, idx) => (
+              <ScrollReveal key={ebook.id} delay={idx * 100}>
+                <EBookCard ebook={ebook as EBook} collection={(ebook as any).collection} isUserPremium={false} />
+              </ScrollReveal>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="px-4">
         <div className="text-center mb-12">

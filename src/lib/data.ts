@@ -1,3 +1,4 @@
+
 import type { LucideIcon } from "lucide-react";
 import { BookCopy, FileText, Presentation, Laptop, Scroll, Mic, PenTool, Lightbulb, FolderKanban } from "lucide-react";
 
@@ -109,6 +110,7 @@ export interface EBook {
   uploadDate?: string;
   lastUpdateDate?: string;
   downloads?: number;
+  isFeatured?: boolean;
 }
 
 export interface Creator {
