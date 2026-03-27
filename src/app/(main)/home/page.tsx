@@ -50,23 +50,28 @@ export default function HomePage() {
   const [current, setCurrent] = useState(0);
   const firestore = useFirestore();
 
-  // We query the collections without a strict limit to ensure we find all e-books marked as featured.
-  const free100Query = useMemoFirebase(() => (firestore ? query(collection(firestore, 'materials_100lvl_free'), orderBy('title', 'asc')) : null), [firestore]);
-  const free200Query = useMemoFirebase(() => (firestore ? query(collection(firestore, 'materials_200lvl_free'), orderBy('title', 'asc')) : null), [firestore]);
+  // Queries for all 4 collections to find any featured item
+  const f100q = useMemoFirebase(() => (firestore ? query(collection(firestore, 'materials_100lvl_free'), orderBy('title', 'asc')) : null), [firestore]);
+  const f200q = useMemoFirebase(() => (firestore ? query(collection(firestore, 'materials_200lvl_free'), orderBy('title', 'asc')) : null), [firestore]);
+  const p100q = useMemoFirebase(() => (firestore ? query(collection(firestore, 'materials_100lvl_premium'), orderBy('title', 'asc')) : null), [firestore]);
+  const p200q = useMemoFirebase(() => (firestore ? query(collection(firestore, 'materials_200lvl_premium'), orderBy('title', 'asc')) : null), [firestore]);
 
-  const { data: free100 } = useCollection<EBook & { isFeatured?: boolean }>(free100Query);
-  const { data: free200 } = useCollection<EBook & { isFeatured?: boolean }>(free200Query);
+  const { data: f100 } = useCollection<EBook & { isFeatured?: boolean }>(f100q);
+  const { data: f200 } = useCollection<EBook & { isFeatured?: boolean }>(f200q);
+  const { data: p100 } = useCollection<EBook & { isFeatured?: boolean }>(p100q);
+  const { data: p200 } = useCollection<EBook & { isFeatured?: boolean }>(p200q);
 
-  const featuredFree = useMemo(() => {
+  const featuredMaterials = useMemo(() => {
     const all = [
-        ...(free100 ? free100.map(e => ({ ...e, collection: 'materials_100lvl_free' })) : []),
-        ...(free200 ? free200.map(e => ({ ...e, collection: 'materials_200lvl_free' })) : [])
+        ...(f100 ? f100.map(e => ({ ...e, collection: 'materials_100lvl_free' })) : []),
+        ...(f200 ? f200.map(e => ({ ...e, collection: 'materials_200lvl_free' })) : []),
+        ...(p100 ? p100.map(e => ({ ...e, collection: 'materials_100lvl_premium' })) : []),
+        ...(p200 ? p200.map(e => ({ ...e, collection: 'materials_200lvl_premium' })) : [])
     ];
     
     // Strictly display ONLY items toggled as Featured in the Admin Console.
-    // This gives the Admin absolute control over this section.
-    return all.filter(e => e.isFeatured === true).slice(0, 4);
-  }, [free100, free200]);
+    return all.filter(e => e.isFeatured === true);
+  }, [f100, f200, p100, p200]);
 
   useEffect(() => {
     if (!api) return;
@@ -106,15 +111,15 @@ export default function HomePage() {
         </Carousel>
       </section>
 
-      {/* Evaluation Content Section - Controlled by the Admin 'Featured' Toggle */}
-      {featuredFree.length > 0 && (
+      {/* Featured Content Section - Controlled by the Admin 'Featured' Toggle */}
+      {featuredMaterials.length > 0 && (
         <section className="px-4 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
           <div className="text-center space-y-2">
-              <h2 className="text-2xl md:text-4xl font-bold tracking-tight">🆓 Evaluation Content</h2>
-              <p className="text-muted-foreground text-sm">Experience our high-yield materials for free.</p>
+              <h2 className="text-2xl md:text-4xl font-bold tracking-tight">⭐ Featured Materials</h2>
+              <p className="text-muted-foreground text-sm">Our hand-picked selections for your academic success.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredFree.map((ebook, idx) => (
+            {featuredMaterials.map((ebook, idx) => (
               <ScrollReveal key={ebook.id} delay={idx * 100}>
                 <EBookCard ebook={ebook as EBook} collection={(ebook as any).collection} isUserPremium={false} />
               </ScrollReveal>
