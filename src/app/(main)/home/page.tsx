@@ -61,6 +61,7 @@ export default function HomePage() {
         ...(free200 ? free200.map(e => ({ ...e, collection: 'materials_200lvl_free' })) : [])
     ];
     const featured = all.filter(e => e.isFeatured === true);
+    // Fallback to recent 4 if no featured items
     return featured.length > 0 ? featured.slice(0, 4) : all.slice(0, 4);
   }, [free100, free200]);
 
