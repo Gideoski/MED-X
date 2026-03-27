@@ -3,7 +3,6 @@
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -21,7 +20,6 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
@@ -46,9 +44,10 @@ import {
   Plus,
   LayoutGrid,
   Users as UsersIcon,
-  Star
+  Star,
+  Download,
+  BookOpen
 } from 'lucide-react';
-import { formatNumber } from '@/lib/utils';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, deleteDoc, doc, setDoc, addDoc, query, orderBy } from 'firebase/firestore';
 import { useState, useEffect, useTransition, useMemo } from 'react';
@@ -174,6 +173,10 @@ export default function AdminPage() {
     setAllMaterials(combined.sort((a, b) => a.title.localeCompare(b.title)));
   }, [h1.data, h2.data, h3.data, h4.data]);
 
+  const premiumUsersCount = useMemo(() => uniqueUsers.filter(u => u.isPremium).length, [uniqueUsers]);
+  const totalDownloadsCount = useMemo(() => allMaterials.reduce((acc, m) => acc + (m.downloads || 0), 0), [allMaterials]);
+  const totalMaterialsCount = allMaterials.length;
+
   const handleEditClick = (material: MaterialWithCollection) => {
       setMaterialToEdit(material);
       setEditTitle(material.title);
@@ -247,7 +250,7 @@ export default function AdminPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card className="bg-primary/5 border-primary/10">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Total Users</CardTitle>
@@ -256,6 +259,36 @@ export default function AdminPage() {
                 <CardContent>
                     <div className="text-2xl font-bold">{uniqueUsers.length}</div>
                     <p className="text-xs text-muted-foreground mt-1">Registered accounts</p>
+                </CardContent>
+            </Card>
+            <Card className="bg-primary/5 border-primary/10">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Premium Users</CardTitle>
+                    <Star className="h-4 w-4 text-primary fill-primary" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{premiumUsersCount}</div>
+                    <p className="text-xs text-muted-foreground mt-1">Active subscriptions</p>
+                </CardContent>
+            </Card>
+            <Card className="bg-primary/5 border-primary/10">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Downloads</CardTitle>
+                    <Download className="h-4 w-4 text-primary" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{totalDownloadsCount}</div>
+                    <p className="text-xs text-muted-foreground mt-1">Resource engagement</p>
+                </CardContent>
+            </Card>
+            <Card className="bg-primary/5 border-primary/10">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Materials</CardTitle>
+                    <BookOpen className="h-4 w-4 text-primary" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{totalMaterialsCount}</div>
+                    <p className="text-xs text-muted-foreground mt-1">Published items</p>
                 </CardContent>
             </Card>
         </div>
