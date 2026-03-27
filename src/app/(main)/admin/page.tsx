@@ -44,11 +44,13 @@ import {
   ShieldX, 
   Edit, 
   Plus,
-  LayoutGrid
+  LayoutGrid,
+  Users as UsersIcon,
+  Star
 } from 'lucide-react';
 import { formatNumber } from '@/lib/utils';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { collection, deleteDoc, doc, setDoc, addDoc, query, orderBy } from 'firebase/firestore';
+import { collection, deleteDoc, doc, setDoc, addDoc, query, orderBy, updateDoc } from 'firebase/firestore';
 import { useState, useEffect, useTransition, useMemo } from 'react';
 import type { EBook } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
@@ -58,7 +60,7 @@ import { Badge } from '@/components/ui/badge';
 import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-type Material = Omit<EBook, 'id'> & { categoryId?: string, type: string, downloads?: number, coverImage: string };
+type Material = Omit<EBook, 'id'> & { categoryId?: string, type: string, downloads?: number, coverImage: string, isFeatured?: boolean };
 type MaterialWithCollection = Material & { id: string; collection: string };
 type UserData = { id: string, email: string, isPremium: boolean, role: string, subscriptionExpiresAt?: string | null };
 type CourseCategory = { id: string; name: string; level: number; order: number };
@@ -150,6 +152,7 @@ export default function AdminPage() {
     const map = new Map<string, UserData>();
     users.forEach(u => {
       const existing = map.get(u.email);
+      // Prefer doc with long UID or keep first
       if (!existing || u.id.length >= 28) map.set(u.email, u);
     });
     return Array.from(map.values()).sort((a, b) => a.email.localeCompare(b.email));
@@ -323,6 +326,20 @@ export default function AdminPage() {
           </div>
         </div>
 
+        {/* Stats Row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="bg-primary/5 border-primary/10">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                    <UsersIcon className="h-4 w-4 text-primary" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{uniqueUsers.length}</div>
+                    <p className="text-xs text-muted-foreground mt-1">Verified unique student accounts</p>
+                </CardContent>
+            </Card>
+        </div>
+
         <Card className="border-primary/10 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between">
                 <div>
@@ -390,6 +407,7 @@ export default function AdminPage() {
                   <TableHead>Level</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Premium</TableHead>
+                  <TableHead>Featured</TableHead>
                   <TableHead>Downloads</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -421,6 +439,20 @@ export default function AdminPage() {
                                 }}
                             />
                         </TableCell>
+                        <TableCell>
+                            <Switch 
+                                checked={!!material.isFeatured} 
+                                onCheckedChange={(checked) => {
+                                    updateDocumentNonBlocking(doc(firestore!, material.collection, material.id), {
+                                        isFeatured: checked
+                                    });
+                                    toast({ 
+                                        title: checked ? 'Featured' : 'Removed from Featured', 
+                                        description: `"${material.title}" ${checked ? 'will' : 'will no longer'} show on home page.` 
+                                    });
+                                }}
+                            />
+                        </TableCell>
                         <TableCell>{formatNumber(material.downloads || 0)}</TableCell>
                         <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
@@ -447,13 +479,13 @@ export default function AdminPage() {
                         <TableRow>
                             <TableHead>User Email</TableHead>
                             <TableHead>Plan</TableHead>
-                            <TableHead>Privileges</TableHead>
+                            <TableHead>Role</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {uniqueUsers.map(u => (
                             <TableRow key={u.id}>
-                                <TableCell>{u.email}</TableCell>
+                                <TableCell className="max-w-[200px] truncate">{u.email}</TableCell>
                                 <TableCell>
                                     <div className="flex items-center gap-2">
                                         <Switch checked={u.isPremium} onCheckedChange={(checked) => {
@@ -466,7 +498,23 @@ export default function AdminPage() {
                                     </div>
                                 </TableCell>
                                 <TableCell>
-                                    <Badge variant={u.role === 'admin' ? 'default' : 'secondary'}>{u.role}</Badge>
+                                    <Select 
+                                        value={u.role || 'student'} 
+                                        onValueChange={(newRole) => {
+                                            updateDocumentNonBlocking(doc(firestore!, 'users', u.id), {
+                                                role: newRole
+                                            });
+                                            toast({ title: 'Role Updated', description: `${u.email} is now ${newRole}.` });
+                                        }}
+                                    >
+                                        <SelectTrigger className="w-32 h-8">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="student">Student</SelectItem>
+                                            <SelectItem value="admin">Admin</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                 </TableCell>
                             </TableRow>
                         ))}

@@ -11,7 +11,7 @@ import {
   type CarouselApi,
 } from "@/components/ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowRight, Star } from "lucide-react";
@@ -67,14 +67,29 @@ export default function HomePage() {
 
   const firestore = useFirestore();
 
-  // Fetch a selection of free books to advertise on the home page
-  const free100Query = useMemoFirebase(() => (firestore ? query(collection(firestore, 'materials_100lvl_free'), limit(2)) : null), [firestore]);
-  const free200Query = useMemoFirebase(() => (firestore ? query(collection(firestore, 'materials_200lvl_free'), limit(2)) : null), [firestore]);
+  // Fetch all free books (limit to a reasonable number to avoid heavy load)
+  const free100Query = useMemoFirebase(() => (firestore ? query(collection(firestore, 'materials_100lvl_free'), limit(20)) : null), [firestore]);
+  const free200Query = useMemoFirebase(() => (firestore ? query(collection(firestore, 'materials_200lvl_free'), limit(20)) : null), [firestore]);
 
-  const { data: free100 } = useCollection<EBook>(free100Query);
-  const { data: free200 } = useCollection<EBook>(free200Query);
+  const { data: free100 } = useCollection<EBook & { isFeatured?: boolean }>(free100Query);
+  const { data: free200 } = useCollection<EBook & { isFeatured?: boolean }>(free200Query);
 
-  const featuredFree = [...(free100 || []), ...(free200 || [])].slice(0, 4);
+  const featuredFree = useMemo(() => {
+    const allFree = [
+        ...(free100 ? free100.map(e => ({ ...e, collection: 'materials_100lvl_free' })) : []),
+        ...(free200 ? free200.map(e => ({ ...e, collection: 'materials_200lvl_free' })) : [])
+    ];
+    
+    // Priority: Items marked as isFeatured
+    const featured = allFree.filter(e => e.isFeatured === true);
+    
+    // Fallback: If no featured, just take the first 4
+    if (featured.length > 0) {
+        return featured.slice(0, 4);
+    }
+    
+    return allFree.slice(0, 4);
+  }, [free100, free200]);
 
   useEffect(() => {
     if (!api) return;
@@ -194,8 +209,8 @@ export default function HomePage() {
             featuredFree.map((ebook, idx) => (
               <ScrollReveal key={ebook.id} delay={idx * 100}>
                 <EBookCard 
-                  ebook={ebook} 
-                  collection={ebook.level === 100 ? 'materials_100lvl_free' : 'materials_200lvl_free'} 
+                  ebook={ebook as EBook} 
+                  collection={(ebook as any).collection} 
                   isUserPremium={false} 
                 />
               </ScrollReveal>
