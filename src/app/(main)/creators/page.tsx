@@ -1,3 +1,4 @@
+
 'use client';
 
 import { defaultCreators, type Creator } from "@/lib/data";
@@ -77,6 +78,10 @@ export default function CreatorsPage() {
   const handleContentSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!title || !description || !filePath) return;
+    if (!firestore || !user) {
+        toast({ title: "Auth Error", description: "You must be logged in to upload.", variant: "destructive" });
+        return;
+    }
     
     const currTitle = title;
     const currLevel = level;
@@ -86,10 +91,11 @@ export default function CreatorsPage() {
     const currContentType = contentType;
     const currFile = coverFile;
 
+    // Reset form immediately
     setTitle(''); setDescription(''); setCategoryId(''); setFilePath(''); setCoverFile(null);
-    toast({ title: "Publishing...", description: "Saving to database." });
+    toast({ title: "Publishing...", description: "Your material is being uploaded." });
 
-    const perform = async () => {
+    startTransition(async () => {
       try {
         let coverUrl = currLevel === '100' ? '/images/med-x 100lvl ebook cover.jpeg' : '/images/med-x logo.jpeg';
         if (currFile) {
@@ -101,15 +107,27 @@ export default function CreatorsPage() {
             });
         }
         const collectionName = `materials_${currLevel}lvl_${currContentType === 'premium' ? 'premium' : 'free'}`;
-        await addDoc(collection(firestore!, collectionName), {
-            title: currTitle, description: currDesc, author: 'MED-X', level: parseInt(currLevel),
-            categoryId: currCatId, isPremium: currContentType === 'premium', coverImage: coverUrl,
-            creatorId: user!.uid, uploadDate: new Date().toISOString(), filePath: currPath, type: 'E-Book', downloads: 0,
+        await addDoc(collection(firestore, collectionName), {
+            title: currTitle, 
+            description: currDesc, 
+            author: 'MED-X', 
+            level: parseInt(currLevel),
+            categoryId: currCatId, 
+            isPremium: currContentType === 'premium', 
+            coverImage: coverUrl,
+            creatorId: user.uid, 
+            uploadDate: new Date().toISOString(), 
+            filePath: currPath, 
+            type: 'E-Book', 
+            downloads: 0,
+            isFeatured: false
         });
-        toast({ title: "Published", description: `"${currTitle}" is live.` });
-      } catch (e) { toast({ title: "Upload Failed", description: "Failed to save.", variant: "destructive" }); }
-    };
-    perform();
+        toast({ title: "Published", description: `"${currTitle}" is now live!` });
+      } catch (e) { 
+        console.error("Upload Error:", e);
+        toast({ title: "Upload Failed", description: "Failed to save material to database.", variant: "destructive" }); 
+      }
+    });
   };
 
   const handleMemberSubmit = () => {
@@ -124,7 +142,7 @@ export default function CreatorsPage() {
     setIsTeamDialogOpen(false);
     toast({ title: 'Saving Member', description: 'Updating records.' });
 
-    const perform = async () => {
+    startTransition(async () => {
       try {
         let avatarUrl = original?.avatar || '/images/MED-X logo.jpeg';
         if (file) {
@@ -140,8 +158,7 @@ export default function CreatorsPage() {
         else await addDoc(collection(firestore, 'team_members'), data);
         toast({ title: 'Success', description: `Team member updated.` });
       } catch (e) { toast({ title: "Error", description: "Save failed.", variant: "destructive" }); }
-    };
-    perform();
+    });
   };
 
   return (
@@ -188,8 +205,8 @@ export default function CreatorsPage() {
             <CardHeader><CardTitle>Submit New Material</CardTitle></CardHeader>
             <CardContent>
               <form onSubmit={handleContentSubmit} className="space-y-6">
-                <div className="space-y-2"><Label>Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
-                <div className="space-y-2"><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} /></div>
+                <div className="space-y-2"><Label>Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} required /></div>
+                <div className="space-y-2"><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} required /></div>
                 <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-2">
                         <Label>Level</Label>
@@ -207,8 +224,8 @@ export default function CreatorsPage() {
                    </div>
                    <div className="space-y-2"><Label>Cover</Label><Input type="file" accept="image/*" onChange={(e) => setCoverFile(e.target.files?.[0] || null)} /></div>
                 </div>
-                <div className="space-y-2"><Label>PDF Link</Label><Input type="url" value={filePath} onChange={(e) => setFilePath(e.target.value)} required /></div>
-                <Button type="submit" className="w-full h-11" disabled={isPending}><Upload className="mr-2 h-5 w-5" /> Publish Material</Button>
+                <div className="space-y-2"><Label>PDF Link</Label><Input type="url" value={filePath} onChange={(e) => setFilePath(e.target.value)} required placeholder="https://drive.google.com/..." /></div>
+                <Button type="submit" className="w-full h-11" disabled={isPending}><Upload className="mr-2 h-5 w-5" /> {isPending ? 'Publishing...' : 'Publish Material'}</Button>
               </form>
             </CardContent>
           </Card>
@@ -231,7 +248,7 @@ export default function CreatorsPage() {
               <div className="space-y-2"><Label>Avatar</Label><Input type="file" accept="image/*" onChange={(e) => setMemberAvatarFile(e.target.files?.[0] || null)} /></div>
               <div className="space-y-2"><Label>Bio</Label><Textarea value={memberBio} onChange={(e) => setMemberBio(e.target.value)} rows={4} /></div>
             </div>
-            <DialogFooter><Button onClick={handleMemberSubmit}>Save Member</Button></DialogFooter>
+            <DialogFooter><Button onClick={handleMemberSubmit} disabled={isPending}>{isPending ? 'Saving...' : 'Save Member'}</Button></DialogFooter>
           </DialogContent>
       </Dialog>
 

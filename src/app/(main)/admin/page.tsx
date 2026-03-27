@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -250,6 +251,7 @@ export default function AdminPage() {
           </div>
         </div>
 
+        {/* Statistics Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card className="bg-primary/5 border-primary/10">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -429,6 +431,7 @@ export default function AdminPage() {
             </CardContent>
         </Card>
 
+        {/* Dialogs */}
         <Dialog open={!!materialToEdit} onOpenChange={(o) => !o && setMaterialToEdit(null)}>
             <DialogContent className="max-w-md">
                 <DialogHeader><DialogTitle>Edit Content</DialogTitle></DialogHeader>
