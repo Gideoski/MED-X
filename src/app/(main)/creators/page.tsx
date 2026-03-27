@@ -1,4 +1,3 @@
-
 'use client';
 
 import { defaultCreators, type Creator } from "@/lib/data";
