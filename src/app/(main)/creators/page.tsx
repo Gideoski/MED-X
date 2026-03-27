@@ -22,7 +22,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -41,7 +40,6 @@ export default function CreatorsPage() {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
 
-  // Content Submission State
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [level, setLevel] = useState('100');
@@ -50,240 +48,122 @@ export default function CreatorsPage() {
   const [filePath, setFilePath] = useState('');
   const [coverFile, setCoverFile] = useState<File | null>(null);
 
-  // Fetch Categories for tagging
   const catQuery = useMemoFirebase(() => (firestore ? query(collection(firestore, 'course_categories'), orderBy('order', 'asc')) : null), [firestore]);
   const { data: allCategories } = useCollection<{ id: string; name: string; level: number }>(catQuery);
-  
-  const filteredCategories = useMemo(() => {
-    if (!allCategories) return [];
-    return allCategories.filter(c => c.level === parseInt(level));
-  }, [allCategories, level]);
+  const filteredCategories = useMemo(() => allCategories?.filter(c => c.level === parseInt(level)) || [], [allCategories, level]);
 
-  // Team Member Management State
   const [isTeamDialogOpen, setIsTeamDialogOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<Creator | null>(null);
   const [memberName, setMemberName] = useState('');
   const [memberTitle, setMemberTitle] = useState('');
   const [memberBio, setMemberBio] = useState('');
   const [memberAvatarFile, setMemberAvatarFile] = useState<File | null>(null);
-
-  // Deletion State
   const [memberToDelete, setMemberToDelete] = useState<Creator | null>(null);
 
-  // Fetch Team Members
-  const teamQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, 'team_members'), orderBy('order', 'asc'));
-  }, [firestore]);
-
+  const teamQuery = useMemoFirebase(() => (firestore ? query(collection(firestore, 'team_members'), orderBy('order', 'asc')) : null), [firestore]);
   const { data: teamMembers, isLoading: isTeamLoading } = useCollection<Creator>(teamQuery);
 
-  // Roles Check
-  const userDocRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [firestore, user]);
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<{ role?: string }>(userDocRef);
+  const userDocRef = useMemoFirebase(() => (firestore && user ? doc(firestore, 'users', user.uid) : null), [firestore, user]);
+  const { data: userProfile } = useDoc<{ role?: string }>(userDocRef);
   const isAdmin = userProfile?.role === 'admin';
 
-  const creatorProfileRef = useMemoFirebase(() => {
-      if (!firestore || !user) return null;
-      return doc(firestore, 'creator_profiles', user.uid);
-  }, [firestore, user]);
-  const { data: creatorProfile, isLoading: isCreatorLoading } = useDoc<{ verifiedByAdmin?: boolean }>(creatorProfileRef);
+  const creatorProfileRef = useMemoFirebase(() => (firestore && user ? doc(firestore, 'creator_profiles', user.uid) : null), [firestore, user]);
+  const { data: creatorProfile } = useDoc<{ verifiedByAdmin?: boolean }>(creatorProfileRef);
   const isVerifiedCreator = creatorProfile?.verifiedByAdmin === true;
 
   const canUpload = isAdmin || isVerifiedCreator;
-  const isLoading = isUserLoading || isProfileLoading || isCreatorLoading || isTeamLoading;
+  const isLoading = isUserLoading || isTeamLoading;
 
   const handleContentSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!title || !level || !description || !filePath) {
-      toast({ title: "Incomplete Form", description: "Please fill out all fields.", variant: "destructive" });
-      return;
-    }
+    if (!title || !description || !filePath) return;
     
-    const currentTitle = title;
-    const currentLevel = level;
-    const currentCatId = categoryId;
-    const currentDesc = description;
-    const currentPath = filePath;
-    const currentContentType = contentType;
-    const currentFile = coverFile;
+    const currTitle = title;
+    const currLevel = level;
+    const currCatId = categoryId;
+    const currDesc = description;
+    const currPath = filePath;
+    const currContentType = contentType;
+    const currFile = coverFile;
 
-    // Reset UI instantly
-    setTitle('');
-    setDescription('');
-    setCategoryId('');
-    setFilePath('');
-    setCoverFile(null);
-    toast({ title: "Publishing...", description: "Your material is being uploaded to the database." });
+    setTitle(''); setDescription(''); setCategoryId(''); setFilePath(''); setCoverFile(null);
+    toast({ title: "Publishing...", description: "Saving to database." });
 
-    const performSubmission = async () => {
+    const perform = async () => {
       try {
-        let finalCoverUrl = currentLevel === '100' 
-          ? '/images/med-x 100lvl ebook cover.jpeg' 
-          : '/images/med-x logo.jpeg';
-
-        if (currentFile) {
-            finalCoverUrl = await new Promise<string>((resolve, reject) => {
+        let coverUrl = currLevel === '100' ? '/images/med-x 100lvl ebook cover.jpeg' : '/images/med-x logo.jpeg';
+        if (currFile) {
+            coverUrl = await new Promise<string>((res, rej) => {
                 const reader = new FileReader();
-                reader.onload = () => resolve(reader.result as string);
-                reader.onerror = reject;
-                reader.readAsDataURL(currentFile);
+                reader.onload = () => res(reader.result as string);
+                reader.onerror = rej;
+                reader.readAsDataURL(currFile);
             });
         }
-
-        const collectionName = `materials_${currentLevel}lvl_${currentContentType === 'premium' ? 'premium' : 'free'}`;
-        const collectionRef = collection(firestore!, collectionName);
-        
-        const newEbookData = {
-            title: currentTitle,
-            description: currentDesc,
-            author: 'MED-X',
-            level: parseInt(currentLevel),
-            categoryId: currentCatId,
-            isPremium: currentContentType === 'premium',
-            coverImage: finalCoverUrl,
-            imageHint: "book cover",
-            creatorId: user!.uid,
-            uploadDate: new Date().toISOString(),
-            lastUpdateDate: new Date().toISOString(),
-            filePath: currentPath,
-            type: 'E-Book',
-            downloads: 0,
-        };
-        await addDoc(collectionRef, newEbookData);
-        toast({ title: "Published", description: `"${currentTitle}" is now live.` });
-      } catch (error) {
-        toast({ title: "Upload Failed", description: "Could not save material.", variant: "destructive" });
-      }
+        const collectionName = `materials_${currLevel}lvl_${currContentType === 'premium' ? 'premium' : 'free'}`;
+        await addDoc(collection(firestore!, collectionName), {
+            title: currTitle, description: currDesc, author: 'MED-X', level: parseInt(currLevel),
+            categoryId: currCatId, isPremium: currContentType === 'premium', coverImage: coverUrl,
+            creatorId: user!.uid, uploadDate: new Date().toISOString(), filePath: currPath, type: 'E-Book', downloads: 0,
+        });
+        toast({ title: "Published", description: `"${currTitle}" is live.` });
+      } catch (e) { toast({ title: "Upload Failed", description: "Failed to save.", variant: "destructive" }); }
     };
-    performSubmission();
+    perform();
   };
 
   const handleMemberSubmit = () => {
-    if (!memberName || !memberTitle || !memberBio || !firestore) {
-      toast({ title: "Incomplete", description: "All fields are required.", variant: "destructive" });
-      return;
-    }
+    if (!memberName || !memberTitle || !memberBio || !firestore) return;
+    const isEdit = !!editingMember;
+    const original = editingMember;
+    const name = memberName;
+    const title = memberTitle;
+    const bio = memberBio;
+    const file = memberAvatarFile;
 
-    const isEditing = !!editingMember;
-    const originalMember = editingMember;
-    const currentName = memberName;
-    const currentTitle = memberTitle;
-    const currentBio = memberBio;
-    const currentFile = memberAvatarFile;
+    setIsTeamDialogOpen(false);
+    toast({ title: 'Saving Member', description: 'Updating records.' });
 
-    closeTeamDialog();
-    toast({ title: 'Saving Profile', description: 'Updating team member details.' });
-
-    const performSave = async () => {
+    const perform = async () => {
       try {
-        let avatarUrl = originalMember?.avatar || '/images/MED-X logo.jpeg';
-        if (currentFile) {
-            avatarUrl = await new Promise<string>((resolve, reject) => {
+        let avatarUrl = original?.avatar || '/images/MED-X logo.jpeg';
+        if (file) {
+            avatarUrl = await new Promise<string>((res, rej) => {
                 const reader = new FileReader();
-                reader.onload = () => resolve(reader.result as string);
-                reader.onerror = reject;
-                reader.readAsDataURL(currentFile);
+                reader.onload = () => res(reader.result as string);
+                reader.onerror = rej;
+                reader.readAsDataURL(file);
             });
         }
-        const memberData = {
-          name: currentName,
-          title: currentTitle,
-          bio: currentBio,
-          avatar: avatarUrl,
-          imageHint: "portrait",
-          order: originalMember?.order ?? (teamMembers?.length || 0)
-        };
-        if (originalMember) {
-          await setDoc(doc(firestore, 'team_members', originalMember.id), memberData, { merge: true });
-        } else {
-          await addDoc(collection(firestore, 'team_members'), memberData);
-        }
+        const data = { name, title, bio, avatar: avatarUrl, order: original?.order ?? (teamMembers?.length || 0) };
+        if (isEdit) await setDoc(doc(firestore, 'team_members', original!.id), data, { merge: true });
+        else await addDoc(collection(firestore, 'team_members'), data);
         toast({ title: 'Success', description: `Team member updated.` });
-      } catch (e) {
-        toast({ title: "Error", description: "Save failed.", variant: "destructive" });
-      }
+      } catch (e) { toast({ title: "Error", description: "Save failed.", variant: "destructive" }); }
     };
-    performSave();
-  };
-
-  const handleDeleteMember = () => {
-    if (!memberToDelete || !firestore) return;
-    const original = memberToDelete;
-    setMemberToDelete(null);
-    try {
-      deleteDocumentNonBlocking(doc(firestore, 'team_members', original.id));
-      toast({ title: "Removed", description: `${original.name} removed.` });
-    } catch (e) {
-      toast({ title: "Error", description: "Removal failed.", variant: "destructive" });
-    }
-  };
-
-  const openEditDialog = (member: Creator) => {
-    setEditingMember(member);
-    setMemberName(member.name);
-    setMemberTitle(member.title);
-    setMemberBio(member.bio);
-    setMemberAvatarFile(null);
-    setIsTeamDialogOpen(true);
-  };
-
-  const closeTeamDialog = () => {
-    setIsTeamDialogOpen(false);
-    setEditingMember(null);
-    setMemberName('');
-    setMemberTitle('');
-    setMemberBio('');
-    setMemberAvatarFile(null);
+    perform();
   };
 
   return (
     <div className="space-y-12 max-w-5xl mx-auto">
-      <section className="text-center relative">
+      <section className="text-center">
         <h1 className="text-4xl font-bold tracking-tight">Creators Hub</h1>
-        <p className="mt-2 text-lg text-muted-foreground">The team behind Med-X's high-yield materials.</p>
-
+        <p className="mt-2 text-muted-foreground">The team behind Med-X.</p>
         {isAdmin && (
-          <div className="mt-6 flex justify-center gap-4">
-            <Dialog 
-              open={isTeamDialogOpen} 
-              onOpenChange={(val) => {
-                if (val) setIsTeamDialogOpen(true);
-                else closeTeamDialog();
-              }}
-            >
-              <DialogTrigger asChild>
-                <Button onClick={() => { setEditingMember(null); setMemberName(''); setIsTeamDialogOpen(true); }}>
-                  <Plus className="mr-2 h-4 w-4" /> Add Team Member
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader><DialogTitle>{editingMember ? 'Edit' : 'Add'} Member</DialogTitle></DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2"><Label>Full Name</Label><Input value={memberName} onChange={(e) => setMemberName(e.target.value)} /></div>
-                  <div className="space-y-2"><Label>Title</Label><Input value={memberTitle} onChange={(e) => setMemberTitle(e.target.value)} /></div>
-                  <div className="space-y-2"><Label>Avatar (Optional)</Label><Input type="file" accept="image/*" onChange={(e) => setMemberAvatarFile(e.target.files?.[0] || null)} /></div>
-                  <div className="space-y-2"><Label>Bio</Label><Textarea value={memberBio} onChange={(e) => setMemberBio(e.target.value)} rows={4} /></div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={closeTeamDialog}>Cancel</Button>
-                  <Button onClick={handleMemberSubmit}>Save Member</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+          <div className="mt-6 flex justify-center">
+            <Button onClick={() => { setEditingMember(null); setMemberName(''); setMemberTitle(''); setMemberBio(''); setIsTeamDialogOpen(true); }}>
+              <Plus className="mr-2 h-4 w-4" /> Add Team Member
+            </Button>
           </div>
         )}
       </section>
 
       <section className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
         {(teamMembers || defaultCreators).map((creator) => (
-          <Card key={creator.id} className="relative text-center border-border/40 shadow-sm overflow-hidden flex flex-col group">
+          <Card key={creator.id} className="relative text-center border-border/40 shadow-sm flex flex-col group">
             {isAdmin && teamMembers && teamMembers.length > 0 && (
               <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                <Button variant="secondary" size="icon" className="h-8 w-8" onClick={() => openEditDialog(creator)}><Edit2 className="h-4 w-4" /></Button>
+                <Button variant="secondary" size="icon" className="h-8 w-8" onClick={() => { setEditingMember(creator); setMemberName(creator.name); setMemberTitle(creator.title); setMemberBio(creator.bio); setIsTeamDialogOpen(true); }}><Edit2 className="h-4 w-4" /></Button>
                 <Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => setMemberToDelete(creator)}><Trash2 className="h-4 w-4" /></Button>
               </div>
             )}
@@ -303,83 +183,62 @@ export default function CreatorsPage() {
       </section>
       
       <section>
-        {isLoading ? (
-            <div className="flex justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>
-        ) : canUpload ? (
+        {isLoading ? ( <div className="flex justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div> ) : canUpload ? (
           <Card className="max-w-2xl mx-auto border-border/50 shadow-md">
-            <CardHeader>
-              <CardTitle>Submit New Material</CardTitle>
-              <CardDescription>Upload e-books for the student community.</CardDescription>
-            </CardHeader>
+            <CardHeader><CardTitle>Submit New Material</CardTitle></CardHeader>
             <CardContent>
               <form onSubmit={handleContentSubmit} className="space-y-6">
-                <div className="space-y-2"><Label>E-Book Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
+                <div className="space-y-2"><Label>Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
                 <div className="space-y-2"><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} /></div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-2">
-                        <Label>Academic Level</Label>
-                        <Select value={level} onValueChange={setLevel}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent><SelectItem value="100">100 Level</SelectItem><SelectItem value="200">200 Level</SelectItem></SelectContent>
-                        </Select>
+                        <Label>Level</Label>
+                        <Select value={level} onValueChange={setLevel}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="100">100 Level</SelectItem><SelectItem value="200">200 Level</SelectItem></SelectContent></Select>
                     </div>
                     <div className="space-y-2">
-                        <Label>Course Subject</Label>
-                        <Select value={categoryId} onValueChange={setCategoryId}>
-                            <SelectTrigger><SelectValue placeholder="Select Category" /></SelectTrigger>
-                            <SelectContent>
-                                {filteredCategories.map(cat => (
-                                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <Label>Subject</Label>
+                        <Select value={categoryId} onValueChange={setCategoryId}><SelectTrigger><SelectValue placeholder="Select Subject" /></SelectTrigger><SelectContent>{filteredCategories.map(cat => ( <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem> ))}</SelectContent></Select>
                     </div>
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-2 gap-6">
                    <div className="space-y-2">
-                      <Label>Access Mode</Label>
-                      <RadioGroup value={contentType} onValueChange={setContentType} className="flex pt-2 gap-4">
-                          <div className="flex items-center gap-2"><RadioGroupItem value="free" id="f" /><Label htmlFor="f">Free</Label></div>
-                          <div className="flex items-center gap-2"><RadioGroupItem value="premium" id="p" /><Label htmlFor="p">Premium</Label></div>
-                      </RadioGroup>
+                      <Label>Access</Label>
+                      <RadioGroup value={contentType} onValueChange={setContentType} className="flex pt-2 gap-4"><div className="flex items-center gap-2"><RadioGroupItem value="free" id="f" /><Label htmlFor="f">Free</Label></div><div className="flex items-center gap-2"><RadioGroupItem value="premium" id="p" /><Label htmlFor="p">Premium</Label></div></RadioGroup>
                    </div>
-                   <div className="space-y-2">
-                      <Label>Cover Image</Label>
-                      <Input type="file" accept="image/*" onChange={(e) => setCoverFile(e.target.files?.[0] || null)} />
-                   </div>
+                   <div className="space-y-2"><Label>Cover</Label><Input type="file" accept="image/*" onChange={(e) => setCoverFile(e.target.files?.[0] || null)} /></div>
                 </div>
-
-                <div className="space-y-2">
-                  <Label>PDF Download Link</Label>
-                  <Input type="url" placeholder="G-Drive link..." value={filePath} onChange={(e) => setFilePath(e.target.value)} required />
-                </div>
-                
-                <Button type="submit" className="w-full h-11" disabled={isPending}>
-                   <Upload className="mr-2 h-5 w-5" /> Publish Material
-                </Button>
+                <div className="space-y-2"><Label>PDF Link</Label><Input type="url" value={filePath} onChange={(e) => setFilePath(e.target.value)} required /></div>
+                <Button type="submit" className="w-full h-11" disabled={isPending}><Upload className="mr-2 h-5 w-5" /> Publish Material</Button>
               </form>
             </CardContent>
           </Card>
         ) : (
           <Card className="max-w-2xl mx-auto text-center py-12">
-            <CardHeader><CardTitle>Become a Creator</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-muted-foreground">Help fellow students by sharing your study materials.</p>
+              <p className="text-muted-foreground">Become a Creator to share your materials.</p>
               <Button asChild size="lg"><Link href="https://wa.me/2349123338586" target="_blank"><MessageSquare className="mr-2 h-5 w-5" /> Contact for Verification</Link></Button>
             </CardContent>
           </Card>
         )}
       </section>
 
-      <AlertDialog open={!!memberToDelete} onOpenChange={(open) => !open && setMemberToDelete(null)}>
+      <Dialog open={isTeamDialogOpen} onOpenChange={setIsTeamDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader><DialogTitle>{editingMember ? 'Edit' : 'Add'} Member</DialogTitle></DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2"><Label>Name</Label><Input value={memberName} onChange={(e) => setMemberName(e.target.value)} /></div>
+              <div className="space-y-2"><Label>Title</Label><Input value={memberTitle} onChange={(e) => setMemberTitle(e.target.value)} /></div>
+              <div className="space-y-2"><Label>Avatar</Label><Input type="file" accept="image/*" onChange={(e) => setMemberAvatarFile(e.target.files?.[0] || null)} /></div>
+              <div className="space-y-2"><Label>Bio</Label><Textarea value={memberBio} onChange={(e) => setMemberBio(e.target.value)} rows={4} /></div>
+            </div>
+            <DialogFooter><Button onClick={handleMemberSubmit}>Save Member</Button></DialogFooter>
+          </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!memberToDelete} onOpenChange={(o) => !o && setMemberToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>Remove Member?</AlertDialogTitle></AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteMember} className="bg-destructive">Remove</AlertDialogAction>
-          </AlertDialogFooter>
+          <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => { deleteDocumentNonBlocking(doc(firestore!, 'team_members', memberToDelete!.id)); setMemberToDelete(null); }} className="bg-destructive">Remove</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>

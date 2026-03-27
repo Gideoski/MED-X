@@ -26,8 +26,7 @@ export function initializeFirebase() {
     app = getApp();
   }
 
-  // Ensure Firestore is initialized with long-polling only once.
-  // We force long-polling to prevent "Could not reach Cloud Firestore backend" errors 
+  // Force long-polling to prevent "Could not reach Cloud Firestore backend" errors 
   // which are common in restricted network environments or workstations.
   if (!initializedFirestore) {
     initializedFirestore = initializeFirestore(app, {
