@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -47,7 +46,8 @@ import {
   Users as UsersIcon,
   Star,
   Download,
-  BookOpen
+  BookOpen,
+  UserCheck
 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, deleteDoc, doc, setDoc, addDoc, query, orderBy } from 'firebase/firestore';
@@ -64,6 +64,7 @@ type Material = Omit<EBook, 'id'> & { categoryId?: string, type: string, downloa
 type MaterialWithCollection = Material & { id: string; collection: string };
 type UserData = { id: string, email: string, isPremium: boolean, role: string, subscriptionExpiresAt?: string | null };
 type CourseCategory = { id: string; name: string; level: number; order: number };
+type CreatorProfile = { id: string, userId: string, verifiedByAdmin: boolean };
 
 const SubscriptionTimer = ({ expiryDate, onExpire }: { expiryDate: string; onExpire: () => void }) => {
     const [timeLeft, setTimeLeft] = useState<{
@@ -129,6 +130,9 @@ export default function AdminPage() {
 
   const usersCollectionRef = useMemoFirebase(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
   const { data: usersData } = useCollection<UserData>(usersCollectionRef);
+
+  const creatorProfilesRef = useMemoFirebase(() => (firestore ? collection(firestore, 'creator_profiles') : null), [firestore]);
+  const { data: creatorProfiles } = useCollection<CreatorProfile>(creatorProfilesRef);
 
   const uniqueUsers = useMemo(() => {
     if (!usersData) return [];
@@ -234,6 +238,10 @@ export default function AdminPage() {
       } catch (e) { toast({ title: 'Error', description: 'Failed to save subject.', variant: 'destructive' }); }
     };
     perform();
+  };
+
+  const isVerifiedCreator = (userId: string) => {
+    return creatorProfiles?.find(cp => cp.id === userId)?.verifiedByAdmin ?? false;
   };
 
   if (isUserLoading || isProfileLoading) return <div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
@@ -395,6 +403,7 @@ export default function AdminPage() {
                         <TableRow>
                             <TableHead>Email</TableHead>
                             <TableHead>Plan</TableHead>
+                            <TableHead className="flex items-center gap-2"><UserCheck className="h-4 w-4" /> Creator</TableHead>
                             <TableHead>Role</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -411,6 +420,22 @@ export default function AdminPage() {
                                         }} />
                                         {u.isPremium && u.subscriptionExpiresAt && <SubscriptionTimer expiryDate={u.subscriptionExpiresAt} onExpire={() => {}} />}
                                     </div>
+                                </TableCell>
+                                <TableCell>
+                                    <Switch 
+                                        checked={isVerifiedCreator(u.id)} 
+                                        onCheckedChange={(checked) => {
+                                            setDoc(doc(firestore!, 'creator_profiles', u.id), { 
+                                                userId: u.id,
+                                                verifiedByAdmin: checked,
+                                                updatedAt: new Date().toISOString()
+                                            }, { merge: true });
+                                            toast({ 
+                                                title: checked ? 'Creator Verified' : 'Verification Removed', 
+                                                description: `${u.email}'s status updated.` 
+                                            });
+                                        }} 
+                                    />
                                 </TableCell>
                                 <TableCell>
                                     <Select value={u.role || 'student'} onValueChange={(val) => {
