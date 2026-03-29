@@ -90,7 +90,6 @@ export default function CreatorsPage() {
     const currContentType = contentType;
     const currFile = coverFile;
 
-    // Reset form immediately
     setTitle(''); setDescription(''); setCategoryId(''); setFilePath(''); setCoverFile(null);
     toast({ title: "Publishing...", description: "Your material is being uploaded." });
 
@@ -160,6 +159,15 @@ export default function CreatorsPage() {
     });
   };
 
+  const handleAddMemberClick = () => {
+    setEditingMember(null);
+    setMemberName('');
+    setMemberTitle('');
+    setMemberBio('');
+    setMemberAvatarFile(null);
+    setIsTeamDialogOpen(true);
+  };
+
   return (
     <div className="space-y-12 max-w-5xl mx-auto">
       <section className="text-center">
@@ -167,7 +175,7 @@ export default function CreatorsPage() {
         <p className="mt-2 text-muted-foreground">The team behind Med-X.</p>
         {isAdmin && (
           <div className="mt-6 flex justify-center">
-            <Button onClick={() => { setEditingMember(null); setMemberName(''); setMemberTitle(''); setMemberBio(''); setIsTeamDialogOpen(true); }}>
+            <Button onClick={handleAddMemberClick}>
               <Plus className="mr-2 h-4 w-4" /> Add Team Member
             </Button>
           </div>
@@ -254,7 +262,7 @@ export default function CreatorsPage() {
       <AlertDialog open={!!memberToDelete} onOpenChange={(o) => !o && setMemberToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>Remove Member?</AlertDialogTitle></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => { deleteDocumentNonBlocking(doc(firestore!, 'team_members', memberToDelete!.id)); setMemberToDelete(null); }} className="bg-destructive">Remove</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => { if(firestore) deleteDocumentNonBlocking(doc(firestore, 'team_members', memberToDelete!.id)); setMemberToDelete(null); }} className="bg-destructive">Remove</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>

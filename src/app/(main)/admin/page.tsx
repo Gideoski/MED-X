@@ -72,7 +72,10 @@ const SubscriptionTimer = ({ expiryDate, onExpire }: { expiryDate: string; onExp
     } | null>(null);
 
     useEffect(() => {
+        if (!expiryDate) return;
         const expiry = new Date(expiryDate);
+        if (isNaN(expiry.getTime())) return;
+
         const calculateTimeLeft = () => {
             const difference = +expiry - +new Date();
             if (difference <= 0) return null;
@@ -118,7 +121,6 @@ export default function AdminPage() {
   const [editCategoryId, setEditCategoryId] = useState('');
   const [editCoverFile, setEditCoverFile] = useState<File | null>(null);
 
-  // Category State
   const [isCatDialogOpen, setIsCatDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<CourseCategory | null>(null);
   const [catName, setCatName] = useState('');
@@ -138,10 +140,11 @@ export default function AdminPage() {
     if (!usersData) return [];
     const map = new Map<string, UserData>();
     usersData.forEach(u => {
+      if (!u.email) return;
       const existing = map.get(u.email);
       if (!existing || u.id.length >= 28) map.set(u.email, u);
     });
-    return Array.from(map.values()).sort((a, b) => a.email.localeCompare(b.email));
+    return Array.from(map.values()).sort((a, b) => (a.email || "").localeCompare(b.email || ""));
   }, [usersData]);
 
   const categoriesQuery = useMemoFirebase(() => (firestore ? query(collection(firestore, 'course_categories'), orderBy('order', 'asc')) : null), [firestore]);
@@ -175,7 +178,7 @@ export default function AdminPage() {
         });
       }
     });
-    setAllMaterials(combined.sort((a, b) => a.title.localeCompare(b.title)));
+    setAllMaterials(combined.sort((a, b) => (a.title || "").localeCompare(b.title || "")));
   }, [h1.data, h2.data, h3.data, h4.data]);
 
   const premiumUsersCount = useMemo(() => uniqueUsers.filter(u => u.isPremium).length, [uniqueUsers]);
@@ -184,8 +187,8 @@ export default function AdminPage() {
 
   const handleEditClick = (material: MaterialWithCollection) => {
       setMaterialToEdit(material);
-      setEditTitle(material.title);
-      setEditDesc(material.description);
+      setEditTitle(material.title || '');
+      setEditDesc(material.description || '');
       setEditCategoryId(material.categoryId || 'none');
       setEditCoverFile(null);
   };
@@ -259,7 +262,6 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Statistics Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card className="bg-primary/5 border-primary/10">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -456,7 +458,6 @@ export default function AdminPage() {
             </CardContent>
         </Card>
 
-        {/* Dialogs */}
         <Dialog open={!!materialToEdit} onOpenChange={(o) => !o && setMaterialToEdit(null)}>
             <DialogContent className="max-w-md">
                 <DialogHeader><DialogTitle>Edit Content</DialogTitle></DialogHeader>
@@ -506,7 +507,7 @@ export default function AdminPage() {
                 <AlertDialogHeader><AlertDialogTitle>Delete Subject?</AlertDialogTitle></AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction className="bg-destructive" onClick={() => { deleteDoc(doc(firestore!, 'course_categories', catToDelete!.id)); setCatToDelete(null); }}>Delete</AlertDialogAction>
+                    <AlertDialogAction className="bg-destructive" onClick={() => { if(firestore) deleteDoc(doc(firestore, 'course_categories', catToDelete!.id)); setCatToDelete(null); }}>Delete</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
@@ -516,7 +517,7 @@ export default function AdminPage() {
                 <AlertDialogHeader><AlertDialogTitle>Delete Content?</AlertDialogTitle></AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction className="bg-destructive" onClick={() => { deleteDocumentNonBlocking(doc(firestore!, materialToDelete!.collection, materialToDelete!.id)); setMaterialToDelete(null); }}>Delete</AlertDialogAction>
+                    <AlertDialogAction className="bg-destructive" onClick={() => { if(firestore) deleteDocumentNonBlocking(doc(firestore, materialToDelete!.collection, materialToDelete!.id)); setMaterialToDelete(null); }}>Delete</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
