@@ -51,11 +51,11 @@ import {
 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, deleteDoc, doc, setDoc, addDoc, query, orderBy } from 'firebase/firestore';
-import { useState, useEffect, useTransition, useMemo } from 'react';
+import { useState, useEffect, useTransition, useMemo, useCallback } from 'react';
 import type { EBook } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
-import { addMonths } from 'date-fns';
+import { addMonths, isValid, parseISO } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -66,7 +66,7 @@ type UserData = { id: string, email: string, isPremium: boolean, role: string, s
 type CourseCategory = { id: string; name: string; level: number; order: number };
 type CreatorProfile = { id: string, userId: string, verifiedByAdmin: boolean };
 
-const SubscriptionTimer = ({ expiryDate, onExpire }: { expiryDate: string; onExpire: () => void }) => {
+const SubscriptionTimer = ({ expiryDate }: { expiryDate: string }) => {
     const [timeLeft, setTimeLeft] = useState<{
         days: number; hours: number; minutes: number; seconds: number;
     } | null>(null);
@@ -74,7 +74,7 @@ const SubscriptionTimer = ({ expiryDate, onExpire }: { expiryDate: string; onExp
     useEffect(() => {
         if (!expiryDate) return;
         const expiry = new Date(expiryDate);
-        if (isNaN(expiry.getTime())) return;
+        if (!isValid(expiry)) return;
 
         const calculateTimeLeft = () => {
             const difference = +expiry - +new Date();
@@ -86,16 +86,18 @@ const SubscriptionTimer = ({ expiryDate, onExpire }: { expiryDate: string; onExp
                 seconds: Math.floor((difference / 1000) % 60),
             };
         };
+        
         const initial = calculateTimeLeft();
-        if (!initial) { onExpire(); return; }
         setTimeLeft(initial);
+        
         const interval = setInterval(() => {
             const updated = calculateTimeLeft();
             if (updated) setTimeLeft(updated);
-            else { clearInterval(interval); onExpire(); }
+            else clearInterval(interval);
         }, 1000);
+        
         return () => clearInterval(interval);
-    }, [expiryDate, onExpire]);
+    }, [expiryDate]);
 
     if (!timeLeft) return null;
     const formatTime = (val: number) => val.toString().padStart(2, '0');
@@ -140,9 +142,10 @@ export default function AdminPage() {
     if (!usersData) return [];
     const map = new Map<string, UserData>();
     usersData.forEach(u => {
-      if (!u.email) return;
+      if (!u || !u.email) return;
       const existing = map.get(u.email);
-      if (!existing || u.id.length >= 28) map.set(u.email, u);
+      // Safety: Ensure ID exists and favor longer UIDs (standard Firebase format)
+      if (!existing || (u.id && u.id.length >= 28)) map.set(u.email, u);
     });
     return Array.from(map.values()).sort((a, b) => (a.email || "").localeCompare(b.email || ""));
   }, [usersData]);
@@ -168,6 +171,7 @@ export default function AdminPage() {
     hooks.forEach((hook, index) => {
       if (hook.data) {
         hook.data.forEach((item) => {
+          if (!item) return;
           const derivedLevel = collections[index].includes('100lvl') ? 100 : 200;
           combined.push({ 
             ...item, 
@@ -243,9 +247,9 @@ export default function AdminPage() {
     perform();
   };
 
-  const isVerifiedCreator = (userId: string) => {
-    return creatorProfiles?.find(cp => cp.id === userId)?.verifiedByAdmin ?? false;
-  };
+  const isVerifiedCreator = useCallback((userId: string) => {
+    return creatorProfiles?.some(cp => cp.id === userId && cp.verifiedByAdmin) ?? false;
+  }, [creatorProfiles]);
 
   if (isUserLoading || isProfileLoading) return <div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   if (userProfile?.role !== 'admin') return <div className="flex flex-col items-center justify-center h-full min-h-[60vh]"><ShieldX className="h-16 w-16 text-destructive mb-4" /><h1 className="text-3xl font-bold">Access Denied</h1></div>;
@@ -420,13 +424,14 @@ export default function AdminPage() {
                                                 isPremium: checked, subscriptionExpiresAt: checked ? addMonths(new Date(), 1).toISOString() : null
                                             });
                                         }} />
-                                        {u.isPremium && u.subscriptionExpiresAt && <SubscriptionTimer expiryDate={u.subscriptionExpiresAt} onExpire={() => {}} />}
+                                        {u.isPremium && u.subscriptionExpiresAt && <SubscriptionTimer expiryDate={u.subscriptionExpiresAt} />}
                                     </div>
                                 </TableCell>
                                 <TableCell>
                                     <Switch 
                                         checked={isVerifiedCreator(u.id)} 
                                         onCheckedChange={(checked) => {
+                                            if (!u.id) return;
                                             setDoc(doc(firestore!, 'creator_profiles', u.id), { 
                                                 userId: u.id,
                                                 verifiedByAdmin: checked,
@@ -441,6 +446,7 @@ export default function AdminPage() {
                                 </TableCell>
                                 <TableCell>
                                     <Select value={u.role || 'student'} onValueChange={(val) => {
+                                        if (!u.id) return;
                                         updateDocumentNonBlocking(doc(firestore!, 'users', u.id), { role: val });
                                         toast({ title: 'Role Updated', description: `${u.email} is now ${val}.` });
                                     }}>
@@ -507,7 +513,7 @@ export default function AdminPage() {
                 <AlertDialogHeader><AlertDialogTitle>Delete Subject?</AlertDialogTitle></AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction className="bg-destructive" onClick={() => { if(firestore) deleteDoc(doc(firestore, 'course_categories', catToDelete!.id)); setCatToDelete(null); }}>Delete</AlertDialogAction>
+                    <AlertDialogAction className="bg-destructive" onClick={() => { if(firestore && catToDelete) deleteDoc(doc(firestore, 'course_categories', catToDelete.id)); setCatToDelete(null); }}>Delete</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
@@ -517,7 +523,7 @@ export default function AdminPage() {
                 <AlertDialogHeader><AlertDialogTitle>Delete Content?</AlertDialogTitle></AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction className="bg-destructive" onClick={() => { if(firestore) deleteDocumentNonBlocking(doc(firestore, materialToDelete!.collection, materialToDelete!.id)); setMaterialToDelete(null); }}>Delete</AlertDialogAction>
+                    <AlertDialogAction className="bg-destructive" onClick={() => { if(firestore && materialToDelete) deleteDocumentNonBlocking(doc(firestore, materialToDelete.collection, materialToDelete.id)); setMaterialToDelete(null); }}>Delete</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
