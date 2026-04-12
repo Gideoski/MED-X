@@ -39,7 +39,7 @@
     {
       "id": "ebook-cover-7",
       "description": "Doctor with patient",
-      "imageUrl": "https://images.unsplash.com/photo-1638202993928-7267aad84c31?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxkb2N0b3IlMjBwYXRpZW50fGVufDB8fHx8MTc3MTMyMDU0Nnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://images.unsplash.com/photo-1638202993928-7267aad84c31?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw8fHxkb2N0b3IlMjBwYXRpZW50fGVufDB8fHx8MTc3MTMyMDU0Nnww&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "doctor patient"
     },
     {
@@ -51,13 +51,13 @@
     {
       "id": "avatar-denzel",
       "description": "Portrait of Denzel",
-      "imageUrl": "/images/Tyrese.jpeg",
+      "imageUrl": "https://images.unsplash.com/photo-1531384441138-2736e62e0919?q=80&w=1080",
       "imageHint": "man portrait"
     },
     {
       "id": "avatar-ada",
       "description": "Portrait of Ekemini-Abasi",
-      "imageUrl": "/images/ekems.jpeg",
+      "imageUrl": "https://images.unsplash.com/photo-1566492031773-4f4e44671857?q=80&w=1080",
       "imageHint": "man portrait"
     },
     {
