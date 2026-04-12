@@ -71,6 +71,7 @@ export default function CreatorsPage() {
   const { data: creatorProfile } = useDoc<{ verifiedByAdmin?: boolean }>(creatorProfileRef);
   const isVerifiedCreator = creatorProfile?.verifiedByAdmin === true;
 
+  // Admins and Verified Creators can both publish materials
   const canUpload = isAdmin || isVerifiedCreator;
   const isLoading = isUserLoading || isTeamLoading;
 
@@ -95,7 +96,7 @@ export default function CreatorsPage() {
 
     startTransition(async () => {
       try {
-        let coverUrl = currLevel === '100' ? '/images/med-x 100lvl ebook cover.jpeg' : '/images/med-x logo.jpeg';
+        let coverUrl = currLevel === '100' ? 'https://images.unsplash.com/photo-1761081478943-25e4f4b6354c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080' : 'https://images.unsplash.com/photo-1758691463569-66de91d76452?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080';
         if (currFile) {
             coverUrl = await new Promise<string>((res, rej) => {
                 const reader = new FileReader();
@@ -142,7 +143,7 @@ export default function CreatorsPage() {
 
     startTransition(async () => {
       try {
-        let avatarUrl = original?.avatar || '/images/MED-X logo.jpeg';
+        let avatarUrl = original?.avatar || 'https://images.unsplash.com/photo-1531384441138-2736e62e0919?q=80&w=1080';
         if (file) {
             avatarUrl = await new Promise<string>((res, rej) => {
                 const reader = new FileReader();
@@ -184,7 +185,7 @@ export default function CreatorsPage() {
 
       <section className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
         {(teamMembers || defaultCreators).map((creator) => (
-          <Card key={creator.id} className="relative text-center border-border/40 shadow-sm flex flex-col group">
+          <Card key={creator.id} className="relative text-center border-border/40 shadow-sm flex flex-col group overflow-hidden">
             {isAdmin && teamMembers && teamMembers.length > 0 && (
               <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                 <Button variant="secondary" size="icon" className="h-8 w-8" onClick={() => { setEditingMember(creator); setMemberName(creator.name); setMemberTitle(creator.title); setMemberBio(creator.bio); setIsTeamDialogOpen(true); }}><Edit2 className="h-4 w-4" /></Button>
@@ -192,7 +193,7 @@ export default function CreatorsPage() {
               </div>
             )}
             <CardHeader className="items-center pb-0 pt-8">
-              <Avatar className="h-44 w-32 rounded-2xl border-2 border-primary/10">
+              <Avatar className="h-44 w-32 rounded-2xl border-2 border-primary/10 shadow-lg">
                 <AvatarImage src={creator.avatar} alt={creator.name} className="object-cover" />
                 <AvatarFallback>{creator.name.charAt(0)}</AvatarFallback>
               </Avatar>

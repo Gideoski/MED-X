@@ -144,7 +144,6 @@ export default function AdminPage() {
     usersData.forEach(u => {
       if (!u || !u.email) return;
       const existing = map.get(u.email);
-      // Safety: Ensure ID exists and favor standard UIDs
       if (!existing || (u.id && u.id.length >= 28)) map.set(u.email, u);
     });
     return Array.from(map.values()).sort((a, b) => (a.email || "").localeCompare(b.email || ""));
@@ -267,17 +266,17 @@ export default function AdminPage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="bg-primary/5 border-primary/10">
+            <Card className="bg-primary/5 border-primary/10 shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Total Users</CardTitle>
                     <UsersIcon className="h-4 w-4 text-primary" />
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold">{uniqueUsers.length}</div>
-                    <p className="text-xs text-muted-foreground mt-1">Registered accounts</p>
+                    <p className="text-xs text-muted-foreground mt-1">Registered students</p>
                 </CardContent>
             </Card>
-            <Card className="bg-primary/5 border-primary/10">
+            <Card className="bg-primary/5 border-primary/10 shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Premium Users</CardTitle>
                     <Star className="h-4 w-4 text-primary fill-primary" />
@@ -287,7 +286,7 @@ export default function AdminPage() {
                     <p className="text-xs text-muted-foreground mt-1">Active subscriptions</p>
                 </CardContent>
             </Card>
-            <Card className="bg-primary/5 border-primary/10">
+            <Card className="bg-primary/5 border-primary/10 shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Total Downloads</CardTitle>
                     <Download className="h-4 w-4 text-primary" />
@@ -297,14 +296,14 @@ export default function AdminPage() {
                     <p className="text-xs text-muted-foreground mt-1">Resource engagement</p>
                 </CardContent>
             </Card>
-            <Card className="bg-primary/5 border-primary/10">
+            <Card className="bg-primary/5 border-primary/10 shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Total Materials</CardTitle>
                     <BookOpen className="h-4 w-4 text-primary" />
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold">{totalMaterialsCount}</div>
-                    <p className="text-xs text-muted-foreground mt-1">Published items</p>
+                    <p className="text-xs text-muted-foreground mt-1">Total resources hosted</p>
                 </CardContent>
             </Card>
         </div>
@@ -323,7 +322,7 @@ export default function AdminPage() {
             <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <h3 className="font-semibold mb-3 text-sm text-primary">100 Level</h3>
+                        <h3 className="font-semibold mb-3 text-sm text-primary uppercase tracking-wider">100 Level Subjects</h3>
                         <div className="space-y-2">
                             {categories?.filter(c => c.level === 100).map(cat => (
                                 <div key={cat.id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/30 group">
@@ -337,7 +336,7 @@ export default function AdminPage() {
                         </div>
                     </div>
                     <div>
-                        <h3 className="font-semibold mb-3 text-sm text-primary">200 Level</h3>
+                        <h3 className="font-semibold mb-3 text-sm text-primary uppercase tracking-wider">200 Level Subjects</h3>
                         <div className="space-y-2">
                             {categories?.filter(c => c.level === 200).map(cat => (
                                 <div key={cat.id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/30 group">
@@ -354,7 +353,7 @@ export default function AdminPage() {
             </CardContent>
         </Card>
 
-        <Card className="shadow-sm">
+        <Card className="shadow-sm border-primary/10">
           <CardHeader><CardTitle>Content Management</CardTitle></CardHeader>
           <CardContent>
             <Table>
@@ -386,6 +385,7 @@ export default function AdminPage() {
                                 const { collection: _, ...data } = material;
                                 setDoc(doc(firestore!, target, material.id), { ...data, isPremium: checked });
                                 deleteDoc(doc(firestore!, material.collection, material.id));
+                                toast({ title: 'Access Updated', description: `"${material.title}" moved to ${checked ? 'Premium' : 'Free'}.` });
                             }} />
                         </TableCell>
                         <TableCell className="text-right">
@@ -401,28 +401,29 @@ export default function AdminPage() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm">
-            <CardHeader><CardTitle>User Records</CardTitle></CardHeader>
+        <Card className="shadow-sm border-primary/10">
+            <CardHeader><CardTitle>User Records & Roles</CardTitle></CardHeader>
             <CardContent>
                 <Table>
                     <TableHeader>
                         <TableRow>
                             <TableHead>Email</TableHead>
-                            <TableHead>Plan</TableHead>
-                            <TableHead className="flex items-center gap-2"><UserCheck className="h-4 w-4" /> Creator</TableHead>
-                            <TableHead>Role</TableHead>
+                            <TableHead>Premium Plan</TableHead>
+                            <TableHead className="flex items-center gap-2"><UserCheck className="h-4 w-4" /> Verified Creator</TableHead>
+                            <TableHead>System Role</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {uniqueUsers.map(u => (
                             <TableRow key={u.id}>
-                                <TableCell className="max-w-[180px] truncate">{u.email}</TableCell>
+                                <TableCell className="max-w-[180px] truncate font-medium">{u.email}</TableCell>
                                 <TableCell>
                                     <div className="flex items-center gap-2">
                                         <Switch checked={u.isPremium} onCheckedChange={(checked) => {
                                             updateDocumentNonBlocking(doc(firestore!, 'users', u.id), {
                                                 isPremium: checked, subscriptionExpiresAt: checked ? addMonths(new Date(), 1).toISOString() : null
                                             });
+                                            toast({ title: 'Plan Updated', description: `${u.email} is now ${checked ? 'Premium' : 'Free'}.` });
                                         }} />
                                         {u.isPremium && u.subscriptionExpiresAt && <SubscriptionTimer expiryDate={u.subscriptionExpiresAt} />}
                                     </div>
