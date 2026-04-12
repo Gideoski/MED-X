@@ -96,7 +96,7 @@ export default function CreatorsPage() {
 
     startTransition(async () => {
       try {
-        let coverUrl = currLevel === '100' ? 'https://images.unsplash.com/photo-1761081478943-25e4f4b6354c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080' : 'https://images.unsplash.com/photo-1758691463569-66de91d76452?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080';
+        let coverUrl = currLevel === '100' ? '/images/med-x 100lvl ebook cover.jpeg' : '/images/med-x 200lvl ebook cover.jpeg';
         if (currFile) {
             coverUrl = await new Promise<string>((res, rej) => {
                 const reader = new FileReader();
@@ -143,7 +143,7 @@ export default function CreatorsPage() {
 
     startTransition(async () => {
       try {
-        let avatarUrl = original?.avatar || 'https://images.unsplash.com/photo-1531384441138-2736e62e0919?q=80&w=1080';
+        let avatarUrl = original?.avatar || '/images/MED-X logo.jpeg';
         if (file) {
             avatarUrl = await new Promise<string>((res, rej) => {
                 const reader = new FileReader();

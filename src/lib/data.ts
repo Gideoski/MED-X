@@ -127,7 +127,7 @@ export const defaultCreators: Creator[] = [
         id: "denzel",
         name: "Denzel",
         title: "Founder & Study Designer",
-        avatar: "https://images.unsplash.com/photo-1531384441138-2736e62e0919?q=80&w=1080",
+        avatar: "/images/denzel.jpeg",
         imageHint: "man portrait",
         bio: "A med-student turned study-designer, Denzel founded MED-X with the goal of helping students study smarter, not harder. His focus is on creating clear, concise, and beautifully formatted study materials."
     },
@@ -135,7 +135,7 @@ export const defaultCreators: Creator[] = [
         id: "ekemini",
         name: "Ekemini-Abasi",
         title: "Publicity lead and HR manager",
-        avatar: "https://images.unsplash.com/photo-1566492031773-4f4e44671857?q=80&w=1080",
+        avatar: "/images/ekemini.jpeg",
         imageHint: "man portrait",
         bio: "A medical student who doubles as the engine room behind Med X’s visibility and people management. He shapes the brand’s voice, amplifies its reach, and builds a driven team."
     }
