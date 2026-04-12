@@ -144,7 +144,7 @@ export default function AdminPage() {
     usersData.forEach(u => {
       if (!u || !u.email) return;
       const existing = map.get(u.email);
-      // Safety: Ensure ID exists and favor longer UIDs (standard Firebase format)
+      // Safety: Ensure ID exists and favor standard UIDs
       if (!existing || (u.id && u.id.length >= 28)) map.set(u.email, u);
     });
     return Array.from(map.values()).sort((a, b) => (a.email || "").localeCompare(b.email || ""));
