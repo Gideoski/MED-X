@@ -10,7 +10,10 @@ import Script from 'next/script';
 export const metadata: Metadata = {
   title: 'MED-X',
   description: 'A professional, responsive e-learning website for university students to access school materials.',
-};
+   icons: {
+      icon: 'public/images/MED-X logo.jpeg',
+    },
+  };
 
 export default function RootLayout({
   children,

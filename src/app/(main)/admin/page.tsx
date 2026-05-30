@@ -73,30 +73,34 @@ const SubscriptionTimer = ({ expiryDate }: { expiryDate: string }) => {
 
     useEffect(() => {
         if (!expiryDate) return;
-        const expiry = new Date(expiryDate);
-        if (!isValid(expiry)) return;
+        try {
+            const expiry = new Date(expiryDate);
+            if (!isValid(expiry)) return;
 
-        const calculateTimeLeft = () => {
-            const difference = +expiry - +new Date();
-            if (difference <= 0) return null;
-            return {
-                days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-                hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-                minutes: Math.floor((difference / 1000 / 60) % 60),
-                seconds: Math.floor((difference / 1000) % 60),
+            const calculateTimeLeft = () => {
+                const difference = +expiry - +new Date();
+                if (difference <= 0) return null;
+                return {
+                    days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+                    hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+                    minutes: Math.floor((difference / 1000 / 60) % 60),
+                    seconds: Math.floor((difference / 1000) % 60),
+                };
             };
-        };
-        
-        const initial = calculateTimeLeft();
-        setTimeLeft(initial);
-        
-        const interval = setInterval(() => {
-            const updated = calculateTimeLeft();
-            if (updated) setTimeLeft(updated);
-            else clearInterval(interval);
-        }, 1000);
-        
-        return () => clearInterval(interval);
+            
+            const initial = calculateTimeLeft();
+            setTimeLeft(initial);
+            
+            const interval = setInterval(() => {
+                const updated = calculateTimeLeft();
+                if (updated) setTimeLeft(updated);
+                else clearInterval(interval);
+            }, 1000);
+            
+            return () => clearInterval(interval);
+        } catch (e) {
+            return;
+        }
     }, [expiryDate]);
 
     if (!timeLeft) return null;
