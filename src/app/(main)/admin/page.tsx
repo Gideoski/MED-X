@@ -55,7 +55,7 @@ import { useState, useEffect, useTransition, useMemo, useCallback } from 'react'
 import type { EBook } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
-import { addMonths, isValid, parseISO } from 'date-fns';
+import { addMonths, isValid } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
