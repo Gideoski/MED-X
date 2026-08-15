@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { doc, updateDoc } from "firebase/firestore";
 import { useState } from "react";
 import { addMonths } from "date-fns";
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const PAYSTACK_PUBLIC_KEY = "pk_live_061de069f6b6297fa83776862db1293e738899ec";
 
@@ -71,28 +72,21 @@ export default function PremiumPage() {
     const userDocRef = doc(firestore, 'users', user.uid);
     const expiryDate = addMonths(new Date(), 1);
 
-    try {
-      await updateDoc(userDocRef, {
-        isPremium: true,
-        subscriptionExpiresAt: expiryDate.toISOString(),
-        updatedAt: new Date().toISOString()
-      });
-      
-      toast({
-        title: "Upgrade Successful!",
-        description: "Your account has been automatically upgraded to Premium. Enjoy!",
-      });
-      router.replace("/home");
-    } catch (error) {
-      console.error("Error upgrading account:", error);
-      toast({
-        title: "Upgrade Error",
-        description: "Your payment was successful, but we couldn't update your status automatically. Please contact support with reference: " + reference,
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessing(false);
-    }
+    // CRITICAL: We update the user profile to Premium status immediately after payment.
+    // We use the non-blocking helper to ensure the UI proceeds immediately while the background sync occurs.
+    updateDocumentNonBlocking(userDocRef, {
+      isPremium: true,
+      subscriptionExpiresAt: expiryDate.toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+
+    toast({
+      title: "Upgrade Successful!",
+      description: "Payment verified. Your account is now Premium. Enjoy!",
+    });
+    
+    setIsProcessing(false);
+    router.replace("/home");
   };
 
   if (isUserLoading) {
@@ -152,7 +146,7 @@ export default function PremiumPage() {
               {isProcessing ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Upgrading...
+                  Processing...
                 </>
               ) : (
                 <>

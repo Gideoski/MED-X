@@ -120,7 +120,6 @@ export default function AdminPage() {
   const [allMaterials, setAllMaterials] = useState<MaterialWithCollection[]>([]);
   const [materialToDelete, setMaterialToDelete] = useState<MaterialWithCollection | null>(null);
   const [materialToEdit, setMaterialToEdit] = useState<MaterialWithCollection | null>(null);
-  const [isPending, startTransition] = useTransition();
 
   const [editTitle, setEditTitle] = useState('');
   const [editDesc, setEditDesc] = useState('');
