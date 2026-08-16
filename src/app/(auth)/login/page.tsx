@@ -48,14 +48,15 @@ export default function LoginPage() {
               const userDocRef = doc(firestore, 'users', loggedInUser.uid);
               
               // CRITICAL: Ensure all necessary fields exist on login
-              // This prevents "missing field" issues if signup was incomplete or provider-based.
+              // This fixes accounts like vZ5HFJ1bGrRG9ABK28V6FsCmfDF3 that might have missing fields.
               await setDoc(userDocRef, { 
                 id: loggedInUser.uid,
                 email: loggedInUser.email,
                 role: "student", // Default if not already set
                 isPremium: false, // Default if not already set
                 lastLoginAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
+                updatedAt: new Date().toISOString(),
+                // Keep existing fields if they exist
               }, { merge: true });
             })
             .catch((error) => {

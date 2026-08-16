@@ -30,7 +30,7 @@ export default function AccountPage() {
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
 
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<{ isPremium: boolean; role?: string }>(userDocRef);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<{ isPremium: boolean; role?: string; createdAt?: string }>(userDocRef);
   const isPremium = userProfile?.isPremium ?? false;
 
   useEffect(() => {
@@ -38,6 +38,26 @@ export default function AccountPage() {
       setName(user.displayName || '');
     }
   }, [user]);
+
+  // SELF-HEALING LOGIC: Detect and repair missing Firestore fields
+  useEffect(() => {
+    if (user && userProfile && !isProfileLoading && firestore) {
+      const isMissingFields = userProfile.isPremium === undefined || !userProfile.role;
+      
+      if (isMissingFields) {
+        console.log("Detecting missing profile fields for:", user.uid, ". Repairing...");
+        const ref = doc(firestore, 'users', user.uid);
+        updateDocumentNonBlocking(ref, {
+          id: user.uid,
+          email: user.email,
+          role: userProfile.role || "student",
+          isPremium: userProfile.isPremium ?? false,
+          updatedAt: new Date().toISOString(),
+          createdAt: userProfile.createdAt || new Date().toISOString()
+        });
+      }
+    }
+  }, [user, userProfile, isProfileLoading, firestore]);
 
   const handleProfileUpdate = () => {
     if (!user) return;
@@ -62,10 +82,6 @@ export default function AccountPage() {
     });
   };
 
-  /**
-   * Client-side verification system to trace and refresh payment status.
-   * This is useful if the automatic upgrade was interrupted.
-   */
   const handleVerifyPaymentStatus = async () => {
     if (!user || !firestore || !userDocRef) return;
     
@@ -76,7 +92,6 @@ export default function AccountPage() {
     });
 
     try {
-        // We re-fetch the document to see if it was updated by an external process or admin
         const freshDoc = await getDoc(userDocRef);
         if (freshDoc.exists()) {
             const data = freshDoc.data();
