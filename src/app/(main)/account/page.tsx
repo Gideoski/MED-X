@@ -30,7 +30,7 @@ export default function AccountPage() {
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
 
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<{ isPremium: boolean; role?: string; createdAt?: string }>(userDocRef);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<{ isPremium: boolean; role?: string; createdAt?: string; id?: string }>(userDocRef);
   const isPremium = userProfile?.isPremium ?? false;
 
   useEffect(() => {
@@ -39,8 +39,7 @@ export default function AccountPage() {
     }
   }, [user]);
 
-  // SELF-HEALING LOGIC: Detect and repair missing Firestore fields
-  // This specifically fixes accounts like vZ5HFJ1bGrRG9ABK28V6FsCmfDF3
+  // SELF-HEALING LOGIC: Detect and repair missing Firestore fields in real-time
   useEffect(() => {
     if (user && userProfile && !isProfileLoading && firestore) {
       const isMissingFields = userProfile.isPremium === undefined || !userProfile.role || !userProfile.id;
@@ -146,7 +145,7 @@ export default function AccountPage() {
               <AvatarImage src={user.photoURL || ''} alt={user.displayName || ''} />
               <AvatarFallback>{user.email ? user.email.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
             </Avatar>
-            <p className="text-sm text-muted-foreground">Profile photo is managed through your email provider (e.g., Google account).</p>
+            <p className="text-sm text-muted-foreground">Profile photo is managed through your email provider.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -207,7 +206,7 @@ export default function AccountPage() {
             </div>
             {!isPremium && (
                 <p className="text-xs text-muted-foreground">
-                    If you just completed a payment but your status hasn't changed, click <strong>Refresh Plan</strong> to sync with our payment records.
+                    If you just completed a payment but your status hasn't changed, click <strong>Refresh Plan</strong> to sync.
                 </p>
             )}
         </CardContent>
@@ -219,7 +218,7 @@ export default function AccountPage() {
           <CardDescription>Update your security settings.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">To change your password or security settings, please use the "Forgot Password" flow from the login page or your email provider's security dashboard.</p>
+            <p className="text-sm text-muted-foreground">To change your password, please use the "Forgot Password" flow from the login page.</p>
             <Button variant="outline" asChild>
                 <Link href="/forgot-password">Reset Password</Link>
             </Button>

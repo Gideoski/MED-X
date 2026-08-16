@@ -51,13 +51,13 @@ import {
 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, deleteDoc, doc, setDoc, addDoc, query, orderBy } from 'firebase/firestore';
-import { useState, useEffect, useTransition, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { EBook } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
 import { addMonths, isValid } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { updateDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
@@ -142,17 +142,13 @@ export default function AdminPage() {
   const creatorProfilesRef = useMemoFirebase(() => (firestore ? collection(firestore, 'creator_profiles') : null), [firestore]);
   const { data: creatorProfiles } = useCollection<CreatorProfile>(creatorProfilesRef);
 
-  /**
-   * Safe mapping for user records. 
-   * Prevents crashes if email or ID is missing for an account.
-   */
   const uniqueUsers = useMemo(() => {
     if (!usersData) return [];
     const map = new Map<string, UserData>();
     usersData.forEach(u => {
       if (!u || !u.email) return;
       const existing = map.get(u.email);
-      // Ensure we keep the record with a valid UID if duplicates exist
+      // We prioritize the document ID added by useCollection if the internal ID field is missing
       if (!existing || (u.id && u.id.length >= 28)) map.set(u.email, u);
     });
     return Array.from(map.values()).sort((a, b) => {
@@ -194,14 +190,10 @@ export default function AdminPage() {
         });
       }
     });
-    setAllMaterials(combined.sort((a, b) => {
-        const titleA = a.title || "";
-        const titleB = b.title || "";
-        return titleA.localeCompare(titleB);
-    }));
+    setAllMaterials(combined.sort((a, b) => (a.title || "").localeCompare(b.title || "")));
   }, [h1.data, h2.data, h3.data, h4.data]);
 
-  const premiumUsersCount = useMemo(() => uniqueUsers.filter(u => u.isPremium).length, [uniqueUsers]);
+  const premiumUsersCount = useMemo(() => uniqueUsers.filter(u => !!u.isPremium).length, [uniqueUsers]);
   const totalDownloadsCount = useMemo(() => allMaterials.reduce((acc, m) => acc + (m.downloads || 0), 0), [allMaterials]);
   const totalMaterialsCount = allMaterials.length;
 
@@ -397,7 +389,7 @@ export default function AdminPage() {
                             }} />
                         </TableCell>
                         <TableCell>
-                            <Switch checked={material.isPremium} onCheckedChange={(checked) => {
+                            <Switch checked={!!material.isPremium} onCheckedChange={(checked) => {
                                 const target = material.collection.includes('_free') ? material.collection.replace('_free', '_premium') : material.collection.replace('_premium', '_free');
                                 const { collection: _, ...data } = material;
                                 setDoc(doc(firestore!, target, material.id), { ...data, isPremium: checked });
@@ -436,10 +428,14 @@ export default function AdminPage() {
                                 <TableCell className="max-w-[180px] truncate font-medium">{u.email}</TableCell>
                                 <TableCell>
                                     <div className="flex items-center gap-2">
-                                        <Switch checked={u.isPremium} onCheckedChange={(checked) => {
-                                            updateDocumentNonBlocking(doc(firestore!, 'users', u.id), {
-                                                isPremium: checked, subscriptionExpiresAt: checked ? addMonths(new Date(), 1).toISOString() : null
-                                            });
+                                        <Switch checked={!!u.isPremium} onCheckedChange={(checked) => {
+                                            if (!u.id || !firestore) return;
+                                            // Using setDocumentNonBlocking with merge:true ensures fields are created if missing
+                                            setDocumentNonBlocking(doc(firestore, 'users', u.id), {
+                                                isPremium: checked, 
+                                                subscriptionExpiresAt: checked ? addMonths(new Date(), 1).toISOString() : null,
+                                                updatedAt: new Date().toISOString()
+                                            }, { merge: true });
                                             toast({ title: 'Plan Updated', description: `${u.email} is now ${checked ? 'Premium' : 'Free'}.` });
                                         }} />
                                         {u.isPremium && u.subscriptionExpiresAt && <SubscriptionTimer expiryDate={u.subscriptionExpiresAt} />}
@@ -449,8 +445,8 @@ export default function AdminPage() {
                                     <Switch 
                                         checked={isVerifiedCreator(u.id)} 
                                         onCheckedChange={(checked) => {
-                                            if (!u.id) return;
-                                            setDoc(doc(firestore!, 'creator_profiles', u.id), { 
+                                            if (!u.id || !firestore) return;
+                                            setDoc(doc(firestore, 'creator_profiles', u.id), { 
                                                 userId: u.id,
                                                 verifiedByAdmin: checked,
                                                 updatedAt: new Date().toISOString()
@@ -464,8 +460,8 @@ export default function AdminPage() {
                                 </TableCell>
                                 <TableCell>
                                     <Select value={u.role || 'student'} onValueChange={(val) => {
-                                        if (!u.id) return;
-                                        updateDocumentNonBlocking(doc(firestore!, 'users', u.id), { role: val });
+                                        if (!u.id || !firestore) return;
+                                        setDocumentNonBlocking(doc(firestore, 'users', u.id), { role: val, updatedAt: new Date().toISOString() }, { merge: true });
                                         toast({ title: 'Role Updated', description: `${u.email} is now ${val}.` });
                                     }}>
                                         <SelectTrigger className="w-28 h-8"><SelectValue /></SelectTrigger>
