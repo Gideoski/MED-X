@@ -14,7 +14,6 @@ import { useToast } from "@/hooks/use-toast";
 import { doc, getDoc } from "firebase/firestore";
 import { Star, RefreshCw, ShieldCheck } from "lucide-react";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
-import { addMonths } from "date-fns";
 import { cn } from "@/lib/utils";
 
 export default function AccountPage() {

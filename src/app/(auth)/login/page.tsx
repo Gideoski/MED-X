@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation";
 import { useAuth, useUser, useFirestore } from "@/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import { Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
@@ -47,11 +47,13 @@ export default function LoginPage() {
               const loggedInUser = userCredential.user;
               const userDocRef = doc(firestore, 'users', loggedInUser.uid);
               
-              // We use setDoc with merge: true to update the lastLoginAt without risking duplicates
-              // This is idempotent and strictly uses the UID as the document key.
+              // CRITICAL: Ensure all necessary fields exist on login
+              // This prevents "missing field" issues if signup was incomplete or provider-based.
               await setDoc(userDocRef, { 
                 id: loggedInUser.uid,
                 email: loggedInUser.email,
+                role: "student", // Default if not already set
+                isPremium: false, // Default if not already set
                 lastLoginAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
               }, { merge: true });
