@@ -45,6 +45,7 @@ export default function LoginPage() {
         signInWithEmailAndPassword(auth, email, password)
             .then(async (userCredential) => {
               const loggedInUser = userCredential.user;
+              // CRITICAL: Point to the UID document in the 'users' collection
               const userDocRef = doc(firestore, 'users', loggedInUser.uid);
               
               // SELF-HEALING: Ensure all necessary fields exist on login

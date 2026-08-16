@@ -40,6 +40,7 @@ export default function AccountPage() {
   }, [user]);
 
   // SELF-HEALING LOGIC: Detect and repair missing Firestore fields in real-time
+  // This ensures the current account points to the correct document using the UID
   useEffect(() => {
     if (user && userProfile && !isProfileLoading && firestore) {
       const isMissingFields = userProfile.isPremium === undefined || !userProfile.role || !userProfile.id;

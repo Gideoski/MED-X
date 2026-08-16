@@ -148,8 +148,10 @@ export default function AdminPage() {
     usersData.forEach(u => {
       if (!u || !u.email) return;
       const existing = map.get(u.email);
-      // We prioritize the document ID added by useCollection if the internal ID field is missing
-      if (!existing || (u.id && u.id.length >= 28)) map.set(u.email, u);
+      // DEDUPLICATION LOGIC: Prioritize the document that uses the Firebase UID (28 characters)
+      // This ensures we point to the correct account record after duplicates are deleted.
+      const isLikelyUid = u.id && u.id.length >= 28;
+      if (!existing || isLikelyUid) map.set(u.email, u);
     });
     return Array.from(map.values()).sort((a, b) => {
         const emailA = a.email || "";
@@ -431,6 +433,7 @@ export default function AdminPage() {
                                         <Switch checked={!!u.isPremium} onCheckedChange={(checked) => {
                                             if (!u.id || !firestore) return;
                                             // Using setDocumentNonBlocking with merge:true ensures fields are created if missing
+                                            // We use u.id directly to ensure the correct database document is updated
                                             setDocumentNonBlocking(doc(firestore, 'users', u.id), {
                                                 isPremium: checked, 
                                                 subscriptionExpiresAt: checked ? addMonths(new Date(), 1).toISOString() : null,
