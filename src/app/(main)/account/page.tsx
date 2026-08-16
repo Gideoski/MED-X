@@ -40,9 +40,10 @@ export default function AccountPage() {
   }, [user]);
 
   // SELF-HEALING LOGIC: Detect and repair missing Firestore fields
+  // This specifically fixes accounts like vZ5HFJ1bGrRG9ABK28V6FsCmfDF3
   useEffect(() => {
     if (user && userProfile && !isProfileLoading && firestore) {
-      const isMissingFields = userProfile.isPremium === undefined || !userProfile.role;
+      const isMissingFields = userProfile.isPremium === undefined || !userProfile.role || !userProfile.id;
       
       if (isMissingFields) {
         console.log("Detecting missing profile fields for:", user.uid, ". Repairing...");

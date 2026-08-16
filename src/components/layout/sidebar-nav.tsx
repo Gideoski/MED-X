@@ -42,6 +42,7 @@
    const { user } = useUser();
    const firestore = useFirestore();
 
+   // We use real-time listeners for the user's role to ensure immediate access
    const userDocRef = useMemoFirebase(() => {
      if (!firestore || !user) return null;
      return doc(firestore, 'users', user.uid);

@@ -47,7 +47,7 @@ export default function LoginPage() {
               const loggedInUser = userCredential.user;
               const userDocRef = doc(firestore, 'users', loggedInUser.uid);
               
-              // CRITICAL: Ensure all necessary fields exist on login
+              // SELF-HEALING: Ensure all necessary fields exist on login
               // This fixes accounts like vZ5HFJ1bGrRG9ABK28V6FsCmfDF3 that might have missing fields.
               await setDoc(userDocRef, { 
                 id: loggedInUser.uid,
@@ -56,7 +56,6 @@ export default function LoginPage() {
                 isPremium: false, // Default if not already set
                 lastLoginAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
-                // Keep existing fields if they exist
               }, { merge: true });
             })
             .catch((error) => {
