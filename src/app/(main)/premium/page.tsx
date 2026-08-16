@@ -6,7 +6,7 @@ import { Star, Check, ArrowLeft, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useUser, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc } from "firebase/firestore";
 import { useState } from "react";
 import { addMonths } from "date-fns";
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -52,6 +52,7 @@ export default function PremiumPage() {
       amount: 2500 * 100, // 2500 NGN in kobo
       currency: 'NGN',
       callback: (response: any) => {
+        // AUTOMATIC PREMIUM UPGRADE TRIGGERED BY PAYMENT SUCCESS
         handlePaymentSuccess(response.reference);
       },
       onClose: () => {
@@ -72,12 +73,16 @@ export default function PremiumPage() {
     const userDocRef = doc(firestore, 'users', user.uid);
     const expiryDate = addMonths(new Date(), 1);
 
-    // CRITICAL: We update the user profile to Premium status immediately after payment.
-    // We use the non-blocking helper to ensure the UI proceeds immediately while the background sync occurs.
+    /**
+     * CRITICAL: AUTOMATIC PREMIUM UPGRADE
+     * We update the user profile to Premium status immediately after payment.
+     * Non-blocking update ensures the write is queued and local state is updated optimistically.
+     */
     updateDocumentNonBlocking(userDocRef, {
       isPremium: true,
       subscriptionExpiresAt: expiryDate.toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      lastTransactionReference: reference // Traces the payment for verification
     });
 
     toast({

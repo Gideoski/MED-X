@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -12,14 +11,17 @@ import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { useState, useTransition, useEffect } from "react";
 import { updateProfile } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
-import { doc } from "firebase/firestore";
-import { Star } from "lucide-react";
+import { doc, getDoc } from "firebase/firestore";
+import { Star, RefreshCw, ShieldCheck } from "lucide-react";
+import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { addMonths } from "date-fns";
 
 export default function AccountPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
+  const [isVerifying, setIsVerifying] = useState(false);
 
   const [name, setName] = useState('');
 
@@ -58,6 +60,48 @@ export default function AccountPage() {
         });
       }
     });
+  };
+
+  /**
+   * Client-side verification system to trace and refresh payment status.
+   * This is useful if the automatic upgrade was interrupted.
+   */
+  const handleVerifyPaymentStatus = async () => {
+    if (!user || !firestore || !userDocRef) return;
+    
+    setIsVerifying(true);
+    toast({
+      title: "Syncing...",
+      description: "Checking payment records for your account.",
+    });
+
+    try {
+        // We re-fetch the document to see if it was updated by an external process or admin
+        const freshDoc = await getDoc(userDocRef);
+        if (freshDoc.exists()) {
+            const data = freshDoc.data();
+            if (data.isPremium) {
+                toast({
+                    title: "Sync Complete",
+                    description: "Your Premium status is active.",
+                });
+            } else {
+                toast({
+                    title: "No Recent Payment Found",
+                    description: "If you just paid, please wait a moment or contact support.",
+                    variant: "destructive"
+                });
+            }
+        }
+    } catch (e) {
+        toast({
+            title: "Verification Failed",
+            description: "Could not reach the server. Check your connection.",
+            variant: "destructive"
+        });
+    } finally {
+        setIsVerifying(false);
+    }
   };
 
   if (isUserLoading || isProfileLoading) {
@@ -113,25 +157,43 @@ export default function AccountPage() {
       <Card>
         <CardHeader>
           <CardTitle>Subscription</CardTitle>
-          <CardDescription>Manage your subscription plan.</CardDescription>
+          <CardDescription>Manage your subscription plan and verify recent payments.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-            <div className="flex items-center justify-between rounded-lg border p-4">
-                <div>
-                    <h3 className="font-semibold">Current Plan</h3>
-                    <p className="text-muted-foreground">
-                      You are currently on the <Badge variant={isPremium ? 'default' : 'secondary'}>{isPremium ? 'Premium' : 'Free'}</Badge> plan.
-                    </p>
+        <CardContent className="space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between rounded-xl border p-6 bg-muted/20 gap-4">
+                <div className="space-y-1">
+                    <h3 className="font-bold text-lg">Current Status</h3>
+                    <div className="flex items-center gap-2">
+                        <Badge variant={isPremium ? 'default' : 'secondary'} className="h-6">
+                            {isPremium ? 'Premium Active' : 'Free Account'}
+                        </Badge>
+                        {isPremium && <ShieldCheck className="h-5 w-5 text-primary" />}
+                    </div>
                 </div>
-                {!isPremium && (
-                  <Button asChild>
-                    <Link href="/premium">
-                      <Star className="mr-2 h-4 w-4" />
-                      Upgrade to Premium
-                    </Link>
-                  </Button>
-                )}
+                <div className="flex gap-2">
+                    {!isPremium ? (
+                      <Button asChild>
+                        <Link href="/premium">
+                          <Star className="mr-2 h-4 w-4 fill-primary-foreground" />
+                          Upgrade to Premium
+                        </Link>
+                      </Button>
+                    ) : (
+                      <Badge variant="outline" className="py-2 px-4 border-primary text-primary font-bold">
+                        Full Access Enabled
+                      </Badge>
+                    )}
+                    <Button variant="outline" size="sm" onClick={handleVerifyPaymentStatus} disabled={isVerifying}>
+                        <RefreshCw className={cn("h-4 w-4 mr-2", isVerifying && "animate-spin")} />
+                        Refresh Plan
+                    </Button>
+                </div>
             </div>
+            {!isPremium && (
+                <p className="text-xs text-muted-foreground">
+                    If you just completed a payment but your status hasn't changed, click <strong>Refresh Plan</strong> to sync with our payment records.
+                </p>
+            )}
         </CardContent>
       </Card>
 

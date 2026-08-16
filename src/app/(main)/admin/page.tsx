@@ -59,6 +59,7 @@ import { addMonths, isValid } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 
 type Material = Omit<EBook, 'id'> & { categoryId?: string, type: string, downloads?: number, coverImage: string, isFeatured?: boolean };
 type MaterialWithCollection = Material & { id: string; collection: string };
@@ -141,6 +142,10 @@ export default function AdminPage() {
   const creatorProfilesRef = useMemoFirebase(() => (firestore ? collection(firestore, 'creator_profiles') : null), [firestore]);
   const { data: creatorProfiles } = useCollection<CreatorProfile>(creatorProfilesRef);
 
+  /**
+   * Safe mapping for user records. 
+   * Prevents crashes if email or ID is missing for an account.
+   */
   const uniqueUsers = useMemo(() => {
     if (!usersData) return [];
     const map = new Map<string, UserData>();
@@ -149,7 +154,11 @@ export default function AdminPage() {
       const existing = map.get(u.email);
       if (!existing || (u.id && u.id.length >= 28)) map.set(u.email, u);
     });
-    return Array.from(map.values()).sort((a, b) => (a.email || "").localeCompare(b.email || ""));
+    return Array.from(map.values()).sort((a, b) => {
+        const emailA = a.email || "";
+        const emailB = b.email || "";
+        return emailA.localeCompare(emailB);
+    });
   }, [usersData]);
 
   const categoriesQuery = useMemoFirebase(() => (firestore ? query(collection(firestore, 'course_categories'), orderBy('order', 'asc')) : null), [firestore]);
@@ -184,9 +193,14 @@ export default function AdminPage() {
         });
       }
     });
-    setAllMaterials(combined.sort((a, b) => (a.title || "").localeCompare(b.title || "")));
+    setAllMaterials(combined.sort((a, b) => {
+        const titleA = a.title || "";
+        const titleB = b.title || "";
+        return titleA.localeCompare(titleB);
+    }));
   }, [h1.data, h2.data, h3.data, h4.data]);
 
+  // Restored Statistics Calculations
   const premiumUsersCount = useMemo(() => uniqueUsers.filter(u => u.isPremium).length, [uniqueUsers]);
   const totalDownloadsCount = useMemo(() => allMaterials.reduce((acc, m) => acc + (m.downloads || 0), 0), [allMaterials]);
   const totalMaterialsCount = allMaterials.length;
@@ -268,6 +282,7 @@ export default function AdminPage() {
           </div>
         </div>
 
+        {/* RESTORED 4-CARD STATISTICS DASHBOARD */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card className="bg-primary/5 border-primary/10 shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -412,7 +427,7 @@ export default function AdminPage() {
                         <TableRow>
                             <TableHead>Email</TableHead>
                             <TableHead>Premium Plan</TableHead>
-                            <TableHead className="flex items-center gap-2"><UserCheck className="h-4 w-4" /> Verified Creator</TableHead>
+                            <TableHead className="flex items-center gap-2"><UserCheck className="h-4 w-4" /> Creator</TableHead>
                             <TableHead>System Role</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -443,7 +458,7 @@ export default function AdminPage() {
                                             }, { merge: true });
                                             toast({ 
                                                 title: checked ? 'Creator Verified' : 'Verification Removed', 
-                                                description: `${u.email}'s status updated.` 
+                                                description: `${u.email}'s creator status updated.` 
                                             });
                                         }} 
                                     />
@@ -468,6 +483,7 @@ export default function AdminPage() {
             </CardContent>
         </Card>
 
+        {/* DIALOGS */}
         <Dialog open={!!materialToEdit} onOpenChange={(o) => !o && setMaterialToEdit(null)}>
             <DialogContent className="max-w-md">
                 <DialogHeader><DialogTitle>Edit Content</DialogTitle></DialogHeader>
