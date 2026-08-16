@@ -152,6 +152,7 @@ export default function AdminPage() {
     usersData.forEach(u => {
       if (!u || !u.email) return;
       const existing = map.get(u.email);
+      // Ensure we keep the record with a valid UID if duplicates exist
       if (!existing || (u.id && u.id.length >= 28)) map.set(u.email, u);
     });
     return Array.from(map.values()).sort((a, b) => {
@@ -200,7 +201,6 @@ export default function AdminPage() {
     }));
   }, [h1.data, h2.data, h3.data, h4.data]);
 
-  // Restored Statistics Calculations
   const premiumUsersCount = useMemo(() => uniqueUsers.filter(u => u.isPremium).length, [uniqueUsers]);
   const totalDownloadsCount = useMemo(() => allMaterials.reduce((acc, m) => acc + (m.downloads || 0), 0), [allMaterials]);
   const totalMaterialsCount = allMaterials.length;
@@ -282,7 +282,6 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* RESTORED 4-CARD STATISTICS DASHBOARD */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card className="bg-primary/5 border-primary/10 shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
