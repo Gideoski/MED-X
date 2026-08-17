@@ -39,21 +39,22 @@ export default function AccountPage() {
     }
   }, [user]);
 
-  // SELF-HEALING LOGIC: Detect and repair missing Firestore fields in real-time
-  // This ensures account vZ5HFJ1bGrRG9ABK28V6FsCmfDF3 gets fixed automatically.
+  // SELF-HEALING: Specifically repairs accounts like vZ5HFJ1bGrRG9ABK28V6FsCmfDF3
+  // It ONLY triggers if fields are strictly undefined, ensuring no overrides of manual roles.
   useEffect(() => {
     if (user && userProfile && !isProfileLoading && firestore) {
-      // ONLY repair if the fields are strictly missing (undefined).
-      // If isPremium is false, it is NOT missing.
-      const isMissingFields = userProfile.isPremium === undefined || !userProfile.role || !userProfile.id;
+      const isMissingFields = 
+        userProfile.isPremium === undefined || 
+        userProfile.role === undefined || 
+        userProfile.id === undefined;
       
       if (isMissingFields) {
-        console.log("Detecting missing profile fields for:", user.uid, ". Repairing...");
+        console.log("Healing profile for UID:", user.uid);
         const ref = doc(firestore, 'users', user.uid);
         updateDocumentNonBlocking(ref, {
           id: user.uid,
           email: user.email,
-          role: userProfile.role || "student",
+          role: userProfile.role ?? "student",
           isPremium: userProfile.isPremium ?? false,
           updatedAt: new Date().toISOString(),
           createdAt: userProfile.createdAt || new Date().toISOString()

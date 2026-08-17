@@ -45,15 +45,11 @@ export default function LoginPage() {
         signInWithEmailAndPassword(auth, email, password)
             .then(async (userCredential) => {
               const loggedInUser = userCredential.user;
-              // CRITICAL: Point to the UID document in the 'users' collection
               const userDocRef = doc(firestore, 'users', loggedInUser.uid);
               
-              // PRESERVATION LOGIC: We ONLY update tracking fields. 
-              // We do NOT set defaults for role/isPremium here because that would 
-              // overwrite the Admin's manual toggles every time the user logs in.
+              // PRESERVATION: Only update tracking fields. 
+              // Do NOT include role or isPremium here to avoid overwriting manual toggles.
               await setDoc(userDocRef, { 
-                id: loggedInUser.uid,
-                email: loggedInUser.email,
                 lastLoginAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
               }, { merge: true });
