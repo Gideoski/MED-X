@@ -48,13 +48,12 @@ export default function LoginPage() {
               // CRITICAL: Point to the UID document in the 'users' collection
               const userDocRef = doc(firestore, 'users', loggedInUser.uid);
               
-              // SELF-HEALING: Ensure all necessary fields exist on login
-              // This fixes accounts like vZ5HFJ1bGrRG9ABK28V6FsCmfDF3 that might have missing fields.
+              // PRESERVATION LOGIC: We ONLY update tracking fields. 
+              // We do NOT set defaults for role/isPremium here because that would 
+              // overwrite the Admin's manual toggles every time the user logs in.
               await setDoc(userDocRef, { 
                 id: loggedInUser.uid,
                 email: loggedInUser.email,
-                role: "student", // Default if not already set
-                isPremium: false, // Default if not already set
                 lastLoginAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
               }, { merge: true });
