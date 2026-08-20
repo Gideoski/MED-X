@@ -9,7 +9,7 @@ import { collection, doc, query, orderBy } from 'firebase/firestore';
 import type { EBook } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { cn } from '@/lib/utils';
+import { isAfter } from 'date-fns';
 
 type EBookData = Omit<EBook, 'id'>;
 
@@ -21,8 +21,13 @@ export default function Level200Page() {
   const { user, isUserLoading } = useUser();
 
   const userDocRef = useMemoFirebase(() => (firestore && user ? doc(firestore, 'users', user.uid) : null), [firestore, user]);
-  const { data: userProfile } = useDoc<{ isPremium: boolean }>(userDocRef);
-  const isUserPremium = userProfile?.isPremium ?? false;
+  const { data: userProfile } = useDoc<{ isPremium: boolean; subscriptionExpiresAt?: string }>(userDocRef);
+  
+  // Expiry-aware Premium status
+  const isUserPremium = userProfile?.isPremium && (
+    !userProfile.subscriptionExpiresAt || 
+    isAfter(new Date(userProfile.subscriptionExpiresAt), new Date())
+  );
 
   const catQuery = useMemoFirebase(() => (firestore ? query(collection(firestore, 'course_categories'), orderBy('order', 'asc')) : null), [firestore]);
   const { data: categories } = useCollection<{ id: string; name: string; level: number }>(catQuery);

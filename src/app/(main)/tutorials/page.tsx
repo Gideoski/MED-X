@@ -7,17 +7,37 @@ import { Video, Star, Lock, Info, ExternalLink, Calendar } from "lucide-react";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import Link from "next/link";
 import { doc } from "firebase/firestore";
+import { useEffect } from "react";
+import { isAfter } from "date-fns";
+import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 export default function TutorialsPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
 
   const userDocRef = useMemoFirebase(() => (firestore && user ? doc(firestore, 'users', user.uid) : null), [firestore, user]);
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<{ isPremium: boolean }>(userDocRef);
-  const isPremium = userProfile?.isPremium ?? false;
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<{ isPremium: boolean; subscriptionExpiresAt?: string }>(userDocRef);
+  
+  // Smart Premium Logic
+  const isPremium = userProfile?.isPremium && (
+    !userProfile.subscriptionExpiresAt || 
+    isAfter(new Date(userProfile.subscriptionExpiresAt), new Date())
+  );
 
   const configRef = useMemoFirebase(() => (firestore ? doc(firestore, 'config', 'global') : null), [firestore]);
   const { data: appConfig } = useDoc<{ tutorialLink?: string; tutorialStatus?: string }>(configRef);
+
+  // Auto-downgrade check
+  useEffect(() => {
+    if (userProfile?.isPremium && userProfile.subscriptionExpiresAt && firestore && user) {
+      if (isAfter(new Date(), new Date(userProfile.subscriptionExpiresAt))) {
+        updateDocumentNonBlocking(doc(firestore, 'users', user.uid), {
+          isPremium: false,
+          updatedAt: new Date().toISOString()
+        });
+      }
+    }
+  }, [userProfile, firestore, user]);
 
   if (isUserLoading || isProfileLoading) {
     return <div className="flex h-[60vh] items-center justify-center text-muted-foreground animate-pulse">Checking your access...</div>;

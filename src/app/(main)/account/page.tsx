@@ -15,6 +15,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { Star, RefreshCw, ShieldCheck } from "lucide-react";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { cn } from "@/lib/utils";
+import { isAfter } from "date-fns";
 
 export default function AccountPage() {
   const { user, isUserLoading } = useUser();
@@ -30,14 +31,34 @@ export default function AccountPage() {
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
 
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc<{ isPremium: boolean; role?: string; createdAt?: string; id?: string }>(userDocRef);
-  const isPremium = userProfile?.isPremium ?? false;
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<{ isPremium: boolean; role?: string; createdAt?: string; id?: string; subscriptionExpiresAt?: string }>(userDocRef);
+  
+  // Smart Premium Logic: Check both the flag and the expiry date
+  const isPremium = userProfile?.isPremium && (
+    !userProfile.subscriptionExpiresAt || 
+    isAfter(new Date(userProfile.subscriptionExpiresAt), new Date())
+  );
 
   useEffect(() => {
     if (user) {
       setName(user.displayName || '');
     }
   }, [user]);
+
+  // EXPIRY ENFORCEMENT: Automatically turn off premium if expired
+  useEffect(() => {
+    if (userProfile?.isPremium && userProfile.subscriptionExpiresAt && firestore && user) {
+      const expiryDate = new Date(userProfile.subscriptionExpiresAt);
+      if (isAfter(new Date(), expiryDate)) {
+        console.log("Subscription expired. Downgrading...");
+        const ref = doc(firestore, 'users', user.uid);
+        updateDocumentNonBlocking(ref, {
+          isPremium: false,
+          updatedAt: new Date().toISOString()
+        });
+      }
+    }
+  }, [userProfile, firestore, user]);
 
   // SELF-HEALING: Only populates strictly missing fields to avoid resetting roles.
   useEffect(() => {
