@@ -56,7 +56,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/Dialog";
+} from "@/components/ui/dialog";
 
 type MaterialWithCollection = EBook & { id: string; collection: string };
 type UserData = { id: string, email: string, isPremium: boolean, role: string, subscriptionExpiresAt?: string | null, lastLoginAt?: string };
