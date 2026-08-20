@@ -35,7 +35,8 @@ import {
   Send,
   Trash2,
   Edit2,
-  XCircle
+  XCircle,
+  AlertCircle
 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, doc, setDoc, query, orderBy, deleteField } from 'firebase/firestore';
@@ -60,6 +61,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 type MaterialWithCollection = EBook & { id: string; collection: string };
 type UserData = { id: string, email: string, isPremium: boolean, role: string, subscriptionExpiresAt?: string | null, lastLoginAt?: string };
@@ -106,7 +108,7 @@ export default function AdminPage() {
   const dauCount = useMemo(() => {
     if (!usersData || !mounted) return 0;
     const oneDayAgo = subHours(new Date(), 24);
-    return usersData.filter(u => u.lastLoginAt && isAfter(new Date(u.lastLoginAt), oneDayAgo)).length;
+    return usersData.filter(u => u.lastLoginAt && u.lastLoginAt !== "" && isAfter(new Date(u.lastLoginAt), oneDayAgo)).length;
   }, [usersData, mounted]);
 
   const q1 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_100lvl_free') : null), [firestore]);
@@ -182,12 +184,26 @@ export default function AdminPage() {
       if (selectedUserEmail === 'ALL_USERS') {
         const emails = usersData?.map(u => u.email).filter(Boolean) as string[] || [];
         success = await sendBulkEmailNotification(emails, subject, message);
-        if (success) toast({ title: "Broadcast Sent", description: `Message successfully sent to ${emails.length} students.` });
-        else toast({ title: "Delivery Error", description: "Failed to broadcast message.", variant: "destructive" });
+        if (success) {
+          toast({ title: "Broadcast Sent", description: `Message successfully sent to ${emails.length} students.` });
+        } else {
+          toast({ 
+            title: "Delivery Error", 
+            description: "Failed to broadcast message. Ensure your API key is correct and students are verified recipients.", 
+            variant: "destructive" 
+          });
+        }
       } else {
         success = await sendEmailNotification(selectedUserEmail, subject, message);
-        if (success) toast({ title: "Email Sent", description: `Message successfully sent to ${selectedUserEmail}.` });
-        else toast({ title: "Delivery Error", description: "Failed to send email.", variant: "destructive" });
+        if (success) {
+          toast({ title: "Email Sent", description: `Message successfully sent to ${selectedUserEmail}.` });
+        } else {
+          toast({ 
+            title: "Delivery Error", 
+            description: "Failed to send email. If using a trial account, you can only send to your own registered email.", 
+            variant: "destructive" 
+          });
+        }
       }
       setSelectedUserEmail(null);
     });
@@ -510,6 +526,13 @@ export default function AdminPage() {
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSendEmail} className="space-y-4">
+              <Alert variant="secondary" className="bg-muted/50 border-none py-2">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle className="text-xs font-bold">Important Note</AlertTitle>
+                <AlertDescription className="text-[10px] leading-tight">
+                  If using a Resend trial account, you can only send emails to your own registered address. Broadcasts to others will fail.
+                </AlertDescription>
+              </Alert>
               <div className="space-y-2"><Label>Subject</Label><Input name="subject" required placeholder="Important Update" /></div>
               <div className="space-y-2"><Label>Message</Label><Textarea name="message" required rows={4} placeholder="Type your message here..." /></div>
               <DialogFooter>
