@@ -5,7 +5,8 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  CardDescription
+  CardDescription,
+  CardFooter
 } from '@/components/ui/card';
 import {
   Table,
@@ -35,7 +36,7 @@ import {
   Send,
   AlertCircle,
   Trash2,
-  Clock
+  Edit2
 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, doc, setDoc, query, orderBy } from 'firebase/firestore';
@@ -60,6 +61,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 type MaterialWithCollection = EBook & { id: string; collection: string };
 type UserData = { id: string, email: string, isPremium: boolean, role: string, subscriptionExpiresAt?: string | null, lastLoginAt?: string };
@@ -77,6 +79,7 @@ export default function AdminPage() {
   const [mounted, setMounted] = useState(false);
   const [selectedUserEmail, setSelectedUserEmail] = useState<string | null>(null);
   const [userSearchQuery, setUserSearchQuery] = useState("");
+  const [editingMaterial, setEditingMaterial] = useState<MaterialWithCollection | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -174,24 +177,64 @@ export default function AdminPage() {
     });
   };
 
+  const handleEditMaterial = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingMaterial || !firestore) return;
+
+    const formData = new FormData(e.currentTarget);
+    const title = formData.get('title') as string;
+    const description = formData.get('description') as string;
+    const isPremium = formData.get('access') === 'premium';
+    const level = parseInt(formData.get('level') as string);
+
+    startTransition(async () => {
+      const oldCollection = editingMaterial.collection;
+      const newCollection = `materials_${level}lvl_${isPremium ? 'premium' : 'free'}`;
+      
+      const updateData = {
+        title,
+        description,
+        isPremium,
+        level,
+        lastUpdateDate: new Date().toISOString()
+      };
+
+      if (oldCollection === newCollection) {
+        // Just update the existing doc
+        updateDocumentNonBlocking(doc(firestore, oldCollection, editingMaterial.id), updateData);
+      } else {
+        // Move to a different collection: Delete old, create new with same ID if possible or new ID
+        // For simplicity in this logic, we delete and set into new path with same data
+        const fullData = { ...editingMaterial, ...updateData };
+        delete (fullData as any).collection; // Clean up
+        
+        await setDoc(doc(firestore, newCollection, editingMaterial.id), fullData);
+        deleteDocumentNonBlocking(doc(firestore, oldCollection, editingMaterial.id));
+      }
+
+      setEditingMaterial(null);
+      toast({ title: "Material Updated", description: "Changes saved to the study hub." });
+    });
+  };
+
   if (isProfileLoading) return <div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   if (userProfile?.role !== 'admin') return <div className="flex flex-col items-center justify-center h-[60vh]"><ShieldX className="h-16 w-16 text-destructive mb-4" /><h1 className="text-3xl font-bold">Access Denied</h1></div>;
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-12">
-        <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <ShieldAlert className="h-10 w-10 text-primary" />
             <div>
                 <h1 className="text-3xl font-bold tracking-tight">Admin Console</h1>
-                <p className="text-muted-foreground">Manage users, tutorial links, and notifications.</p>
+                <p className="text-muted-foreground">Manage users, tutorials, and content resources.</p>
             </div>
           </div>
           <Alert variant="destructive" className="max-w-md bg-destructive/5 border-destructive/20 py-2">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle className="text-xs font-bold uppercase tracking-tight">System Notice</AlertTitle>
             <AlertDescription className="text-xs">
-              Email delivery is in <strong>Simulation Mode</strong>. Connect an API provider to go live.
+              Email delivery is in <strong>Simulation Mode</strong>. Messages are logged but not sent to real inboxes.
             </AlertDescription>
           </Alert>
         </header>
@@ -233,8 +276,9 @@ export default function AdminPage() {
           <TabsContent value="overview" className="space-y-6">
              <Card>
                <CardHeader><CardTitle>Platform Performance</CardTitle></CardHeader>
-               <CardContent className="h-[200px] flex items-center justify-center text-muted-foreground italic border-t">
-                 Activity charts will appear as more student data is logged over time.
+               <CardContent className="h-[200px] flex flex-col items-center justify-center text-muted-foreground text-center px-6 border-t bg-muted/5">
+                 <Activity className="h-12 w-12 mb-4 opacity-20" />
+                 <p className="italic">Usage analytics and engagement trends will populate as more student data is logged over time.</p>
                </CardContent>
              </Card>
           </TabsContent>
@@ -242,85 +286,80 @@ export default function AdminPage() {
           <TabsContent value="users">
             <Card>
               <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <CardTitle>User Management</CardTitle>
-                  <Button variant="outline" size="sm" onClick={() => setSelectedUserEmail('ALL_USERS')}>
+                <div className="flex items-center gap-4 w-full sm:w-auto">
+                  <CardTitle className="shrink-0">User Accounts</CardTitle>
+                  <Button variant="outline" size="sm" onClick={() => setSelectedUserEmail('ALL_USERS')} className="ml-auto sm:ml-0">
                     <Send className="mr-2 h-4 w-4" /> Broadcast
                   </Button>
                 </div>
-                <div className="flex items-center gap-2 w-full sm:w-auto">
-                  <div className="relative w-full sm:w-64">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      placeholder="Search email..." 
-                      className="pl-9"
-                      value={userSearchQuery}
-                      onChange={(e) => setUserSearchQuery(e.target.value)}
-                    />
-                  </div>
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    placeholder="Search by email..." 
+                    className="pl-9"
+                    value={userSearchQuery}
+                    onChange={(e) => setUserSearchQuery(e.target.value)}
+                  />
                 </div>
               </CardHeader>
               <CardContent>
                 {isUsersLoading ? <div className="space-y-2"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></div> : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Premium</TableHead>
-                        <TableHead>Expires In</TableHead>
-                        <TableHead>Role</TableHead>
-                        <TableHead className="text-right">Notify</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredUsers.map(u => {
-                        const daysLeft = u.isPremium && u.subscriptionExpiresAt 
-                          ? differenceInDays(parseISO(u.subscriptionExpiresAt), new Date()) 
-                          : null;
-                        const isExpired = u.isPremium && u.subscriptionExpiresAt && isAfter(new Date(), parseISO(u.subscriptionExpiresAt));
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Premium</TableHead>
+                          <TableHead>Expiry</TableHead>
+                          <TableHead>Role</TableHead>
+                          <TableHead className="text-right">Action</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredUsers.map(u => {
+                          const daysLeft = u.isPremium && u.subscriptionExpiresAt 
+                            ? differenceInDays(parseISO(u.subscriptionExpiresAt), new Date()) 
+                            : null;
+                          const isExpired = u.isPremium && u.subscriptionExpiresAt && isAfter(new Date(), parseISO(u.subscriptionExpiresAt));
 
-                        return (
-                          <TableRow key={u.id}>
-                            <TableCell className="font-medium">{u.email}</TableCell>
-                            <TableCell>
-                              <Switch checked={!!u.isPremium} onCheckedChange={(checked) => {
-                                updateDocumentNonBlocking(doc(firestore!, 'users', u.id), {
-                                  isPremium: checked,
-                                  subscriptionExpiresAt: checked ? addMonths(new Date(), 1).toISOString() : null
-                                });
-                              }} />
-                            </TableCell>
-                            <TableCell>
-                              {mounted && u.isPremium && u.subscriptionExpiresAt ? (
-                                <div className="flex items-center gap-2">
-                                  <Badge variant={isExpired ? "destructive" : "outline"} className="font-mono">
-                                    {isExpired ? 'Expired' : `${daysLeft}d`}
+                          return (
+                            <TableRow key={u.id}>
+                              <TableCell className="font-medium max-w-[150px] truncate">{u.email}</TableCell>
+                              <TableCell>
+                                <Switch checked={!!u.isPremium} onCheckedChange={(checked) => {
+                                  updateDocumentNonBlocking(doc(firestore!, 'users', u.id), {
+                                    isPremium: checked,
+                                    subscriptionExpiresAt: checked ? addMonths(new Date(), 1).toISOString() : null
+                                  });
+                                }} />
+                              </TableCell>
+                              <TableCell>
+                                {mounted && u.isPremium && u.subscriptionExpiresAt ? (
+                                  <Badge variant={isExpired ? "destructive" : "outline"} className="whitespace-nowrap">
+                                    {isExpired ? 'Expired' : `${daysLeft}d left`}
                                   </Badge>
-                                  <span className="text-[10px] text-muted-foreground hidden lg:inline">
-                                    {new Date(u.subscriptionExpiresAt).toLocaleDateString()}
-                                  </span>
-                                </div>
-                              ) : (
-                                <span className="text-muted-foreground text-xs">{u.isPremium ? '...' : '-'}</span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <Select value={u.role || 'student'} onValueChange={(val) => updateDocumentNonBlocking(doc(firestore!, 'users', u.id), { role: val })}>
-                                <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="student">Student</SelectItem>
-                                  <SelectItem value="admin">Admin</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Button variant="ghost" size="icon" onClick={() => setSelectedUserEmail(u.email)}><Mail className="h-4 w-4" /></Button>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                                ) : (
+                                  <span className="text-muted-foreground text-xs">Free</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Select value={u.role || 'student'} onValueChange={(val) => updateDocumentNonBlocking(doc(firestore!, 'users', u.id), { role: val })}>
+                                  <SelectTrigger className="w-24 h-8"><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="student">Student</SelectItem>
+                                    <SelectItem value="admin">Admin</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedUserEmail(u.email)}><Mail className="h-4 w-4" /></Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -328,30 +367,40 @@ export default function AdminPage() {
 
           <TabsContent value="content">
             <Card>
-              <CardHeader><CardTitle>Material Stats</CardTitle></CardHeader>
+              <CardHeader><CardTitle>Material Library</CardTitle></CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Title</TableHead>
-                      <TableHead>Hits</TableHead>
-                      <TableHead>Access</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {allMaterials.map(m => (
-                      <TableRow key={m.id}>
-                        <TableCell className="font-medium">{m.title}</TableCell>
-                        <TableCell><Badge variant="secondary">{m.downloads || 0}</Badge></TableCell>
-                        <TableCell>
-                          <Badge variant={m.isPremium ? 'destructive' : 'default'}>
-                            {m.isPremium ? 'Premium' : 'Free'}
-                          </Badge>
-                        </TableCell>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Level</TableHead>
+                        <TableHead>Hits</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead className="text-right">Edit</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {allMaterials.map(m => (
+                        <TableRow key={m.id}>
+                          <TableCell className="font-medium truncate max-w-[200px]">{m.title}</TableCell>
+                          <TableCell><Badge variant="outline">{m.level}L</Badge></TableCell>
+                          <TableCell><Badge variant="secondary">{m.downloads || 0}</Badge></TableCell>
+                          <TableCell>
+                            <Badge variant={m.isPremium ? 'destructive' : 'default'} className="text-[10px] uppercase">
+                              {m.isPremium ? 'Premium' : 'Free'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingMaterial(m)}>
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -366,23 +415,23 @@ export default function AdminPage() {
                 <CardContent>
                   <form onSubmit={handleUpdateTutorial} className="space-y-4">
                     <div className="space-y-2">
-                      <Label>Link</Label>
+                      <Label>Meeting URL</Label>
                       <Input name="link" defaultValue={appConfig?.tutorialLink} placeholder="https://meet.google.com/..." />
                     </div>
-                    <Button type="submit" className="w-full">Save Link</Button>
+                    <Button type="submit" className="w-full">Update Link</Button>
                   </form>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><MessageSquareQuote className="h-5 w-5" /> Add Review</CardTitle>
-                  <CardDescription>Post student feedback to the Home page.</CardDescription>
+                  <CardTitle className="flex items-center gap-2"><MessageSquareQuote className="h-5 w-5" /> Add Student Review</CardTitle>
+                  <CardDescription>Post feedback to the home page testimonials.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleAddTestimonial} className="space-y-4">
-                    <div className="space-y-2"><Label>Name</Label><Input name="name" required /></div>
-                    <div className="space-y-2"><Label>Text</Label><Textarea name="text" required rows={2} /></div>
+                    <div className="space-y-2"><Label>Student Name</Label><Input name="name" required /></div>
+                    <div className="space-y-2"><Label>Testimonial Text</Label><Textarea name="text" required rows={2} /></div>
                     <Button type="submit" className="w-full">Post Review</Button>
                   </form>
                 </CardContent>
@@ -391,15 +440,15 @@ export default function AdminPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Manage Reviews</CardTitle>
-                <CardDescription>Delete or hide active student testimonials.</CardDescription>
+                <CardTitle>Existing Reviews</CardTitle>
+                <CardDescription>Manage active student testimonials.</CardDescription>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-[300px] w-full border rounded-md p-4">
+                <ScrollArea className="h-[300px] w-full border rounded-md p-4 bg-muted/5">
                   {testimonials && testimonials.length > 0 ? (
                     <div className="space-y-4">
                       {testimonials.map((t) => (
-                        <div key={t.id} className="flex items-start justify-between border-b pb-4 last:border-0 last:pb-0">
+                        <div key={t.id} className="flex items-start justify-between border-b border-border/40 pb-4 last:border-0 last:pb-0">
                           <div className="space-y-1">
                             <p className="font-bold">{t.name}</p>
                             <p className="text-sm text-muted-foreground italic leading-relaxed">"{t.text}"</p>
@@ -408,7 +457,7 @@ export default function AdminPage() {
                             variant="destructive" 
                             size="icon" 
                             onClick={() => handleDeleteTestimonial(t.id)}
-                            className="shrink-0 ml-4"
+                            className="shrink-0 ml-4 h-8 w-8"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -416,7 +465,7 @@ export default function AdminPage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-10 text-muted-foreground italic">No testimonials found.</div>
+                    <div className="text-center py-20 text-muted-foreground italic">No testimonials published.</div>
                   )}
                 </ScrollArea>
               </CardContent>
@@ -424,26 +473,74 @@ export default function AdminPage() {
           </TabsContent>
         </Tabs>
 
+        {/* Email Simulation Dialog */}
         <Dialog open={!!selectedUserEmail} onOpenChange={(o) => !o && setSelectedUserEmail(null)}>
           <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                {selectedUserEmail === 'ALL_USERS' ? 'Broadcast Simulation' : 'Email Simulation'}
-                <Badge variant="outline" className="text-[10px] py-0">Mock</Badge>
+                {selectedUserEmail === 'ALL_USERS' ? 'Broadcast Simulation' : 'Direct Message Simulation'}
+                <Badge variant="outline" className="text-[10px] py-0 bg-primary/5">MOCK</Badge>
               </DialogTitle>
-              <DialogHeader>
-                <DialogDescription>
-                  {selectedUserEmail === 'ALL_USERS' 
-                    ? `Simulation message will be logged for all ${usersData?.length || 0} users.` 
-                    : `Simulation message will be logged for ${selectedUserEmail}.`}
-                </DialogDescription>
-              </DialogHeader>
+              <DialogDescription>
+                {selectedUserEmail === 'ALL_USERS' 
+                  ? `This message will be recorded in simulation logs for all ${usersData?.length || 0} students.` 
+                  : `This message will be recorded in simulation logs for ${selectedUserEmail}.`}
+              </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSendEmail} className="space-y-4">
-              <div className="space-y-2"><Label>Subject</Label><Input name="subject" required /></div>
-              <div className="space-y-2"><Label>Message</Label><Textarea name="message" required rows={4} /></div>
+              <div className="space-y-2"><Label>Subject</Label><Input name="subject" required placeholder="Important Update" /></div>
+              <div className="space-y-2"><Label>Message</Label><Textarea name="message" required rows={4} placeholder="Type your message here..." /></div>
               <DialogFooter>
-                <Button type="submit" disabled={isPending}>{isPending ? 'Simulating...' : 'Log Message'}</Button>
+                <Button type="submit" disabled={isPending} className="w-full sm:w-auto">{isPending ? 'Simulating...' : 'Log Message'}</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Material Dialog */}
+        <Dialog open={!!editingMaterial} onOpenChange={(o) => !o && setEditingMaterial(null)}>
+          <DialogContent className="max-w-[95vw] sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Edit Content Resource</DialogTitle>
+              <DialogDescription>Update details for "{editingMaterial?.title}".</DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleEditMaterial} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Title</Label>
+                <Input name="title" defaultValue={editingMaterial?.title} required />
+              </div>
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Textarea name="description" defaultValue={editingMaterial?.description} rows={3} required />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Level</Label>
+                  <Select name="level" defaultValue={editingMaterial?.level.toString()}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="100">100 Level</SelectItem>
+                      <SelectItem value="200">200 Level</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Access Type</Label>
+                  <RadioGroup name="access" defaultValue={editingMaterial?.isPremium ? 'premium' : 'free'} className="flex h-10 items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="free" id="edit-free" />
+                      <Label htmlFor="edit-free">Free</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="premium" id="edit-premium" />
+                      <Label htmlFor="edit-premium">Premium</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              </div>
+              <DialogFooter className="pt-4">
+                <Button type="button" variant="outline" onClick={() => setEditingMaterial(null)}>Cancel</Button>
+                <Button type="submit" disabled={isPending}>{isPending ? 'Saving...' : 'Save Changes'}</Button>
               </DialogFooter>
             </form>
           </DialogContent>

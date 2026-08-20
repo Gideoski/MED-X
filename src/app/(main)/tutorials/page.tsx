@@ -68,7 +68,7 @@ export default function TutorialsPage() {
           <div className="absolute top-0 right-0 p-4"><Badge variant="default" className="bg-green-600">Premium Access</Badge></div>
           <CardHeader className="pb-4">
             <CardTitle className="text-2xl flex items-center gap-3"><Video className="h-7 w-7 text-primary" /> Active Session</CardTitle>
-            <CardDescription>Join the current or upcoming tutorial session.</CardDescription>
+            <CardDescription>Join our current or upcoming tutorial session.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6 py-6 border-y bg-muted/20">
             {appConfig?.tutorialLink ? (
@@ -103,9 +103,9 @@ export default function TutorialsPage() {
           <Card className="shadow-sm">
             <CardHeader><CardTitle className="text-lg">Tips for Success</CardTitle></CardHeader>
             <CardContent className="space-y-4 text-sm">
-              <div className="flex gap-3"><div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold">1</div><p>Mute the microphone when joining.</p></div>
-              <div className="flex gap-3"><div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold">2</div><p>Keep the e-books open in another tab.</p></div>
-              <div className="flex gap-3"><div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold">3</div><p>Use the chat for questions.</p></div>
+              <div className="flex gap-3"><div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold">1</div><p>Mute your microphone when joining.</p></div>
+              <div className="flex gap-3"><div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold">2</div><p>Keep your e-books open in another tab.</p></div>
+              <div className="flex gap-3"><div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold">3</div><p>Use the chat for specific questions.</p></div>
             </CardContent>
           </Card>
           
