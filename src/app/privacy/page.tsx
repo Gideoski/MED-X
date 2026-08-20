@@ -34,7 +34,7 @@ export default function PrivacyPolicyPage() {
           <section className="space-y-3">
             <h2 className="text-2xl font-bold text-primary">1. Introduction</h2>
             <p>
-              Med-X ("we", "our", or "us") is committed to protecting the privacy and security of your personal data. This Privacy Policy describes how we collect, use, and protect the information you provide when using our e-learning platform. We operate in compliance with the Nigeria Data Protection Regulation (NDPR) and other applicable global data protection standards.
+              Med-X is committed to protecting the privacy and security of personal data. This Privacy Policy describes how information is collected, used, and protected when provided through the e-learning platform. Platform operation complies with the Nigeria Data Protection Regulation (NDPR) and other applicable global data protection standards.
             </p>
           </section>
 
@@ -43,15 +43,15 @@ export default function PrivacyPolicyPage() {
             <div className="space-y-4">
               <div>
                 <h3 className="font-bold text-lg">Personal Data</h3>
-                <p>We collect identifiable information such as your name, email address, and academic level during the registration process to personalize your learning experience and provide account-related communications.</p>
+                <p>Identifiable information such as name, email address, and academic level is collected during the registration process to personalize the learning experience and provide account-related communications.</p>
               </div>
               <div>
                 <h3 className="font-bold text-lg">Payment and Transactional Data</h3>
-                <p>Financial transactions are handled securely by <strong>Paystack</strong>. We do not store or process sensitive credit card information on our servers. We only receive and store transaction reference codes to verify and activate Premium subscriptions.</p>
+                <p>Financial transactions are handled securely by <strong>Paystack</strong>. Med-X does not store or process sensitive credit card information. Only transaction reference codes are received and stored to verify and activate Premium subscriptions.</p>
               </div>
               <div>
                 <h3 className="font-bold text-lg">Platform Engagement Data</h3>
-                <p>To improve our services, we track platform interactions including login frequency, material download history, and participation in live tutorials. This data is used solely for internal academic metrics and platform optimization.</p>
+                <p>To improve services, platform interactions including login frequency, material download history, and participation in live tutorials are tracked. This data is used solely for internal academic metrics and platform optimization.</p>
               </div>
             </div>
           </section>
@@ -59,41 +59,41 @@ export default function PrivacyPolicyPage() {
           <section className="space-y-3">
             <h2 className="text-2xl font-bold text-primary">3. Legal Basis for Processing</h2>
             <p>
-              We process your data based on your explicit consent given at the time of account creation and for the performance of our contract with you (i.e., providing access to e-learning materials).
+              Data processing is based on explicit consent given at the time of account creation and for the performance of the service agreement (i.e., providing access to e-learning materials).
             </p>
           </section>
 
           <section className="space-y-3">
             <h2 className="text-2xl font-bold text-primary">4. Data Sharing and Third Parties</h2>
             <p>
-              We do not sell or rent your personal data to third parties. We share data only with essential service providers (e.g., Google Firebase for database hosting) who are contractually bound to maintain your data's confidentiality and security.
+              Personal data is not sold or rented to third parties. Data is shared only with essential service providers (e.g., Google Firebase for database hosting) who are contractually bound to maintain data confidentiality and security.
             </p>
           </section>
 
           <section className="space-y-3">
             <h2 className="text-2xl font-bold text-primary">5. Data Retention and Security</h2>
             <p>
-              Your data is retained for as long as your account is active. We employ industry-standard encryption and security protocols to prevent unauthorized access, alteration, or disclosure of your information.
+              Data is retained for as long as the account is active. Industry-standard encryption and security protocols are employed to prevent unauthorized access, alteration, or disclosure of information.
             </p>
           </section>
 
           <section className="space-y-3">
             <h2 className="text-2xl font-bold text-primary">6. Your Rights</h2>
             <p>
-              As a user, you have the right to request access to the data we hold, request corrections to inaccurate information, or request the deletion of your account and associated data. You may also withdraw your consent at any time.
+              As a user, rights include requesting access to held data, requesting corrections to inaccurate information, or requesting the deletion of the account and associated data. Consent may be withdrawn at any time.
             </p>
           </section>
 
           <section className="space-y-3">
             <h2 className="text-2xl font-bold text-primary">7. Cookies Policy</h2>
             <p>
-              We use strictly necessary cookies to manage authentication sessions and preserve user preferences (such as light/dark mode). These cookies are essential for the platform's core functionality.
+              Strictly necessary cookies are used to manage authentication sessions and preserve user preferences (such as light/dark mode). These cookies are essential for core platform functionality.
             </p>
           </section>
 
           <section className="space-y-3 border-t pt-8">
             <h2 className="text-2xl font-bold text-primary">8. Contact Information</h2>
-            <p>For any questions regarding this policy or to exercise your data rights, please contact the Med-X Data Privacy team:</p>
+            <p>For any questions regarding this policy or to exercise data rights, contact the Med-X Data Privacy team:</p>
             <div className="pt-2">
               <Button asChild variant="default" className="h-12 px-8 font-bold shadow-lg">
                 <Link href="https://wa.me/2349123338586" target="_blank">
