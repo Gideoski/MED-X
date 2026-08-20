@@ -64,15 +64,15 @@ export function FeedbackForm() {
 
         toast({
           title: "Success!",
-          description: "Thank you for your feedback!",
+          description: "Feedback has been submitted. Thank you!",
         });
         setFeedbackText("");
       } catch (e) {
         console.error("Feedback submission error: ", e);
         
-        let description = "Could not submit your feedback. Please try again.";
+        let description = "Could not submit feedback. Please try again.";
         if (e instanceof Error && e.message.toLowerCase().includes("permission-denied")) {
-            description = "You do not have permission to submit feedback.";
+            description = "Permission to submit feedback was denied.";
         }
 
         toast({
@@ -88,13 +88,13 @@ export function FeedbackForm() {
     <Card>
       <CardHeader>
         <CardTitle>Submit Feedback</CardTitle>
-        <CardDescription>Have a suggestion or found a bug? Let us know!</CardDescription>
+        <CardDescription>Provide suggestions or report a bug.</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <Textarea
             name="feedback"
-            placeholder="Tell us what you think..."
+            placeholder="Provide feedback here..."
             rows={5}
             aria-describedby="feedback-error"
             value={feedbackText}

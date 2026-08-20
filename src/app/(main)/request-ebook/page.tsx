@@ -15,12 +15,12 @@ export default function RequestEbookPage() {
           </div>
           <CardTitle className="mt-4 text-2xl">Request a Custom E-book</CardTitle>
            <CardDescription>
-            Have a specific topic or material you need? Fill out our request form, and we'll get back to you.
+            Specify the topic or material required by filling out the request form. Med-X will respond as soon as possible.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground mb-6">
-            Click the button below to open the request form in a new tab. Please be as detailed as possible with your request.
+            Click the button below to open the request form in a new tab. Detail the request as clearly as possible.
           </p>
           <Button asChild>
             <Link href={formUrl} target="_blank" rel="noopener noreferrer">

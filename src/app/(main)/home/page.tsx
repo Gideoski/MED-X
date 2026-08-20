@@ -135,7 +135,7 @@ export default function HomePage() {
       <section className="px-4">
         <div className="text-center mb-16 space-y-4">
             <h2 className="text-3xl md:text-5xl font-bold tracking-tight">Why Med-X?</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">We provide the structure you need to master your medical curriculum.</p>
+            <p className="text-muted-foreground max-w-2xl mx-auto">Med-X provides the structure required to master the medical curriculum.</p>
         </div>
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           {academicServices.slice(0, 3).map((service, idx) => (
@@ -158,7 +158,7 @@ export default function HomePage() {
         <section className="mx-4 py-20 bg-primary rounded-[3rem] text-primary-foreground text-center space-y-8 overflow-hidden relative">
           <div className="absolute top-0 right-0 p-8 opacity-10"><Users className="h-64 w-64" /></div>
           <h2 className="text-3xl md:text-6xl font-bold px-4 relative z-10">Join the Med-X Community</h2>
-          <p className="text-primary-foreground/80 max-w-xl mx-auto text-lg px-6 relative z-10">Stay updated with exam alerts, study tips, and new materials directly in our WhatsApp channel.</p>
+          <p className="text-primary-foreground/80 max-w-xl mx-auto text-lg px-6 relative z-10">Stay updated with exam alerts, study tips, and new materials directly in the WhatsApp channel.</p>
           <div className="flex flex-col sm:flex-row justify-center gap-4 px-8 relative z-10">
               <Button asChild size="lg" variant="secondary" className="h-16 px-10 text-xl font-bold shadow-2xl hover:scale-105 transition-transform">
                 <Link href="https://tinyurl.com/medxchannel" target="_blank"><MessageSquare className="mr-2 h-6 w-6" /> WhatsApp Channel</Link>

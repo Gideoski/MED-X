@@ -13,12 +13,12 @@ export default function QuizzesPage() {
           </div>
           <CardTitle className="text-2xl">Quizzes Coming Soon</CardTitle>
           <CardDescription>
-            We're currently redesigning our practice quiz system to provide high-yield testing for all levels.
+            The practice quiz system is currently being redesigned to provide high-yield testing for all levels.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground text-sm leading-relaxed">
-            Check back soon for course-specific MCQs, flashcards, and revision packs designed to test your knowledge after reading our e-books.
+            Course-specific MCQs, flashcards, and revision packs designed to test knowledge after reading the e-books will be available soon.
           </p>
         </CardContent>
       </Card>
