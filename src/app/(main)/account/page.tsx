@@ -12,10 +12,10 @@ import { useState, useTransition, useEffect } from "react";
 import { updateProfile } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 import { doc, getDoc } from "firebase/firestore";
-import { Star, RefreshCw, ShieldCheck } from "lucide-react";
+import { Star, RefreshCw, ShieldCheck, Clock } from "lucide-react";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { cn } from "@/lib/utils";
-import { isAfter } from "date-fns";
+import { isAfter, differenceInDays, parseISO } from "date-fns";
 
 export default function AccountPage() {
   const { user, isUserLoading } = useUser();
@@ -33,11 +33,14 @@ export default function AccountPage() {
 
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<{ isPremium: boolean; role?: string; createdAt?: string; id?: string; subscriptionExpiresAt?: string }>(userDocRef);
   
-  // Smart Premium Logic: Check both the flag and the expiry date
   const isPremium = userProfile?.isPremium && (
     !userProfile.subscriptionExpiresAt || 
     isAfter(new Date(userProfile.subscriptionExpiresAt), new Date())
   );
+
+  const daysRemaining = userProfile?.subscriptionExpiresAt 
+    ? differenceInDays(parseISO(userProfile.subscriptionExpiresAt), new Date())
+    : null;
 
   useEffect(() => {
     if (user) {
@@ -45,12 +48,10 @@ export default function AccountPage() {
     }
   }, [user]);
 
-  // EXPIRY ENFORCEMENT: Automatically turn off premium if expired
   useEffect(() => {
     if (userProfile?.isPremium && userProfile.subscriptionExpiresAt && firestore && user) {
       const expiryDate = new Date(userProfile.subscriptionExpiresAt);
       if (isAfter(new Date(), expiryDate)) {
-        console.log("Subscription expired. Downgrading...");
         const ref = doc(firestore, 'users', user.uid);
         updateDocumentNonBlocking(ref, {
           isPremium: false,
@@ -59,28 +60,6 @@ export default function AccountPage() {
       }
     }
   }, [userProfile, firestore, user]);
-
-  // SELF-HEALING: Only populates strictly missing fields to avoid resetting roles.
-  useEffect(() => {
-    if (user && userProfile && !isProfileLoading && firestore) {
-      const isMissingFields = 
-        userProfile.isPremium === undefined || 
-        userProfile.role === undefined || 
-        userProfile.id === undefined;
-      
-      if (isMissingFields) {
-        const ref = doc(firestore, 'users', user.uid);
-        updateDocumentNonBlocking(ref, {
-          id: user.uid,
-          email: user.email,
-          role: userProfile.role ?? "student",
-          isPremium: userProfile.isPremium ?? false,
-          updatedAt: new Date().toISOString(),
-          createdAt: userProfile.createdAt || new Date().toISOString()
-        });
-      }
-    }
-  }, [user, userProfile, isProfileLoading, firestore]);
 
   const handleProfileUpdate = () => {
     if (!user) return;
@@ -206,6 +185,12 @@ export default function AccountPage() {
                         </Badge>
                         {isPremium && <ShieldCheck className="h-5 w-5 text-primary" />}
                     </div>
+                    {isPremium && daysRemaining !== null && (
+                      <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                        <Clock className="h-4 w-4" />
+                        <span>{daysRemaining} days remaining</span>
+                      </div>
+                    )}
                 </div>
                 <div className="flex gap-2">
                     {!isPremium ? (
