@@ -34,7 +34,7 @@ export default function PrivacyPolicyPage() {
           <section className="space-y-3">
             <h2 className="text-2xl font-bold text-primary">1. Introduction</h2>
             <p>
-              Med-X prioritizes the protection of privacy and the security of personal data. This Privacy Policy describes the methods by which information is collected, utilized, and protected when provided through the e-learning platform. Platform operations comply with the Nigeria Data Protection Regulation (NDPR) and applicable global data protection standards.
+              Med-X prioritizes the protection of privacy and the security of personal data. This Privacy Policy describes the methods by which information is collected, utilized, and protected when provided through the e-learning platform. Platform operations comply with the Nigeria Data Protection Act (NDPA) 2023 and applicable global data protection standards.
             </p>
           </section>
 
