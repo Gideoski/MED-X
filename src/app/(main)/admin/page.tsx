@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -165,13 +166,16 @@ export default function AdminPage() {
     const message = formData.get('message') as string;
 
     startTransition(async () => {
+      let success = false;
       if (selectedUserEmail === 'ALL_USERS') {
         const emails = usersData?.map(u => u.email).filter(Boolean) as string[] || [];
-        await sendBulkEmailNotification(emails, subject, message);
-        toast({ title: "Broadcast Simulated", description: `Simulation sent to ${emails.length} logs.` });
+        success = await sendBulkEmailNotification(emails, subject, message);
+        if (success) toast({ title: "Broadcast Sent", description: `Message successfully sent to ${emails.length} students.` });
+        else toast({ title: "Delivery Error", description: "Failed to broadcast message.", variant: "destructive" });
       } else {
-        await sendEmailNotification(selectedUserEmail, subject, message);
-        toast({ title: "Email Simulated", description: `Simulation sent to ${selectedUserEmail}.` });
+        success = await sendEmailNotification(selectedUserEmail, subject, message);
+        if (success) toast({ title: "Email Sent", description: `Message successfully sent to ${selectedUserEmail}.` });
+        else toast({ title: "Delivery Error", description: "Failed to send email.", variant: "destructive" });
       }
       setSelectedUserEmail(null);
     });
@@ -203,8 +207,7 @@ export default function AdminPage() {
         // Just update the existing doc
         updateDocumentNonBlocking(doc(firestore, oldCollection, editingMaterial.id), updateData);
       } else {
-        // Move to a different collection: Delete old, create new with same ID if possible or new ID
-        // For simplicity in this logic, we delete and set into new path with same data
+        // Move to a different collection
         const fullData = { ...editingMaterial, ...updateData };
         delete (fullData as any).collection; // Clean up
         
@@ -230,13 +233,19 @@ export default function AdminPage() {
                 <p className="text-muted-foreground">Manage users, tutorials, and content resources.</p>
             </div>
           </div>
-          <Alert variant="destructive" className="max-w-md bg-destructive/5 border-destructive/20 py-2">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle className="text-xs font-bold uppercase tracking-tight">System Notice</AlertTitle>
-            <AlertDescription className="text-xs">
-              Email delivery is in <strong>Simulation Mode</strong>. Messages are logged but not sent to real inboxes.
-            </AlertDescription>
-          </Alert>
+          {!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === 'your_resend_api_key_here' ? (
+            <Alert variant="destructive" className="max-w-md bg-destructive/5 border-destructive/20 py-2">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle className="text-xs font-bold uppercase tracking-tight">System Notice</AlertTitle>
+              <AlertDescription className="text-xs">
+                Email delivery is in <strong>Simulation Mode</strong>. Please add your Resend API Key to the .env file.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <Badge variant="outline" className="h-fit bg-green-500/10 text-green-600 border-green-200 py-1.5 px-3">
+              <div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" /> Live Notifications</div>
+            </Badge>
+          )}
         </header>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -473,25 +482,27 @@ export default function AdminPage() {
           </TabsContent>
         </Tabs>
 
-        {/* Email Simulation Dialog */}
+        {/* Email Dialog */}
         <Dialog open={!!selectedUserEmail} onOpenChange={(o) => !o && setSelectedUserEmail(null)}>
           <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                {selectedUserEmail === 'ALL_USERS' ? 'Broadcast Simulation' : 'Direct Message Simulation'}
-                <Badge variant="outline" className="text-[10px] py-0 bg-primary/5">MOCK</Badge>
+                {selectedUserEmail === 'ALL_USERS' ? 'Broadcast Notification' : 'Direct Notification'}
+                {(!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === 'your_resend_api_key_here') && (
+                  <Badge variant="outline" className="text-[10px] py-0 bg-primary/5">MOCK</Badge>
+                )}
               </DialogTitle>
               <DialogDescription>
                 {selectedUserEmail === 'ALL_USERS' 
-                  ? `This message will be recorded in simulation logs for all ${usersData?.length || 0} students.` 
-                  : `This message will be recorded in simulation logs for ${selectedUserEmail}.`}
+                  ? `Send a notification to all ${usersData?.length || 0} students.` 
+                  : `Send a direct notification to ${selectedUserEmail}.`}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSendEmail} className="space-y-4">
               <div className="space-y-2"><Label>Subject</Label><Input name="subject" required placeholder="Important Update" /></div>
               <div className="space-y-2"><Label>Message</Label><Textarea name="message" required rows={4} placeholder="Type your message here..." /></div>
               <DialogFooter>
-                <Button type="submit" disabled={isPending} className="w-full sm:w-auto">{isPending ? 'Simulating...' : 'Log Message'}</Button>
+                <Button type="submit" disabled={isPending} className="w-full sm:w-auto">{isPending ? 'Sending...' : 'Send Notification'}</Button>
               </DialogFooter>
             </form>
           </DialogContent>

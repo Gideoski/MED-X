@@ -1,31 +1,77 @@
+
 'use server';
 
 /**
- * @fileOverview Application server actions.
+ * @fileOverview Application server actions using Resend for email delivery.
  * 
- * NOTE: The email functions below are currently SIMULATIONS. 
- * To enable real email delivery, you must integrate a provider like Resend or SendGrid
- * using your own API keys.
+ * - sendEmailNotification: Sends a direct email to a specific user.
+ * - sendBulkEmailNotification: Broadcasts a message to all users.
  */
 
+import { Resend } from 'resend';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 /**
- * Simulates sending an email notification to a single user.
+ * Sends a real email notification to a single user using Resend.
  */
 export async function sendEmailNotification(email: string, subject: string, message: string): Promise<boolean> {
-  // MOCK LOGIC: In production, replace this with a real provider (e.g., Resend).
-  console.log(`[SIMULATION] Sending email to ${email}: [${subject}] ${message}`);
-  
-  // Simulate network delay
-  return new Promise((res) => setTimeout(() => res(true), 1200));
+  if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === 'your_resend_api_key_here') {
+    console.warn('[SIMULATION] No Resend API Key found. Message logged to console.');
+    console.log(`To: ${email}\nSubject: ${subject}\nMessage: ${message}`);
+    return true;
+  }
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: 'MED-X Support <onboarding@resend.dev>',
+      to: email,
+      subject: subject,
+      text: message,
+    });
+
+    if (error) {
+      console.error('Resend Error:', error);
+      return false;
+    }
+
+    console.log('Email sent successfully:', data?.id);
+    return true;
+  } catch (err) {
+    console.error('Failed to send email:', err);
+    return false;
+  }
 }
 
 /**
- * Simulates sending an email notification to multiple users.
+ * Sends real email notifications to multiple users using Resend.
  */
 export async function sendBulkEmailNotification(emails: string[], subject: string, message: string): Promise<boolean> {
-  // MOCK LOGIC: In production, replace this with a real provider.
-  console.log(`[SIMULATION] Broadcasting email to ${emails.length} recipients: [${subject}]`);
-  
-  // Simulate network delay for bulk operation
-  return new Promise((res) => setTimeout(() => res(true), 2500));
+  if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === 'your_resend_api_key_here') {
+    console.warn('[SIMULATION] No Resend API Key found. Bulk message logged to console.');
+    console.log(`Broadcasting to ${emails.length} recipients: [${subject}]`);
+    return true;
+  }
+
+  try {
+    const batch = emails.map(email => ({
+      from: 'MED-X Broadcast <onboarding@resend.dev>',
+      to: email,
+      subject: subject,
+      text: message,
+    }));
+
+    const { data, error } = await resend.batch.send(batch);
+
+    if (error) {
+      console.error('Resend Bulk Error:', error);
+      return false;
+    }
+
+    console.log(`Bulk broadcast successful. Sent ${batch.length} emails.`);
+    return true;
+  } catch (err) {
+    console.error('Failed to send bulk emails:', err);
+    return false;
+  }
 }
