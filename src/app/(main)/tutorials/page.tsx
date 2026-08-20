@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -18,7 +19,6 @@ export default function TutorialsPage() {
   const userDocRef = useMemoFirebase(() => (firestore && user ? doc(firestore, 'users', user.uid) : null), [firestore, user]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<{ isPremium: boolean; subscriptionExpiresAt?: string }>(userDocRef);
   
-  // Smart Premium Logic
   const isPremium = userProfile?.isPremium && (
     !userProfile.subscriptionExpiresAt || 
     isAfter(new Date(userProfile.subscriptionExpiresAt), new Date())
@@ -27,7 +27,6 @@ export default function TutorialsPage() {
   const configRef = useMemoFirebase(() => (firestore ? doc(firestore, 'config', 'global') : null), [firestore]);
   const { data: appConfig } = useDoc<{ tutorialLink?: string; tutorialStatus?: string }>(configRef);
 
-  // Auto-downgrade check
   useEffect(() => {
     if (userProfile?.isPremium && userProfile.subscriptionExpiresAt && firestore && user) {
       if (isAfter(new Date(), new Date(userProfile.subscriptionExpiresAt))) {

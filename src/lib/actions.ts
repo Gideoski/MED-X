@@ -16,8 +16,9 @@ const resend = new Resend(process.env.RESEND_API_KEY);
  * Sends a real email notification to a single user using Resend.
  */
 export async function sendEmailNotification(email: string, subject: string, message: string): Promise<boolean> {
-  if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === 'your_resend_api_key_here') {
-    console.warn('[SIMULATION] No Resend API Key found. Message logged to console.');
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey || apiKey === 'your_resend_api_key_here' || apiKey.length < 10) {
+    console.warn('[SIMULATION] No valid Resend API Key found. Message logged to console.');
     console.log(`To: ${email}\nSubject: ${subject}\nMessage: ${message}`);
     return true;
   }
@@ -35,7 +36,6 @@ export async function sendEmailNotification(email: string, subject: string, mess
       return false;
     }
 
-    console.log('Email sent successfully:', data?.id);
     return true;
   } catch (err) {
     console.error('Failed to send email:', err);
@@ -47,8 +47,9 @@ export async function sendEmailNotification(email: string, subject: string, mess
  * Sends real email notifications to multiple users using Resend.
  */
 export async function sendBulkEmailNotification(emails: string[], subject: string, message: string): Promise<boolean> {
-  if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === 'your_resend_api_key_here') {
-    console.warn('[SIMULATION] No Resend API Key found. Bulk message logged to console.');
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey || apiKey === 'your_resend_api_key_here' || apiKey.length < 10) {
+    console.warn('[SIMULATION] No valid Resend API Key found. Bulk message logged to console.');
     console.log(`Broadcasting to ${emails.length} recipients: [${subject}]`);
     return true;
   }
@@ -68,7 +69,6 @@ export async function sendBulkEmailNotification(emails: string[], subject: strin
       return false;
     }
 
-    console.log(`Bulk broadcast successful. Sent ${batch.length} emails.`);
     return true;
   } catch (err) {
     console.error('Failed to send bulk emails:', err);

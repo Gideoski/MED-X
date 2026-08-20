@@ -7,7 +7,6 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
-  CardFooter
 } from '@/components/ui/card';
 import {
   Table,
@@ -204,15 +203,12 @@ export default function AdminPage() {
       };
 
       if (oldCollection === newCollection) {
-        // Just update the existing doc
-        updateDocumentNonBlocking(doc(firestore, oldCollection, editingMaterial.id), updateData);
+        updateDocumentNonBlocking(doc(firestore!, oldCollection, editingMaterial.id), updateData);
       } else {
-        // Move to a different collection
         const fullData = { ...editingMaterial, ...updateData };
-        delete (fullData as any).collection; // Clean up
-        
-        await setDoc(doc(firestore, newCollection, editingMaterial.id), fullData);
-        deleteDocumentNonBlocking(doc(firestore, oldCollection, editingMaterial.id));
+        delete (fullData as any).collection; 
+        await setDoc(doc(firestore!, newCollection, editingMaterial.id), fullData);
+        deleteDocumentNonBlocking(doc(firestore!, oldCollection, editingMaterial.id));
       }
 
       setEditingMaterial(null);
@@ -222,6 +218,8 @@ export default function AdminPage() {
 
   if (isProfileLoading) return <div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   if (userProfile?.role !== 'admin') return <div className="flex flex-col items-center justify-center h-[60vh]"><ShieldX className="h-16 w-16 text-destructive mb-4" /><h1 className="text-3xl font-bold">Access Denied</h1></div>;
+
+  const isResendConfigured = !!process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== 'your_resend_api_key_here';
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-12">
@@ -233,12 +231,12 @@ export default function AdminPage() {
                 <p className="text-muted-foreground">Manage users, tutorials, and content resources.</p>
             </div>
           </div>
-          {!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === 'your_resend_api_key_here' ? (
+          {!isResendConfigured ? (
             <Alert variant="destructive" className="max-w-md bg-destructive/5 border-destructive/20 py-2">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle className="text-xs font-bold uppercase tracking-tight">System Notice</AlertTitle>
               <AlertDescription className="text-xs">
-                Email delivery is in <strong>Simulation Mode</strong>. Please add your Resend API Key to the .env file.
+                Email delivery is in <strong>Simulation Mode</strong>. Add your Resend API Key to the .env file.
               </AlertDescription>
             </Alert>
           ) : (
@@ -297,7 +295,7 @@ export default function AdminPage() {
               <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4 w-full sm:w-auto">
                   <CardTitle className="shrink-0">User Accounts</CardTitle>
-                  <Button variant="outline" size="sm" onClick={() => setSelectedUserEmail('ALL_USERS')} className="ml-auto sm:ml-0">
+                  <Button variant="outline" size="sm" onClick={() => setSelectedUserEmail('ALL_USERS')}>
                     <Send className="mr-2 h-4 w-4" /> Broadcast
                   </Button>
                 </div>
@@ -319,7 +317,7 @@ export default function AdminPage() {
                         <TableRow>
                           <TableHead>Email</TableHead>
                           <TableHead>Premium</TableHead>
-                          <TableHead>Expiry</TableHead>
+                          <TableHead>Expires In</TableHead>
                           <TableHead>Role</TableHead>
                           <TableHead className="text-right">Action</TableHead>
                         </TableRow>
@@ -345,10 +343,10 @@ export default function AdminPage() {
                               <TableCell>
                                 {mounted && u.isPremium && u.subscriptionExpiresAt ? (
                                   <Badge variant={isExpired ? "destructive" : "outline"} className="whitespace-nowrap">
-                                    {isExpired ? 'Expired' : `${daysLeft}d left`}
+                                    {isExpired ? 'Expired' : `${daysLeft} days`}
                                   </Badge>
                                 ) : (
-                                  <span className="text-muted-foreground text-xs">Free</span>
+                                  <span className="text-muted-foreground text-xs italic">Free Plan</span>
                                 )}
                               </TableCell>
                               <TableCell>
@@ -488,8 +486,8 @@ export default function AdminPage() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 {selectedUserEmail === 'ALL_USERS' ? 'Broadcast Notification' : 'Direct Notification'}
-                {(!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === 'your_resend_api_key_here') && (
-                  <Badge variant="outline" className="text-[10px] py-0 bg-primary/5">MOCK</Badge>
+                {!isResendConfigured && (
+                  <Badge variant="outline" className="text-[10px] py-0 bg-primary/5 uppercase">Mock</Badge>
                 )}
               </DialogTitle>
               <DialogDescription>

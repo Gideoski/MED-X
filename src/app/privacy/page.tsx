@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -26,7 +27,7 @@ export default function PrivacyPolicyPage() {
       
       <div className="space-y-4">
         <h1 className="text-4xl font-bold tracking-tight">Privacy Policy</h1>
-        <p className="text-muted-foreground italic text-sm">Last Updated: {lastUpdated}</p>
+        <p className="text-muted-foreground italic text-sm">Effective Date: {lastUpdated}</p>
       </div>
 
       <ScrollArea className="h-[700px] rounded-2xl border bg-card p-8 shadow-sm text-foreground leading-relaxed">
@@ -73,7 +74,7 @@ export default function PrivacyPolicyPage() {
           <section className="space-y-3">
             <h2 className="text-2xl font-bold text-primary">5. Data Retention and Security</h2>
             <p>
-              Data is generally retained for the duration of the account&apos;s active status. However, specific information, including transactional and legal records, may be retained for longer periods as required by applicable laws or for the resolution of disputes, even following account deletion. Industry-standard encryption and security protocols are employed to prevent unauthorized access, alteration, or disclosure of information.
+              Data is generally retained for the duration of the account's active status. However, specific information, including transactional and legal records, may be retained for longer periods as required by applicable laws or for the resolution of disputes, even following account deletion. Industry-standard encryption and security protocols are employed to prevent unauthorized access, alteration, or disclosure of information.
             </p>
           </section>
 
@@ -84,21 +85,14 @@ export default function PrivacyPolicyPage() {
             </p>
           </section>
 
-          <section className="space-y-3">
-            <h2 className="text-2xl font-bold text-primary">7. Cookies Policy</h2>
-            <p>
-              Strictly necessary cookies are used to manage authentication sessions and preserve user preferences, such as light or dark mode settings. These cookies are essential for core platform functionality.
-            </p>
-          </section>
-
           <section className="space-y-3 border-t pt-8">
-            <h2 className="text-2xl font-bold text-primary">8. Contact Information</h2>
+            <h2 className="text-2xl font-bold text-primary">7. Contact Information</h2>
             <p>For questions regarding this policy or the exercise of data rights, contact the Med-X Data Privacy team:</p>
             <div className="pt-2">
               <Button asChild variant="default" className="h-12 px-8 font-bold shadow-lg">
                 <Link href="https://wa.me/2349123338586" target="_blank">
                   <MessageSquare className="mr-2 h-5 w-5" />
-                  Contact +234 912 333 8586
+                  Contact Support
                 </Link>
               </Button>
             </div>
