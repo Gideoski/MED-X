@@ -34,7 +34,8 @@ import {
   Search,
   Send,
   AlertCircle,
-  Trash2
+  Trash2,
+  Clock
 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, doc, setDoc, query, orderBy } from 'firebase/firestore';
@@ -42,7 +43,7 @@ import { useState, useEffect, useMemo, useTransition } from 'react';
 import type { EBook } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
-import { addMonths, isAfter, subHours } from 'date-fns';
+import { addMonths, isAfter, subHours, differenceInDays, parseISO } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -266,36 +267,58 @@ export default function AdminPage() {
                       <TableRow>
                         <TableHead>Email</TableHead>
                         <TableHead>Premium</TableHead>
+                        <TableHead>Expires In</TableHead>
                         <TableHead>Role</TableHead>
                         <TableHead className="text-right">Notify</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredUsers.map(u => (
-                        <TableRow key={u.id}>
-                          <TableCell className="font-medium">{u.email}</TableCell>
-                          <TableCell>
-                            <Switch checked={!!u.isPremium} onCheckedChange={(checked) => {
-                              updateDocumentNonBlocking(doc(firestore!, 'users', u.id), {
-                                isPremium: checked,
-                                subscriptionExpiresAt: checked ? addMonths(new Date(), 1).toISOString() : null
-                              });
-                            }} />
-                          </TableCell>
-                          <TableCell>
-                            <Select value={u.role || 'student'} onValueChange={(val) => updateDocumentNonBlocking(doc(firestore!, 'users', u.id), { role: val })}>
-                              <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="student">Student</SelectItem>
-                                <SelectItem value="admin">Admin</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button variant="ghost" size="icon" onClick={() => setSelectedUserEmail(u.email)}><Mail className="h-4 w-4" /></Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {filteredUsers.map(u => {
+                        const daysLeft = u.isPremium && u.subscriptionExpiresAt 
+                          ? differenceInDays(parseISO(u.subscriptionExpiresAt), new Date()) 
+                          : null;
+                        const isExpired = u.isPremium && u.subscriptionExpiresAt && isAfter(new Date(), parseISO(u.subscriptionExpiresAt));
+
+                        return (
+                          <TableRow key={u.id}>
+                            <TableCell className="font-medium">{u.email}</TableCell>
+                            <TableCell>
+                              <Switch checked={!!u.isPremium} onCheckedChange={(checked) => {
+                                updateDocumentNonBlocking(doc(firestore!, 'users', u.id), {
+                                  isPremium: checked,
+                                  subscriptionExpiresAt: checked ? addMonths(new Date(), 1).toISOString() : null
+                                });
+                              }} />
+                            </TableCell>
+                            <TableCell>
+                              {mounted && u.isPremium && u.subscriptionExpiresAt ? (
+                                <div className="flex items-center gap-2">
+                                  <Badge variant={isExpired ? "destructive" : "outline"} className="font-mono">
+                                    {isExpired ? 'Expired' : `${daysLeft}d`}
+                                  </Badge>
+                                  <span className="text-[10px] text-muted-foreground hidden lg:inline">
+                                    {new Date(u.subscriptionExpiresAt).toLocaleDateString()}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">{u.isPremium ? '...' : '-'}</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Select value={u.role || 'student'} onValueChange={(val) => updateDocumentNonBlocking(doc(firestore!, 'users', u.id), { role: val })}>
+                                <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="student">Student</SelectItem>
+                                  <SelectItem value="admin">Admin</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button variant="ghost" size="icon" onClick={() => setSelectedUserEmail(u.email)}><Mail className="h-4 w-4" /></Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 )}
