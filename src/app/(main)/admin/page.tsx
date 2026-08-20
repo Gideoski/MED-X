@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -31,7 +32,8 @@ import {
   Download,
   BookOpen,
   Mail,
-  Search
+  Search,
+  Send
 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, doc, setDoc, query, orderBy } from 'firebase/firestore';
@@ -45,7 +47,7 @@ import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { sendEmailNotification } from '@/lib/actions';
+import { sendEmailNotification, sendBulkEmailNotification } from '@/lib/actions';
 import {
   Dialog,
   DialogContent,
@@ -150,9 +152,15 @@ export default function AdminPage() {
     const message = formData.get('message') as string;
 
     startTransition(async () => {
-      await sendEmailNotification(selectedUserEmail, subject, message);
+      if (selectedUserEmail === 'ALL_USERS') {
+        const emails = usersData?.map(u => u.email).filter(Boolean) as string[] || [];
+        await sendBulkEmailNotification(emails, subject, message);
+        toast({ title: "Broadcast Sent", description: `Message sent to all ${emails.length} users.` });
+      } else {
+        await sendEmailNotification(selectedUserEmail, subject, message);
+        toast({ title: "Email Sent", description: `Notification sent to ${selectedUserEmail}.` });
+      }
       setSelectedUserEmail(null);
-      toast({ title: "Email Sent", description: `Notification sent to ${selectedUserEmail}.` });
     });
   };
 
@@ -215,15 +223,25 @@ export default function AdminPage() {
           <TabsContent value="users">
             <Card>
               <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <CardTitle>User Management</CardTitle>
-                <div className="relative w-full sm:w-64">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input 
-                    placeholder="Search email..." 
-                    className="pl-9"
-                    value={userSearchQuery}
-                    onChange={(e) => setUserSearchQuery(e.target.value)}
-                  />
+                <div className="flex items-center gap-4">
+                  <CardTitle>User Management</CardTitle>
+                  <Button variant="outline" size="sm" onClick={() => setSelectedUserEmail('ALL_USERS')} className="hidden sm:flex">
+                    <Send className="mr-2 h-4 w-4" /> Broadcast
+                  </Button>
+                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <div className="relative w-full sm:w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      placeholder="Search email..." 
+                      className="pl-9"
+                      value={userSearchQuery}
+                      onChange={(e) => setUserSearchQuery(e.target.value)}
+                    />
+                  </div>
+                  <Button variant="outline" size="icon" onClick={() => setSelectedUserEmail('ALL_USERS')} className="sm:hidden">
+                    <Send className="h-4 w-4" />
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent>
@@ -347,8 +365,12 @@ export default function AdminPage() {
         <Dialog open={!!selectedUserEmail} onOpenChange={(o) => !o && setSelectedUserEmail(null)}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Send Email Notification</DialogTitle>
-              <DialogDescription>Message will be sent to {selectedUserEmail}.</DialogDescription>
+              <DialogTitle>{selectedUserEmail === 'ALL_USERS' ? 'Broadcast Message' : 'Send Email Notification'}</DialogTitle>
+              <DialogDescription>
+                {selectedUserEmail === 'ALL_USERS' 
+                  ? `This message will be sent to all ${usersData?.length || 0} registered users.` 
+                  : `Message will be sent to ${selectedUserEmail}.`}
+              </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSendEmail} className="space-y-4">
               <div className="space-y-2"><Label>Subject</Label><Input name="subject" required /></div>
