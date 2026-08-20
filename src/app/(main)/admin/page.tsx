@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -31,7 +30,8 @@ import {
   Star,
   Download,
   BookOpen,
-  Mail
+  Mail,
+  Search
 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, doc, setDoc, query, orderBy } from 'firebase/firestore';
@@ -70,6 +70,7 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [mounted, setMounted] = useState(false);
   const [selectedUserEmail, setSelectedUserEmail] = useState<string | null>(null);
+  const [userSearchQuery, setUserSearchQuery] = useState("");
 
   useEffect(() => {
     setMounted(true);
@@ -86,6 +87,13 @@ export default function AdminPage() {
 
   const configRef = useMemoFirebase(() => (firestore ? doc(firestore, 'config', 'global') : null), [firestore]);
   const { data: appConfig } = useDoc<AppConfig>(configRef);
+
+  const filteredUsers = useMemo(() => {
+    if (!usersData) return [];
+    return usersData.filter(u => 
+      u.email?.toLowerCase().includes(userSearchQuery.toLowerCase())
+    );
+  }, [usersData, userSearchQuery]);
 
   const dauCount = useMemo(() => {
     if (!usersData || !mounted) return 0;
@@ -206,7 +214,18 @@ export default function AdminPage() {
 
           <TabsContent value="users">
             <Card>
-              <CardHeader><CardTitle>User Management</CardTitle></CardHeader>
+              <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <CardTitle>User Management</CardTitle>
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    placeholder="Search email..." 
+                    className="pl-9"
+                    value={userSearchQuery}
+                    onChange={(e) => setUserSearchQuery(e.target.value)}
+                  />
+                </div>
+              </CardHeader>
               <CardContent>
                 {isUsersLoading ? <div className="space-y-2"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></div> : (
                   <Table>
@@ -219,7 +238,7 @@ export default function AdminPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {usersData?.map(u => (
+                      {filteredUsers.map(u => (
                         <TableRow key={u.id}>
                           <TableCell className="font-medium">{u.email}</TableCell>
                           <TableCell>
@@ -244,6 +263,13 @@ export default function AdminPage() {
                           </TableCell>
                         </TableRow>
                       ))}
+                      {filteredUsers.length === 0 && !isUsersLoading && (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                            No users found matching "{userSearchQuery}"
+                          </TableCell>
+                        </TableRow>
+                      )}
                     </TableBody>
                   </Table>
                 )}
