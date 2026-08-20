@@ -33,7 +33,8 @@ import {
   Mail,
   Search,
   Send,
-  AlertCircle
+  AlertCircle,
+  Trash2
 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, doc, setDoc, query, orderBy } from 'firebase/firestore';
@@ -43,7 +44,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
 import { addMonths, isAfter, subHours } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -57,6 +58,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 type MaterialWithCollection = EBook & { id: string; collection: string };
 type UserData = { id: string, email: string, isPremium: boolean, role: string, subscriptionExpiresAt?: string | null, lastLoginAt?: string };
@@ -143,6 +145,12 @@ export default function AdminPage() {
     setDoc(doc(firestore, 'testimonials', id), { name, text, role: 'Student', order: testimonials?.length || 0 });
     (e.target as HTMLFormElement).reset();
     toast({ title: "Review Added", description: "Testimonial is now visible on home page." });
+  };
+
+  const handleDeleteTestimonial = (id: string) => {
+    if (!firestore) return;
+    deleteDocumentNonBlocking(doc(firestore, 'testimonials', id));
+    toast({ title: "Review Deleted", description: "Testimonial removed from platform." });
   };
 
   const handleSendEmail = (e: React.FormEvent<HTMLFormElement>) => {
@@ -345,8 +353,8 @@ export default function AdminPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><MessageSquareQuote className="h-5 w-5" /> Testimonial</CardTitle>
-                  <CardDescription>Add reviews to the Home page.</CardDescription>
+                  <CardTitle className="flex items-center gap-2"><MessageSquareQuote className="h-5 w-5" /> Add Review</CardTitle>
+                  <CardDescription>Post student feedback to the Home page.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleAddTestimonial} className="space-y-4">
@@ -357,6 +365,39 @@ export default function AdminPage() {
                 </CardContent>
               </Card>
             </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Manage Reviews</CardTitle>
+                <CardDescription>Delete or hide active student testimonials.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[300px] w-full border rounded-md p-4">
+                  {testimonials && testimonials.length > 0 ? (
+                    <div className="space-y-4">
+                      {testimonials.map((t) => (
+                        <div key={t.id} className="flex items-start justify-between border-b pb-4 last:border-0 last:pb-0">
+                          <div className="space-y-1">
+                            <p className="font-bold">{t.name}</p>
+                            <p className="text-sm text-muted-foreground italic leading-relaxed">"{t.text}"</p>
+                          </div>
+                          <Button 
+                            variant="destructive" 
+                            size="icon" 
+                            onClick={() => handleDeleteTestimonial(t.id)}
+                            className="shrink-0 ml-4"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-10 text-muted-foreground italic">No testimonials found.</div>
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
 
@@ -367,11 +408,13 @@ export default function AdminPage() {
                 {selectedUserEmail === 'ALL_USERS' ? 'Broadcast Simulation' : 'Email Simulation'}
                 <Badge variant="outline" className="text-[10px] py-0">Mock</Badge>
               </DialogTitle>
-              <DialogDescription>
-                {selectedUserEmail === 'ALL_USERS' 
-                  ? `Simulation message will be logged for all ${usersData?.length || 0} users.` 
-                  : `Simulation message will be logged for ${selectedUserEmail}.`}
-              </DialogDescription>
+              <DialogHeader>
+                <DialogDescription>
+                  {selectedUserEmail === 'ALL_USERS' 
+                    ? `Simulation message will be logged for all ${usersData?.length || 0} users.` 
+                    : `Simulation message will be logged for ${selectedUserEmail}.`}
+                </DialogDescription>
+              </DialogHeader>
             </DialogHeader>
             <form onSubmit={handleSendEmail} className="space-y-4">
               <div className="space-y-2"><Label>Subject</Label><Input name="subject" required /></div>
