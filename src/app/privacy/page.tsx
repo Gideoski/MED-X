@@ -73,7 +73,7 @@ export default function PrivacyPolicyPage() {
           <section className="space-y-3">
             <h2 className="text-2xl font-bold text-primary">5. Data Retention and Security</h2>
             <p>
-              Data is retained for as long as the account remains active. Industry-standard encryption and security protocols are employed to prevent unauthorized access, alteration, or disclosure of information.
+              Data is generally retained for the duration of the account&apos;s active status. However, specific information, including transactional and legal records, may be retained for longer periods as required by applicable laws or for the resolution of disputes, even following account deletion. Industry-standard encryption and security protocols are employed to prevent unauthorized access, alteration, or disclosure of information.
             </p>
           </section>
 
