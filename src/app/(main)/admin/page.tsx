@@ -39,7 +39,7 @@ import {
 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, doc, setDoc, query, orderBy, deleteField } from 'firebase/firestore';
-import { useState, useEffect, useMemo, useTransition } from 'react';
+import { useState, useEffect, useMemo, useTransition, useRef } from 'react';
 import type { EBook } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
@@ -71,6 +71,7 @@ export default function AdminPage() {
   const { toast } = useToast();
   const { user } = useUser();
   const [isPending, startTransition] = useTransition();
+  const tutorialFormRef = useRef<HTMLFormElement>(null);
 
   const [allMaterials, setAllMaterials] = useState<MaterialWithCollection[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
@@ -133,14 +134,22 @@ export default function AdminPage() {
     if (!firestore || !configRef) return;
     const formData = new FormData(e.currentTarget);
     const link = formData.get('link') as string;
-    setDoc(configRef, { tutorialLink: link, tutorialStatus: 'active' }, { merge: true });
-    toast({ title: "Tutorial Updated", description: "Meeting link is now live for students." });
+    
+    startTransition(async () => {
+      await setDoc(configRef, { tutorialLink: link, tutorialStatus: 'active' }, { merge: true });
+      tutorialFormRef.current?.reset();
+      toast({ title: "Tutorial Updated", description: "Meeting link is now live for students." });
+    });
   };
 
   const handleDeleteTutorial = () => {
     if (!firestore || !configRef) return;
-    setDoc(configRef, { tutorialLink: deleteField(), tutorialStatus: 'inactive' }, { merge: true });
-    toast({ title: "Tutorial Removed", description: "The live meeting link has been cleared." });
+    
+    startTransition(async () => {
+      await setDoc(configRef, { tutorialLink: deleteField(), tutorialStatus: 'inactive' }, { merge: true });
+      tutorialFormRef.current?.reset();
+      toast({ title: "Tutorial Removed", description: "The live meeting link has been cleared." });
+    });
   };
 
   const handleAddTestimonial = (e: React.FormEvent<HTMLFormElement>) => {
@@ -409,19 +418,25 @@ export default function AdminPage() {
                   <CardDescription>Share a Google Meet link for tutorials.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <form onSubmit={handleUpdateTutorial} className="space-y-4">
+                  <form ref={tutorialFormRef} onSubmit={handleUpdateTutorial} className="space-y-4">
                     <div className="space-y-2">
-                      <Label>Meeting URL</Label>
-                      <Input name="link" defaultValue={appConfig?.tutorialLink} placeholder="https://meet.google.com/..." />
+                      <div className="flex items-center justify-between">
+                        <Label>Meeting URL</Label>
+                        {appConfig?.tutorialLink && (
+                          <span className="text-[10px] text-primary font-bold bg-primary/10 px-2 py-0.5 rounded">Current: {appConfig.tutorialLink.substring(0, 20)}...</span>
+                        )}
+                      </div>
+                      <Input name="link" placeholder="https://meet.google.com/..." />
                     </div>
                     <div className="flex gap-2">
-                      <Button type="submit" className="flex-1">Update Link</Button>
+                      <Button type="submit" className="flex-1" disabled={isPending}>Update Link</Button>
                       {appConfig?.tutorialLink && (
                         <Button 
                           type="button" 
                           variant="destructive" 
                           onClick={handleDeleteTutorial}
                           className="px-3"
+                          disabled={isPending}
                         >
                           <XCircle className="h-5 w-5" />
                         </Button>
