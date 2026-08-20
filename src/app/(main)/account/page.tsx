@@ -49,7 +49,6 @@ export default function AccountPage() {
         userProfile.id === undefined;
       
       if (isMissingFields) {
-        console.log("Healing profile for UID:", user.uid);
         const ref = doc(firestore, 'users', user.uid);
         updateDocumentNonBlocking(ref, {
           id: user.uid,
@@ -76,7 +75,6 @@ export default function AccountPage() {
           description: "Your profile has been updated.",
         });
       } catch (error) {
-        console.error("Profile update error:", error);
         toast({
           title: "Error",
           description: "Failed to update your profile. Please try again.",

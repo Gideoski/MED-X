@@ -1,14 +1,13 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function PrivacyPolicyPage() {
-  const [lastUpdated, setLastUpdated] = useState("October 2023");
+  const [lastUpdated, setLastUpdated] = useState("");
 
   useEffect(() => {
     const now = new Date();
@@ -25,7 +24,7 @@ export default function PrivacyPolicyPage() {
         <p className="text-muted-foreground italic">Last Updated: {lastUpdated}</p>
       </div>
 
-      <ScrollArea className="h-[600px] rounded-md border p-8 bg-card text-foreground leading-relaxed space-y-8">
+      <ScrollArea className="h-[600px] rounded-md border p-8 bg-card text-foreground leading-relaxed">
         <div className="space-y-6">
           <section className="space-y-3">
             <h2 className="text-2xl font-bold text-primary">1. Information We Collect</h2>
@@ -49,7 +48,13 @@ export default function PrivacyPolicyPage() {
 
           <section className="space-y-3">
             <h2 className="text-2xl font-bold text-primary">5. Contact Us</h2>
-            <p>For any questions regarding your data or this policy, please contact the Med-X team via the WhatsApp community channel.</p>
+            <p>For any questions regarding your data or this policy, please contact the Med-X team via our official WhatsApp:</p>
+            <Button asChild variant="outline" className="mt-2">
+              <Link href="https://wa.me/2349123338586" target="_blank">
+                <MessageSquare className="mr-2 h-4 w-4" />
+                +234 912 333 8586
+              </Link>
+            </Button>
           </section>
         </div>
       </ScrollArea>

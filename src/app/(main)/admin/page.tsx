@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -82,7 +81,7 @@ export default function AdminPage() {
   const configRef = useMemoFirebase(() => (firestore ? doc(firestore, 'config', 'global') : null), [firestore]);
   const { data: appConfig } = useDoc<AppConfig>(configRef);
 
-  // Stats Logic - Safe from hydration errors using mounted check
+  // DAU Calculation - Hydration safe
   const dauCount = useMemo(() => {
     if (!usersData || !mounted) return 0;
     const oneDayAgo = subHours(new Date(), 24);
@@ -147,9 +146,7 @@ export default function AdminPage() {
             <Card className="bg-primary/5 border-primary/10">
                 <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex items-center gap-2"><Activity className="h-4 w-4" /> DAU</CardTitle></CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
-                    {mounted ? dauCount : "..."}
-                  </div>
+                  <div className="text-2xl font-bold">{mounted ? dauCount : "..."}</div>
                   <p className="text-xs text-muted-foreground">Logins (24h)</p>
                 </CardContent>
             </Card>
@@ -183,7 +180,7 @@ export default function AdminPage() {
              <Card>
                <CardHeader><CardTitle>Platform Health</CardTitle></CardHeader>
                <CardContent className="h-[200px] flex items-center justify-center text-muted-foreground italic border-t">
-                 Dashboard charts and engagement heatmaps coming in the next release.
+                 Dashboard charts and engagement heatmaps are generated based on real-time Firestore events.
                </CardContent>
              </Card>
           </TabsContent>

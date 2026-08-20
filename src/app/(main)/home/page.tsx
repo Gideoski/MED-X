@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -43,7 +42,6 @@ function ScrollReveal({ children, delay = 0 }: { children: React.ReactNode; dela
 
 export default function HomePage() {
   const academicServices = services.filter(s => s.category === "Academic Services");
-  const creativeServices = services.filter(s => s.category === "Creative & Non-Academic Services");
   const plugin = useRef(Autoplay({ delay: 5000, stopOnInteraction: true }));
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
