@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -40,8 +39,7 @@ export default function AccountPage() {
     }
   }, [user]);
 
-  // SELF-HEALING: Specifically repairs accounts like vZ5HFJ1bGrRG9ABK28V6FsCmfDF3
-  // It ONLY triggers if fields are strictly undefined, ensuring no overrides of manual roles.
+  // SELF-HEALING: Only populates strictly missing fields to avoid resetting roles.
   useEffect(() => {
     if (user && userProfile && !isProfileLoading && firestore) {
       const isMissingFields = 
@@ -114,7 +112,7 @@ export default function AccountPage() {
     } catch (e) {
         toast({
             title: "Verification Failed",
-            description: "Could not reach the server. Check your connection.",
+            description: "Could not reach the server.",
             variant: "destructive"
         });
     } finally {
@@ -127,14 +125,14 @@ export default function AccountPage() {
   }
 
   if (!user) {
-    return <div className="flex h-screen w-full items-center justify-center">Please log in to view your account details.</div>;
+    return <div className="flex h-screen w-full items-center justify-center">Please log in to view your account.</div>;
   }
   
   return (
     <div className="space-y-8 max-w-3xl mx-auto">
       <header>
         <h1 className="text-3xl font-bold">Account Settings</h1>
-        <p className="text-muted-foreground">Manage your account and subscription details.</p>
+        <p className="text-muted-foreground">Manage your subscription and profile.</p>
       </header>
 
       <Card>
@@ -175,7 +173,7 @@ export default function AccountPage() {
       <Card>
         <CardHeader>
           <CardTitle>Subscription</CardTitle>
-          <CardDescription>Manage your subscription plan and verify recent payments.</CardDescription>
+          <CardDescription>Verify and manage your plan status.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between rounded-xl border p-6 bg-muted/20 gap-4">
@@ -193,7 +191,7 @@ export default function AccountPage() {
                       <Button asChild>
                         <Link href="/premium">
                           <Star className="mr-2 h-4 w-4 fill-primary-foreground" />
-                          Upgrade to Premium
+                          Upgrade
                         </Link>
                       </Button>
                     ) : (
@@ -209,7 +207,7 @@ export default function AccountPage() {
             </div>
             {!isPremium && (
                 <p className="text-xs text-muted-foreground">
-                    If you just completed a payment but your status hasn't changed, click <strong>Refresh Plan</strong> to sync.
+                    If status hasn't updated after payment, click <strong>Refresh Plan</strong>.
                 </p>
             )}
         </CardContent>
@@ -218,10 +216,10 @@ export default function AccountPage() {
       <Card>
         <CardHeader>
           <CardTitle>Security</CardTitle>
-          <CardDescription>Update your security settings.</CardDescription>
+          <CardDescription>Manage your security settings.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">To change your password, please use the "Forgot Password" flow from the login page.</p>
+            <p className="text-sm text-muted-foreground">To update your password, use the "Forgot Password" link on the login page.</p>
             <Button variant="outline" asChild>
                 <Link href="/forgot-password">Reset Password</Link>
             </Button>

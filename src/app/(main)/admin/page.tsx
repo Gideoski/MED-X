@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -33,7 +32,8 @@ import {
   BookOpen,
   Mail,
   Search,
-  Send
+  Send,
+  AlertCircle
 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, doc, setDoc, query, orderBy } from 'firebase/firestore';
@@ -48,6 +48,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { sendEmailNotification, sendBulkEmailNotification } from '@/lib/actions';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Dialog,
   DialogContent,
@@ -55,7 +56,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/Dialog";
 
 type MaterialWithCollection = EBook & { id: string; collection: string };
 type UserData = { id: string, email: string, isPremium: boolean, role: string, subscriptionExpiresAt?: string | null, lastLoginAt?: string };
@@ -155,10 +156,10 @@ export default function AdminPage() {
       if (selectedUserEmail === 'ALL_USERS') {
         const emails = usersData?.map(u => u.email).filter(Boolean) as string[] || [];
         await sendBulkEmailNotification(emails, subject, message);
-        toast({ title: "Broadcast Sent", description: `Message sent to all ${emails.length} users.` });
+        toast({ title: "Broadcast Simulated", description: `Simulation sent to ${emails.length} logs.` });
       } else {
         await sendEmailNotification(selectedUserEmail, subject, message);
-        toast({ title: "Email Sent", description: `Notification sent to ${selectedUserEmail}.` });
+        toast({ title: "Email Simulated", description: `Simulation sent to ${selectedUserEmail}.` });
       }
       setSelectedUserEmail(null);
     });
@@ -169,12 +170,21 @@ export default function AdminPage() {
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-12">
-        <header className="flex items-center gap-4">
-          <ShieldAlert className="h-10 w-10 text-primary" />
-          <div>
-              <h1 className="text-3xl font-bold tracking-tight">Admin Console</h1>
-              <p className="text-muted-foreground">Manage users, tutorial links, and email notifications.</p>
+        <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <ShieldAlert className="h-10 w-10 text-primary" />
+            <div>
+                <h1 className="text-3xl font-bold tracking-tight">Admin Console</h1>
+                <p className="text-muted-foreground">Manage users, tutorial links, and notifications.</p>
+            </div>
           </div>
+          <Alert variant="destructive" className="max-w-md bg-destructive/5 border-destructive/20 py-2">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle className="text-xs font-bold uppercase tracking-tight">System Notice</AlertTitle>
+            <AlertDescription className="text-xs">
+              Email delivery is in <strong>Simulation Mode</strong>. Connect an API provider to go live.
+            </AlertDescription>
+          </Alert>
         </header>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -194,7 +204,7 @@ export default function AdminPage() {
                 <CardContent><div className="text-2xl font-bold">{usersData?.filter(u => u.isPremium).length || 0}</div><p className="text-xs text-muted-foreground">Active plans</p></CardContent>
             </Card>
             <Card className="bg-primary/5 border-primary/10">
-                <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex items-center gap-2"><Download className="h-4 w-4" /> Engagement</CardTitle></CardHeader>
+                <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex items-center gap-2"><Download className="h-4 w-4" /> Hits</CardTitle></CardHeader>
                 <CardContent><div className="text-2xl font-bold">{allMaterials.reduce((acc, m) => acc + (m.downloads || 0), 0)}</div><p className="text-xs text-muted-foreground">Total downloads</p></CardContent>
             </Card>
             <Card className="bg-primary/5 border-primary/10">
@@ -213,9 +223,9 @@ export default function AdminPage() {
 
           <TabsContent value="overview" className="space-y-6">
              <Card>
-               <CardHeader><CardTitle>Platform Health</CardTitle></CardHeader>
+               <CardHeader><CardTitle>Platform Performance</CardTitle></CardHeader>
                <CardContent className="h-[200px] flex items-center justify-center text-muted-foreground italic border-t">
-                 Real-time activity charts are populated as students engage with e-books and tutorials.
+                 Activity charts will appear as more student data is logged over time.
                </CardContent>
              </Card>
           </TabsContent>
@@ -239,9 +249,6 @@ export default function AdminPage() {
                       onChange={(e) => setUserSearchQuery(e.target.value)}
                     />
                   </div>
-                  <Button variant="outline" size="icon" onClick={() => setSelectedUserEmail('ALL_USERS')} className="sm:hidden">
-                    <Send className="h-4 w-4" />
-                  </Button>
                 </div>
               </CardHeader>
               <CardContent>
@@ -281,13 +288,6 @@ export default function AdminPage() {
                           </TableCell>
                         </TableRow>
                       ))}
-                      {filteredUsers.length === 0 && !isUsersLoading && (
-                        <TableRow>
-                          <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                            No users found matching "{userSearchQuery}"
-                          </TableCell>
-                        </TableRow>
-                      )}
                     </TableBody>
                   </Table>
                 )}
@@ -297,23 +297,21 @@ export default function AdminPage() {
 
           <TabsContent value="content">
             <Card>
-              <CardHeader><CardTitle>Material Performance</CardTitle></CardHeader>
+              <CardHeader><CardTitle>Material Stats</CardTitle></CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Title</TableHead>
-                      <TableHead>Level</TableHead>
-                      <TableHead>Downloads</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead>Hits</TableHead>
+                      <TableHead>Access</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {allMaterials.map(m => (
                       <TableRow key={m.id}>
                         <TableCell className="font-medium">{m.title}</TableCell>
-                        <TableCell>{m.level} Lvl</TableCell>
-                        <TableCell><Badge variant="secondary">{m.downloads || 0} hits</Badge></TableCell>
+                        <TableCell><Badge variant="secondary">{m.downloads || 0}</Badge></TableCell>
                         <TableCell>
                           <Badge variant={m.isPremium ? 'destructive' : 'default'}>
                             {m.isPremium ? 'Premium' : 'Free'}
@@ -331,30 +329,30 @@ export default function AdminPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><Video className="h-5 w-5" /> Tutorial Link</CardTitle>
-                  <CardDescription>Update the Google Meet or Zoom link for Premium students.</CardDescription>
+                  <CardTitle className="flex items-center gap-2"><Video className="h-5 w-5" /> Live Meeting</CardTitle>
+                  <CardDescription>Share a Google Meet link for tutorials.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleUpdateTutorial} className="space-y-4">
                     <div className="space-y-2">
-                      <Label>Current Link</Label>
+                      <Label>Link</Label>
                       <Input name="link" defaultValue={appConfig?.tutorialLink} placeholder="https://meet.google.com/..." />
                     </div>
-                    <Button type="submit" className="w-full">Update Link</Button>
+                    <Button type="submit" className="w-full">Save Link</Button>
                   </form>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><MessageSquareQuote className="h-5 w-5" /> Add Testimonial</CardTitle>
-                  <CardDescription>Add reviews for the homepage carousel.</CardDescription>
+                  <CardTitle className="flex items-center gap-2"><MessageSquareQuote className="h-5 w-5" /> Testimonial</CardTitle>
+                  <CardDescription>Add reviews to the Home page.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleAddTestimonial} className="space-y-4">
-                    <div className="space-y-2"><Label>Student Name</Label><Input name="name" required /></div>
-                    <div className="space-y-2"><Label>Review Text</Label><Textarea name="text" required rows={2} /></div>
-                    <Button type="submit" className="w-full">Publish Review</Button>
+                    <div className="space-y-2"><Label>Name</Label><Input name="name" required /></div>
+                    <div className="space-y-2"><Label>Text</Label><Textarea name="text" required rows={2} /></div>
+                    <Button type="submit" className="w-full">Post Review</Button>
                   </form>
                 </CardContent>
               </Card>
@@ -365,18 +363,21 @@ export default function AdminPage() {
         <Dialog open={!!selectedUserEmail} onOpenChange={(o) => !o && setSelectedUserEmail(null)}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{selectedUserEmail === 'ALL_USERS' ? 'Broadcast Message' : 'Send Email Notification'}</DialogTitle>
+              <DialogTitle className="flex items-center gap-2">
+                {selectedUserEmail === 'ALL_USERS' ? 'Broadcast Simulation' : 'Email Simulation'}
+                <Badge variant="outline" className="text-[10px] py-0">Mock</Badge>
+              </DialogTitle>
               <DialogDescription>
                 {selectedUserEmail === 'ALL_USERS' 
-                  ? `This message will be sent to all ${usersData?.length || 0} registered users.` 
-                  : `Message will be sent to ${selectedUserEmail}.`}
+                  ? `Simulation message will be logged for all ${usersData?.length || 0} users.` 
+                  : `Simulation message will be logged for ${selectedUserEmail}.`}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSendEmail} className="space-y-4">
               <div className="space-y-2"><Label>Subject</Label><Input name="subject" required /></div>
               <div className="space-y-2"><Label>Message</Label><Textarea name="message" required rows={4} /></div>
               <DialogFooter>
-                <Button type="submit" disabled={isPending}>{isPending ? 'Sending...' : 'Send Message'}</Button>
+                <Button type="submit" disabled={isPending}>{isPending ? 'Simulating...' : 'Log Message'}</Button>
               </DialogFooter>
             </form>
           </DialogContent>
