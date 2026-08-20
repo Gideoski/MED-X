@@ -244,7 +244,7 @@ export default function AdminPage() {
               <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <CardTitle>User Management</CardTitle>
-                  <Button variant="outline" size="sm" onClick={() => setSelectedUserEmail('ALL_USERS')} className="hidden sm:flex">
+                  <Button variant="outline" size="sm" onClick={() => setSelectedUserEmail('ALL_USERS')}>
                     <Send className="mr-2 h-4 w-4" /> Broadcast
                   </Button>
                 </div>
@@ -425,7 +425,7 @@ export default function AdminPage() {
         </Tabs>
 
         <Dialog open={!!selectedUserEmail} onOpenChange={(o) => !o && setSelectedUserEmail(null)}>
-          <DialogContent>
+          <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 {selectedUserEmail === 'ALL_USERS' ? 'Broadcast Simulation' : 'Email Simulation'}
