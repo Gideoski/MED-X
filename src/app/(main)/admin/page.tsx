@@ -34,10 +34,11 @@ import {
   Search,
   Send,
   Trash2,
-  Edit2
+  Edit2,
+  XCircle
 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { collection, doc, setDoc, query, orderBy } from 'firebase/firestore';
+import { collection, doc, setDoc, query, orderBy, deleteField } from 'firebase/firestore';
 import { useState, useEffect, useMemo, useTransition } from 'react';
 import type { EBook } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
@@ -134,6 +135,12 @@ export default function AdminPage() {
     const link = formData.get('link') as string;
     setDoc(configRef, { tutorialLink: link, tutorialStatus: 'active' }, { merge: true });
     toast({ title: "Tutorial Updated", description: "Meeting link is now live for students." });
+  };
+
+  const handleDeleteTutorial = () => {
+    if (!firestore || !configRef) return;
+    setDoc(configRef, { tutorialLink: deleteField(), tutorialStatus: 'inactive' }, { merge: true });
+    toast({ title: "Tutorial Removed", description: "The live meeting link has been cleared." });
   };
 
   const handleAddTestimonial = (e: React.FormEvent<HTMLFormElement>) => {
@@ -407,7 +414,19 @@ export default function AdminPage() {
                       <Label>Meeting URL</Label>
                       <Input name="link" defaultValue={appConfig?.tutorialLink} placeholder="https://meet.google.com/..." />
                     </div>
-                    <Button type="submit" className="w-full">Update Link</Button>
+                    <div className="flex gap-2">
+                      <Button type="submit" className="flex-1">Update Link</Button>
+                      {appConfig?.tutorialLink && (
+                        <Button 
+                          type="button" 
+                          variant="destructive" 
+                          onClick={handleDeleteTutorial}
+                          className="px-3"
+                        >
+                          <XCircle className="h-5 w-5" />
+                        </Button>
+                      )}
+                    </div>
                   </form>
                 </CardContent>
               </Card>
