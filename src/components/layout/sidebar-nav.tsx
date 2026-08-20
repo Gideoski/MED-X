@@ -1,3 +1,4 @@
+
 "use client"
  
  import {
@@ -10,7 +11,7 @@
    SidebarFooter,
    useSidebar,
  } from "@/components/ui/sidebar"
- import { Home, Book, GraduationCap, Pencil, Shield, Users, User, Settings, MessageSquare, LogOut } from "lucide-react"
+ import { Home, Book, GraduationCap, Pencil, Shield, Users, User, Settings, MessageSquare, LogOut, Video } from "lucide-react"
  import Logo from "../logo"
  import Link from "next/link"
  import { usePathname } from "next/navigation"
@@ -23,6 +24,7 @@
    { href: "/home", icon: Home, label: "Home" },
    { href: "/100lvl", icon: Book, label: "100 Level" },
    { href: "/200lvl", icon: GraduationCap, label: "200 Level" },
+   { href: "/tutorials", icon: Video, label: "Live Tutorials" },
    { href: "/request-ebook", icon: Pencil, label: "Request E-Book" },
    { href: "/creators", icon: Users, label: "Creators" },
    { href: "/admin", icon: Shield, label: "Admin" },
@@ -42,7 +44,6 @@
    const { user } = useUser();
    const firestore = useFirestore();
 
-   // We use real-time listeners for the user's role to ensure immediate access
    const userDocRef = useMemoFirebase(() => {
      if (!firestore || !user) return null;
      return doc(firestore, 'users', user.uid);

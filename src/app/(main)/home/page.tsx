@@ -1,7 +1,7 @@
 
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { services } from "@/lib/data";
 import {
   Carousel,
@@ -15,7 +15,7 @@ import Autoplay from "embla-carousel-autoplay";
 import { useRef, useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, MessageSquare, Quote, Star, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
@@ -45,33 +45,17 @@ export default function HomePage() {
   const academicServices = services.filter(s => s.category === "Academic Services");
   const creativeServices = services.filter(s => s.category === "Creative & Non-Academic Services");
   const plugin = useRef(Autoplay({ delay: 5000, stopOnInteraction: true }));
-  
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const firestore = useFirestore();
 
-  // Queries for all 4 collections to find any featured item
+  const testimonialsRef = useMemoFirebase(() => (firestore ? query(collection(firestore, 'testimonials'), orderBy('order', 'asc')) : null), [firestore]);
+  const { data: testimonials } = useCollection<{ name: string; text: string; role: string }>(testimonialsRef);
+
   const f100q = useMemoFirebase(() => (firestore ? query(collection(firestore, 'materials_100lvl_free'), orderBy('title', 'asc')) : null), [firestore]);
-  const f200q = useMemoFirebase(() => (firestore ? query(collection(firestore, 'materials_200lvl_free'), orderBy('title', 'asc')) : null), [firestore]);
-  const p100q = useMemoFirebase(() => (firestore ? query(collection(firestore, 'materials_100lvl_premium'), orderBy('title', 'asc')) : null), [firestore]);
-  const p200q = useMemoFirebase(() => (firestore ? query(collection(firestore, 'materials_200lvl_premium'), orderBy('title', 'asc')) : null), [firestore]);
+  const { data: featured } = useCollection<EBook & { isFeatured?: boolean }>(f100q);
 
-  const { data: f100 } = useCollection<EBook & { isFeatured?: boolean }>(f100q);
-  const { data: f200 } = useCollection<EBook & { isFeatured?: boolean }>(f200q);
-  const { data: p100 } = useCollection<EBook & { isFeatured?: boolean }>(p100q);
-  const { data: p200 } = useCollection<EBook & { isFeatured?: boolean }>(p200q);
-
-  const featuredMaterials = useMemo(() => {
-    const all = [
-        ...(f100 ? f100.map(e => ({ ...e, collection: 'materials_100lvl_free' })) : []),
-        ...(f200 ? f200.map(e => ({ ...e, collection: 'materials_200lvl_free' })) : []),
-        ...(p100 ? p100.map(e => ({ ...e, collection: 'materials_100lvl_premium' })) : []),
-        ...(p200 ? p200.map(e => ({ ...e, collection: 'materials_200lvl_premium' })) : [])
-    ];
-    
-    // Strictly display ONLY items toggled as Featured in the Admin Console.
-    return all.filter(e => e.isFeatured === true);
-  }, [f100, f200, p100, p200]);
+  const featuredMaterials = useMemo(() => featured?.filter(e => e.isFeatured === true) || [], [featured]);
 
   useEffect(() => {
     if (!api) return;
@@ -81,112 +65,116 @@ export default function HomePage() {
     return () => { api.off("select", onSelect); api.off("reInit", onSelect); };
   }, [api]);
 
-  const featuredSlides = [
-    { title: "MED-X\nE-BOOKS", subtitle: "Learn with purpose...", description: "Clearly formatted study e-books designed for med students.", cta: "Browse 100Lvl", href: "/100lvl", bg: "bg-primary/5" },
-    { title: "PREMIUM\nACCESS", subtitle: "Unlock your potential", description: "Get unlimited access to advanced materials and revision guides.", cta: "Upgrade Now", href: "/premium", bg: "bg-accent/5" },
-    { title: "CREATOR\nHUB", subtitle: "Share your expertise", description: "Join our team of verified creators and help fellow students.", cta: "Become a Creator", href: "/creators", bg: "bg-primary/10" }
-  ];
-
   return (
-    <div className="mx-auto w-full max-w-full space-y-12 md:space-y-24 pb-12 animate-in fade-in duration-1000 overflow-x-hidden">
-      <section className="px-0 sm:px-4 w-full overflow-hidden relative group">
+    <div className="mx-auto w-full max-w-full space-y-12 md:space-y-24 pb-12 animate-in fade-in duration-1000">
+      <section className="px-0 sm:px-4 w-full">
         <Carousel setApi={setApi} plugins={[plugin.current]} opts={{ loop: true }} className="w-full rounded-none sm:rounded-2xl overflow-hidden border-b sm:border border-border/50 shadow-sm">
           <CarouselContent>
-            {featuredSlides.map((slide, index) => (
-              <CarouselItem key={index}>
-                <div className={`flex flex-col items-center justify-center p-6 md:p-12 text-center h-[380px] md:h-[500px] ${slide.bg}`}>
-                  <h2 className="text-3xl md:text-7xl font-extrabold tracking-tighter text-primary mb-2 md:mb-4 whitespace-pre-line leading-[1.1]">{slide.title}</h2>
-                  <h3 className="text-lg md:text-3xl font-bold text-foreground mb-4 md:mb-6">{slide.subtitle}</h3>
-                  <p className="max-w-2xl text-[12px] md:text-lg text-muted-foreground mb-6 md:mb-8 leading-relaxed line-clamp-3">{slide.description}</p>
-                  <Button asChild size="lg" className="h-9 md:h-12 px-5 md:px-8 text-xs md:text-lg font-bold"><Link href={slide.href}>{slide.cta}<ArrowRight className="ml-2 h-3 w-3 md:h-5 md:w-5" /></Link></Button>
+            <CarouselItem>
+              <div className="flex flex-col items-center justify-center p-6 md:p-12 text-center h-[400px] md:h-[550px] bg-primary/5">
+                <h2 className="text-4xl md:text-8xl font-extrabold tracking-tighter text-primary mb-4 leading-tight">STUDY<br/>SMARTER</h2>
+                <p className="max-w-xl text-lg text-muted-foreground mb-8">Premium e-learning materials designed for medical excellence.</p>
+                <div className="flex flex-wrap justify-center gap-4">
+                  <Button asChild size="lg" className="font-bold"><Link href="/100lvl">Start Learning</Link></Button>
+                  <Button asChild variant="outline" size="lg" className="font-bold border-primary text-primary hover:bg-primary/5">
+                    <Link href="https://tinyurl.com/medxchannel" target="_blank">
+                      <Users className="mr-2 h-5 w-5" /> Join Channel
+                    </Link>
+                  </Button>
                 </div>
-              </CarouselItem>
-            ))}
+              </div>
+            </CarouselItem>
           </CarouselContent>
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3">
-            {featuredSlides.map((_, index) => (
-              <button key={index} onClick={() => api?.scrollTo(index)} className={cn("w-2.5 h-2.5 rounded-full transition-all duration-300", current === index ? "bg-white scale-125 shadow-md ring-2 ring-primary/20" : "bg-white/40 hover:bg-white/60")} aria-label={`Go to slide ${index + 1}`} />
-            ))}
-          </div>
         </Carousel>
       </section>
 
-      {/* Featured Content Section - Controlled by the Admin 'Featured' Toggle */}
       {featuredMaterials.length > 0 && (
-        <section className="px-4 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <section className="px-4 space-y-8 animate-in fade-in duration-700">
           <div className="text-center space-y-2">
-              <h2 className="text-2xl md:text-4xl font-bold tracking-tight">⭐ Featured Materials</h2>
-              <p className="text-muted-foreground text-sm">Our hand-picked selections for your academic success.</p>
+              <h2 className="text-2xl md:text-4xl font-bold tracking-tight">⭐ Editor's Choice</h2>
+              <p className="text-muted-foreground">Highest rated study resources for this semester.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {featuredMaterials.map((ebook, idx) => (
               <ScrollReveal key={ebook.id} delay={idx * 100}>
-                <EBookCard ebook={ebook as EBook} collection={(ebook as any).collection} isUserPremium={false} />
+                <EBookCard ebook={ebook as EBook} collection="materials_100lvl_free" isUserPremium={false} />
               </ScrollReveal>
             ))}
           </div>
         </section>
       )}
 
+      {testimonials && testimonials.length > 0 && (
+        <section className="px-4 py-16 bg-muted/30">
+          <div className="max-w-4xl mx-auto space-y-8">
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl md:text-4xl font-bold">What Students Say</h2>
+              <div className="flex justify-center gap-1"><Star className="h-5 w-5 fill-primary text-primary"/><Star className="h-5 w-5 fill-primary text-primary"/><Star className="h-5 w-5 fill-primary text-primary"/><Star className="h-5 w-5 fill-primary text-primary"/><Star className="h-5 w-5 fill-primary text-primary"/></div>
+            </div>
+            <Carousel opts={{ loop: true }} className="w-full">
+              <CarouselContent>
+                {testimonials.map((t, i) => (
+                  <CarouselItem key={i}>
+                    <Card className="border-none bg-transparent shadow-none">
+                      <CardContent className="flex flex-col items-center text-center p-6 space-y-4">
+                        <Quote className="h-10 w-10 text-primary/20 rotate-180" />
+                        <p className="text-xl md:text-2xl font-medium italic text-foreground/80 leading-relaxed">"{t.text}"</p>
+                        <div>
+                          <p className="font-bold text-lg">{t.name}</p>
+                          <p className="text-sm text-primary">{t.role}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <div className="hidden md:block"><CarouselPrevious /><CarouselNext /></div>
+            </Carousel>
+          </div>
+        </section>
+      )}
+
       <section className="px-4">
-        <div className="text-center mb-12">
-            <h2 className="text-2xl md:text-4xl font-bold tracking-tight">📚 Specialized Services</h2>
+        <div className="text-center mb-16 space-y-4">
+            <h2 className="text-3xl md:text-5xl font-bold tracking-tight">Why Med-X?</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">We provide the structure you need to master your medical curriculum.</p>
         </div>
-        <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
-            <div className="space-y-6">
-                <h3 className="text-center text-lg md:text-2xl font-bold text-primary/80">🎓 Academic Excellence</h3>
-                <div className="grid gap-4">
-                    {academicServices.map((service, idx) => (
-                        <ScrollReveal key={service.title} delay={idx * 50}>
-                          <Card className="border-border/50 shadow-sm hover:border-primary/50 transition-colors">
-                              <CardHeader className="p-5">
-                                  <CardTitle className="flex items-center gap-3 text-base md:text-xl">
-                                      <div className="p-2 bg-primary/10 rounded-lg"><service.icon className="h-5 w-5 text-primary"/></div>
-                                      <span>{service.title}</span>
-                                  </CardTitle>
-                              </CardHeader>
-                              <CardContent className="p-5 pt-0 space-y-2 text-sm text-muted-foreground">
-                                  <p>{service.description}</p>
-                                  <p><strong className="text-foreground">Ideal for:</strong> {service.idealFor}</p>
-                              </CardContent>
-                          </Card>
-                        </ScrollReveal>
-                    ))}
-                </div>
-            </div>
-            <div className="space-y-6">
-                <h3 className="text-center text-lg md:text-2xl font-bold text-primary/80">✍️ Creative Solutions</h3>
-                 <div className="grid gap-4">
-                    {creativeServices.map((service, idx) => (
-                        <ScrollReveal key={service.title} delay={idx * 50}>
-                          <Card className="border-border/50 shadow-sm hover:border-primary/50 transition-colors">
-                              <CardHeader className="p-5">
-                                  <CardTitle className="flex items-center gap-3 text-base md:text-xl">
-                                      <div className="p-2 bg-primary/10 rounded-lg"><service.icon className="h-5 w-5 text-primary"/></div>
-                                      <span>{service.title}</span>
-                                  </CardTitle>
-                              </CardHeader>
-                              <CardContent className="p-5 pt-0 space-y-2 text-sm text-muted-foreground">
-                                  <p>{service.description}</p>
-                                  <p><strong className="text-foreground">Ideal for:</strong> {service.idealFor}</p>
-                              </CardContent>
-                          </Card>
-                        </ScrollReveal>
-                    ))}
-                </div>
-            </div>
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+          {academicServices.slice(0, 3).map((service, idx) => (
+            <ScrollReveal key={service.title} delay={idx * 100}>
+              <Card className="h-full border-border/50 hover:border-primary/50 transition-all duration-300">
+                <CardHeader>
+                  <div className="p-3 bg-primary/10 w-fit rounded-xl mb-4"><service.icon className="h-6 w-6 text-primary"/></div>
+                  <CardTitle className="text-xl">{service.title}</CardTitle>
+                </CardHeader>
+                <CardContent className="text-muted-foreground leading-relaxed">
+                  {service.description}
+                </CardContent>
+              </Card>
+            </ScrollReveal>
+          ))}
         </div>
       </section>
 
       <ScrollReveal>
-        <section className="mx-4 py-16 bg-primary/5 rounded-3xl text-center space-y-6">
-          <h2 className="text-2xl md:text-4xl font-bold px-4">Ready to Study Smarter?</h2>
-          <div className="flex flex-col sm:flex-row justify-center gap-4 px-8 pt-4">
-              <Button asChild size="lg" className="h-14 px-10 text-lg font-bold"><Link href="/signup">Get Started Now</Link></Button>
-              <Button asChild size="lg" variant="outline" className="h-14 px-10 text-lg font-bold border-primary text-primary hover:bg-primary/5"><Link href="/premium">Explore Premium</Link></Button>
+        <section className="mx-4 py-20 bg-primary rounded-[3rem] text-primary-foreground text-center space-y-8 overflow-hidden relative">
+          <div className="absolute top-0 right-0 p-8 opacity-10"><Users className="h-64 w-64" /></div>
+          <h2 className="text-3xl md:text-6xl font-bold px-4 relative z-10">Join the Med-X Community</h2>
+          <p className="text-primary-foreground/80 max-w-xl mx-auto text-lg px-6 relative z-10">Stay updated with exam alerts, study tips, and new materials directly in our WhatsApp channel.</p>
+          <div className="flex flex-col sm:flex-row justify-center gap-4 px-8 relative z-10">
+              <Button asChild size="lg" variant="secondary" className="h-16 px-10 text-xl font-bold shadow-2xl hover:scale-105 transition-transform">
+                <Link href="https://tinyurl.com/medxchannel" target="_blank"><MessageSquare className="mr-2 h-6 w-6" /> WhatsApp Channel</Link>
+              </Button>
+              <Button asChild size="lg" className="h-16 px-10 text-xl font-bold border-2 border-white/20 bg-white/10 hover:bg-white/20 shadow-2xl hover:scale-105 transition-transform">
+                <Link href="/premium">Explore Premium</Link>
+              </Button>
           </div>
         </section>
       </ScrollReveal>
+      
+      <div className="text-center py-8 opacity-60">
+        <Link href="/privacy" className="text-sm hover:underline">Privacy Policy & Terms of Service</Link>
+      </div>
     </div>
   );
 }

@@ -5,176 +5,54 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a user account on the Med-X platform, including students, creators, and administrators.",
+      "description": "Represents a user account on the Med-X platform.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the User entity."
-        },
-        "email": {
-          "type": "string",
-          "description": "The user's unique email address used for login.",
-          "format": "email"
-        },
-        "firstName": {
-          "type": "string",
-          "description": "The first name of the user."
-        },
-        "lastName": {
-          "type": "string",
-          "description": "The last name of the user."
-        },
-        "role": {
-          "type": "string",
-          "description": "The role of the user within the system, determining their permissions and access levels.",
-          "format": "enum",
-          "items": {
-            "type": "string"
-          }
-        },
-        "isPremium": {
-          "type": "boolean",
-          "description": "Indicates if the user has an active premium subscription, granting access to exclusive content."
-        },
-        "subscriptionExpiresAt": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Timestamp indicating when the user's premium subscription expires. Used to automate downgrading."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp indicating when the user account was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp indicating when the user account was last updated.",
-          "format": "date-time"
-        },
-        "lastLoginAt": {
-          "type": "string",
-          "description": "Timestamp indicating the user's last successful login.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string" },
+        "isPremium": { "type": "boolean" },
+        "lastLoginAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "email",
-        "role",
-        "isPremium",
-        "createdAt",
-        "updatedAt"
-      ]
+      "required": ["id", "email", "role", "isPremium"]
     },
     "Material": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Material",
       "type": "object",
-      "description": "Represents an educational item such as an e-book, summary, or Q&A pack available on Med-X.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Material entity."
-        },
-        "title": {
-          "type": "string",
-          "description": "The title of the educational material."
-        },
-        "description": {
-          "type": "string",
-          "description": "A comprehensive description of the material's content and purpose."
-        },
-        "type": {
-          "type": "string",
-          "description": "The category or type of the educational material.",
-          "format": "enum",
-          "items": {
-            "type": "string"
-          }
-        },
-        "level": {
-          "type": "number",
-          "description": "The academic level or target audience for which the material is designed (100 or 200)."
-        },
-        "categoryId": {
-          "type": "string",
-          "description": "The ID of the course category this material belongs to (e.g., Anatomy ID)."
-        },
-        "filePath": {
-          "type": "string",
-          "description": "The URI path to the actual digital file of the educational material (e.g., PDF).",
-          "format": "uri"
-        },
-        "coverImage": {
-          "type": "string",
-          "description": "The cover image for the material, stored as a Base64 string or URI."
-        },
-        "isPremium": {
-          "type": "boolean",
-          "description": "Indicates if this material is part of the premium subscription content."
-        },
-        "creatorId": {
-          "type": "string",
-          "description": "Reference to the User (creator) who uploaded or authored this material."
-        },
-        "uploadDate": {
-          "type": "string",
-          "description": "Timestamp indicating when the material was first uploaded.",
-          "format": "date-time"
-        },
-        "lastUpdateDate": {
-          "type": "string",
-          "description": "Timestamp indicating when the material was last updated.",
-          "format": "date-time"
-        },
-        "downloads": {
-          "type": "number",
-          "description": "The total number of times the material's file has been accessed."
-        }
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "downloads": { "type": "number" },
+        "isPremium": { "type": "boolean" }
       },
-      "required": [
-        "id",
-        "title",
-        "description",
-        "level",
-        "filePath",
-        "isPremium",
-        "uploadDate"
-      ]
+      "required": ["id", "title"]
     },
-    "CourseCategory": {
+    "Testimonial": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "CourseCategory",
+      "title": "Testimonial",
       "type": "object",
-      "description": "A category for organizing e-books (e.g., Anatomy, ICT).",
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
-        "level": { "type": "number" },
+        "text": { "type": "string" },
+        "role": { "type": "string" },
         "order": { "type": "number" }
       },
-      "required": ["id", "name", "level"]
+      "required": ["name", "text"]
     },
-    "CreatorProfile": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "CreatorProfile",
+    "AppConfig": {
+      "title": "AppConfig",
       "type": "object",
-      "description": "Stores public-facing profile information for creators.",
+      "description": "Global settings like the current live tutorial link.",
       "properties": {
-        "id": { "type": "string" },
-        "userId": { "type": "string" },
-        "bio": { "type": "string" },
-        "profilePictureUrl": { "type": "string", "format": "uri" },
-        "verifiedByAdmin": { "type": "boolean" }
-      },
-      "required": ["id", "userId", "verifiedByAdmin"]
+        "tutorialLink": { "type": "string" },
+        "tutorialStatus": { "type": "string" }
+      }
     }
   },
   "auth": {
-    "providers": [
-      "password",
-      "anonymous"
-    ]
+    "providers": ["password", "anonymous"]
   },
   "firestore": {
     "structure": [
@@ -183,47 +61,23 @@
         "definition": {
           "entityName": "User",
           "schema": { "$ref": "#/backend/entities/User" },
-          "description": "Stores private user profile information."
+          "description": "User profiles."
         }
       },
       {
-        "path": "/course_categories/{categoryId}",
+        "path": "/testimonials/{id}",
         "definition": {
-          "entityName": "CourseCategory",
-          "schema": { "$ref": "#/backend/entities/CourseCategory" },
-          "description": "Categories for organizing materials."
+          "entityName": "Testimonial",
+          "schema": { "$ref": "#/backend/entities/Testimonial" },
+          "description": "Student reviews."
         }
       },
       {
-        "path": "/materials_100lvl_free/{materialId}",
+        "path": "/config/global",
         "definition": {
-          "entityName": "Material",
-          "schema": { "$ref": "#/backend/entities/Material" },
-          "description": "Free materials for 100 level."
-        }
-      },
-      {
-        "path": "/materials_100lvl_premium/{materialId}",
-        "definition": {
-          "entityName": "Material",
-          "schema": { "$ref": "#/backend/entities/Material" },
-          "description": "Premium materials for 100 level."
-        }
-      },
-      {
-        "path": "/materials_200lvl_free/{materialId}",
-        "definition": {
-          "entityName": "Material",
-          "schema": { "$ref": "#/backend/entities/Material" },
-          "description": "Free materials for 200 level."
-        }
-      },
-      {
-        "path": "/materials_200lvl_premium/{materialId}",
-        "definition": {
-          "entityName": "Material",
-          "schema": { "$ref": "#/backend/entities/Material" },
-          "description": "Premium materials for 200 level."
+          "entityName": "AppConfig",
+          "schema": { "$ref": "#/backend/entities/AppConfig" },
+          "description": "Global app settings."
         }
       }
     ]
