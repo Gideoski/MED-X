@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -34,7 +33,6 @@ import {
   Mail,
   Search,
   Send,
-  AlertCircle,
   Trash2,
   Edit2
 } from 'lucide-react';
@@ -51,7 +49,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { sendEmailNotification, sendBulkEmailNotification } from '@/lib/actions';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Dialog,
   DialogContent,
@@ -219,8 +216,6 @@ export default function AdminPage() {
   if (isProfileLoading) return <div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   if (userProfile?.role !== 'admin') return <div className="flex flex-col items-center justify-center h-[60vh]"><ShieldX className="h-16 w-16 text-destructive mb-4" /><h1 className="text-3xl font-bold">Access Denied</h1></div>;
 
-  const isResendConfigured = !!process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== 'your_resend_api_key_here';
-
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-12">
         <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -231,19 +226,6 @@ export default function AdminPage() {
                 <p className="text-muted-foreground">Manage users, tutorials, and content resources.</p>
             </div>
           </div>
-          {!isResendConfigured ? (
-            <Alert variant="destructive" className="max-w-md bg-destructive/5 border-destructive/20 py-2">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle className="text-xs font-bold uppercase tracking-tight">System Notice</AlertTitle>
-              <AlertDescription className="text-xs">
-                Email delivery is in <strong>Simulation Mode</strong>. Add your Resend API Key to the .env file.
-              </AlertDescription>
-            </Alert>
-          ) : (
-            <Badge variant="outline" className="h-fit bg-green-500/10 text-green-600 border-green-200 py-1.5 px-3">
-              <div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" /> Live Notifications</div>
-            </Badge>
-          )}
         </header>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -486,9 +468,6 @@ export default function AdminPage() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 {selectedUserEmail === 'ALL_USERS' ? 'Broadcast Notification' : 'Direct Notification'}
-                {!isResendConfigured && (
-                  <Badge variant="outline" className="text-[10px] py-0 bg-primary/5 uppercase">Mock</Badge>
-                )}
               </DialogTitle>
               <DialogDescription>
                 {selectedUserEmail === 'ALL_USERS' 
