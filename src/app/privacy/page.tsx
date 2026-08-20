@@ -34,7 +34,7 @@ export default function PrivacyPolicyPage() {
           <section className="space-y-3">
             <h2 className="text-2xl font-bold text-primary">1. Introduction</h2>
             <p>
-              Med-X is committed to protecting the privacy and security of personal data. This Privacy Policy describes how information is collected, used, and protected when provided through the e-learning platform. Platform operation complies with the Nigeria Data Protection Regulation (NDPR) and other applicable global data protection standards.
+              Med-X prioritizes the protection of privacy and the security of personal data. This Privacy Policy describes the methods by which information is collected, utilized, and protected when provided through the e-learning platform. Platform operations comply with the Nigeria Data Protection Regulation (NDPR) and applicable global data protection standards.
             </p>
           </section>
 
@@ -43,7 +43,7 @@ export default function PrivacyPolicyPage() {
             <div className="space-y-4">
               <div>
                 <h3 className="font-bold text-lg">Personal Data</h3>
-                <p>Identifiable information such as name, email address, and academic level is collected during the registration process to personalize the learning experience and provide account-related communications.</p>
+                <p>Identifiable information such as name, email address, and academic level is collected during the registration process to personalize the learning experience and facilitate account-related communications.</p>
               </div>
               <div>
                 <h3 className="font-bold text-lg">Payment and Transactional Data</h3>
@@ -59,41 +59,41 @@ export default function PrivacyPolicyPage() {
           <section className="space-y-3">
             <h2 className="text-2xl font-bold text-primary">3. Legal Basis for Processing</h2>
             <p>
-              Data processing is based on explicit consent given at the time of account creation and for the performance of the service agreement (i.e., providing access to e-learning materials).
+              Data processing is based on explicit consent provided at the time of account creation and is necessary for the performance of the service agreement, specifically providing access to e-learning materials.
             </p>
           </section>
 
           <section className="space-y-3">
             <h2 className="text-2xl font-bold text-primary">4. Data Sharing and Third Parties</h2>
             <p>
-              Personal data is not sold or rented to third parties. Data is shared only with essential service providers (e.g., Google Firebase for database hosting) who are contractually bound to maintain data confidentiality and security.
+              Personal data is not sold or rented to third parties. Data is shared only with essential service providers, such as Google Firebase for database hosting, who are contractually bound to maintain data confidentiality and security.
             </p>
           </section>
 
           <section className="space-y-3">
             <h2 className="text-2xl font-bold text-primary">5. Data Retention and Security</h2>
             <p>
-              Data is retained for as long as the account is active. Industry-standard encryption and security protocols are employed to prevent unauthorized access, alteration, or disclosure of information.
+              Data is retained for as long as the account remains active. Industry-standard encryption and security protocols are employed to prevent unauthorized access, alteration, or disclosure of information.
             </p>
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-2xl font-bold text-primary">6. Your Rights</h2>
+            <h2 className="text-2xl font-bold text-primary">6. User Rights</h2>
             <p>
-              As a user, rights include requesting access to held data, requesting corrections to inaccurate information, or requesting the deletion of the account and associated data. Consent may be withdrawn at any time.
+              User rights include requesting access to held data, requesting corrections to inaccurate information, or requesting the deletion of the account and associated data. Consent may be withdrawn at any time.
             </p>
           </section>
 
           <section className="space-y-3">
             <h2 className="text-2xl font-bold text-primary">7. Cookies Policy</h2>
             <p>
-              Strictly necessary cookies are used to manage authentication sessions and preserve user preferences (such as light/dark mode). These cookies are essential for core platform functionality.
+              Strictly necessary cookies are used to manage authentication sessions and preserve user preferences, such as light or dark mode settings. These cookies are essential for core platform functionality.
             </p>
           </section>
 
           <section className="space-y-3 border-t pt-8">
             <h2 className="text-2xl font-bold text-primary">8. Contact Information</h2>
-            <p>For any questions regarding this policy or to exercise data rights, contact the Med-X Data Privacy team:</p>
+            <p>For questions regarding this policy or the exercise of data rights, contact the Med-X Data Privacy team:</p>
             <div className="pt-2">
               <Button asChild variant="default" className="h-12 px-8 font-bold shadow-lg">
                 <Link href="https://wa.me/2349123338586" target="_blank">
