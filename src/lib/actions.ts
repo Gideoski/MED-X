@@ -1,13 +1,13 @@
+
 'use server';
 
-import { aiHelpBot } from '@/ai/flows/ai-help-bot';
+/**
+ * @fileOverview Application server actions.
+ */
 
-export async function askHelpBot(question: string): Promise<string> {
-  try {
-    const answer = await aiHelpBot(question);
-    return answer;
-  } catch (error) {
-    console.error("Error calling AI Help Bot:", error);
-    return "I'm sorry, but I encountered an error while trying to generate a response. Please try again later.";
-  }
+export async function sendEmailNotification(email: string, subject: string, message: string): Promise<boolean> {
+  // Simulated email notification system
+  console.log(`Sending email to ${email}: [${subject}] ${message}`);
+  // In a real production environment, integrate with a service like SendGrid, Resend, or Firebase Extensions.
+  return new Promise((res) => setTimeout(() => res(true), 1000));
 }

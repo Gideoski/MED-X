@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -21,24 +22,20 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { 
   ShieldAlert, 
-  Trash2, 
   Loader2, 
   ShieldX, 
-  Edit, 
-  Plus,
-  LayoutGrid,
+  Video, 
+  MessageSquareQuote, 
+  Activity,
   Users as UsersIcon,
   Star,
   Download,
   BookOpen,
-  UserCheck,
-  Video,
-  MessageSquareQuote,
-  Activity
+  Mail
 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { collection, deleteDoc, doc, setDoc, query, orderBy } from 'firebase/firestore';
-import { useState, useEffect, useMemo } from 'react';
+import { collection, doc, setDoc, query, orderBy } from 'firebase/firestore';
+import { useState, useEffect, useMemo, useTransition } from 'react';
 import type { EBook } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
@@ -48,6 +45,15 @@ import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { sendEmailNotification } from '@/lib/actions';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type MaterialWithCollection = EBook & { id: string; collection: string };
 type UserData = { id: string, email: string, isPremium: boolean, role: string, subscriptionExpiresAt?: string | null, lastLoginAt?: string };
@@ -58,20 +64,20 @@ export default function AdminPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const { user } = useUser();
+  const [isPending, startTransition] = useTransition();
 
   const [allMaterials, setAllMaterials] = useState<MaterialWithCollection[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
   const [mounted, setMounted] = useState(false);
+  const [selectedUserEmail, setSelectedUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Auth/Role Check
   const userDocRef = useMemoFirebase(() => (firestore && user ? doc(firestore, 'users', user.uid) : null), [firestore, user]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<{ role: string }>(userDocRef);
 
-  // Data Fetching
   const usersRef = useMemoFirebase(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
   const { data: usersData, isLoading: isUsersLoading } = useCollection<UserData>(usersRef);
 
@@ -81,7 +87,6 @@ export default function AdminPage() {
   const configRef = useMemoFirebase(() => (firestore ? doc(firestore, 'config', 'global') : null), [firestore]);
   const { data: appConfig } = useDoc<AppConfig>(configRef);
 
-  // DAU Calculation - Hydration safe
   const dauCount = useMemo(() => {
     if (!usersData || !mounted) return 0;
     const oneDayAgo = subHours(new Date(), 24);
@@ -129,6 +134,20 @@ export default function AdminPage() {
     toast({ title: "Review Added", description: "Testimonial is now visible on home page." });
   };
 
+  const handleSendEmail = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!selectedUserEmail) return;
+    const formData = new FormData(e.currentTarget);
+    const subject = formData.get('subject') as string;
+    const message = formData.get('message') as string;
+
+    startTransition(async () => {
+      await sendEmailNotification(selectedUserEmail, subject, message);
+      setSelectedUserEmail(null);
+      toast({ title: "Email Sent", description: `Notification sent to ${selectedUserEmail}.` });
+    });
+  };
+
   if (isProfileLoading) return <div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   if (userProfile?.role !== 'admin') return <div className="flex flex-col items-center justify-center h-[60vh]"><ShieldX className="h-16 w-16 text-destructive mb-4" /><h1 className="text-3xl font-bold">Access Denied</h1></div>;
 
@@ -138,7 +157,7 @@ export default function AdminPage() {
           <ShieldAlert className="h-10 w-10 text-primary" />
           <div>
               <h1 className="text-3xl font-bold tracking-tight">Admin Console</h1>
-              <p className="text-muted-foreground">Manage users, tutorial links, and content performance.</p>
+              <p className="text-muted-foreground">Manage users, tutorial links, and email notifications.</p>
           </div>
         </header>
 
@@ -180,7 +199,7 @@ export default function AdminPage() {
              <Card>
                <CardHeader><CardTitle>Platform Health</CardTitle></CardHeader>
                <CardContent className="h-[200px] flex items-center justify-center text-muted-foreground italic border-t">
-                 Dashboard charts and engagement heatmaps are generated based on real-time Firestore events.
+                 Real-time activity charts are populated as students engage with e-books and tutorials.
                </CardContent>
              </Card>
           </TabsContent>
@@ -196,6 +215,7 @@ export default function AdminPage() {
                         <TableHead>Email</TableHead>
                         <TableHead>Premium</TableHead>
                         <TableHead>Role</TableHead>
+                        <TableHead className="text-right">Notify</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -218,6 +238,9 @@ export default function AdminPage() {
                                 <SelectItem value="admin">Admin</SelectItem>
                               </SelectContent>
                             </Select>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="icon" onClick={() => setSelectedUserEmail(u.email)}><Mail className="h-4 w-4" /></Button>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -294,6 +317,22 @@ export default function AdminPage() {
             </div>
           </TabsContent>
         </Tabs>
+
+        <Dialog open={!!selectedUserEmail} onOpenChange={(o) => !o && setSelectedUserEmail(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Send Email Notification</DialogTitle>
+              <DialogDescription>Message will be sent to {selectedUserEmail}.</DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSendEmail} className="space-y-4">
+              <div className="space-y-2"><Label>Subject</Label><Input name="subject" required /></div>
+              <div className="space-y-2"><Label>Message</Label><Textarea name="message" required rows={4} /></div>
+              <DialogFooter>
+                <Button type="submit" disabled={isPending}>{isPending ? 'Sending...' : 'Send Message'}</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
     </div>
   );
 }
