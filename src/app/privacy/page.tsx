@@ -66,7 +66,7 @@ export default function PrivacyPolicyPage() {
           <section className="space-y-3">
             <h2 className="text-2xl font-bold text-primary">4. Data Sharing and Third Parties</h2>
             <p>
-              Personal data is not sold or rented to third parties. Data is shared only with essential service providers, such as Google Firebase for database hosting, who are contractually bound to maintain data confidentiality and security.
+              Personal data is not sold or rented to third parties. Data is shared only with essential infrastructure service providers who are contractually bound to maintain data confidentiality and security.
             </p>
           </section>
 
