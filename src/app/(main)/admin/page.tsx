@@ -62,6 +62,11 @@ export default function AdminPage() {
 
   const [allMaterials, setAllMaterials] = useState<MaterialWithCollection[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Auth/Role Check
   const userDocRef = useMemoFirebase(() => (firestore && user ? doc(firestore, 'users', user.uid) : null), [firestore, user]);
@@ -77,12 +82,12 @@ export default function AdminPage() {
   const configRef = useMemoFirebase(() => (firestore ? doc(firestore, 'config', 'global') : null), [firestore]);
   const { data: appConfig } = useDoc<AppConfig>(configRef);
 
-  // Stats Logic
+  // Stats Logic - Safe from hydration errors using mounted check
   const dauCount = useMemo(() => {
-    if (!usersData) return 0;
+    if (!usersData || !mounted) return 0;
     const oneDayAgo = subHours(new Date(), 24);
     return usersData.filter(u => u.lastLoginAt && isAfter(new Date(u.lastLoginAt), oneDayAgo)).length;
-  }, [usersData]);
+  }, [usersData, mounted]);
 
   const q1 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_100lvl_free') : null), [firestore]);
   const q2 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_100lvl_premium') : null), [firestore]);
@@ -141,7 +146,12 @@ export default function AdminPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <Card className="bg-primary/5 border-primary/10">
                 <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex items-center gap-2"><Activity className="h-4 w-4" /> DAU</CardTitle></CardHeader>
-                <CardContent><div className="text-2xl font-bold">{dauCount}</div><p className="text-xs text-muted-foreground">Logins (24h)</p></CardContent>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {mounted ? dauCount : "..."}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Logins (24h)</p>
+                </CardContent>
             </Card>
             <Card className="bg-primary/5 border-primary/10">
                 <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex items-center gap-2"><UsersIcon className="h-4 w-4" /> Users</CardTitle></CardHeader>

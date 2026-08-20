@@ -1,19 +1,28 @@
 
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function PrivacyPolicyPage() {
+  const [lastUpdated, setLastUpdated] = useState("October 2023");
+
+  useEffect(() => {
+    const now = new Date();
+    const formatted = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    setLastUpdated(formatted);
+  }, []);
+
   return (
     <div className="container max-w-4xl mx-auto py-12 px-6 space-y-8">
       <Button asChild variant="ghost"><Link href="/"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Home</Link></Button>
       
       <div className="space-y-4">
         <h1 className="text-4xl font-bold tracking-tight">Privacy Policy</h1>
-        <p className="text-muted-foreground italic">Last Updated: October 2023</p>
+        <p className="text-muted-foreground italic">Last Updated: {lastUpdated}</p>
       </div>
 
       <ScrollArea className="h-[600px] rounded-md border p-8 bg-card text-foreground leading-relaxed space-y-8">
