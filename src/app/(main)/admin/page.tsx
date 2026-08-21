@@ -225,7 +225,7 @@ export default function AdminPage() {
     const coverFile = (e.currentTarget.elements.namedItem('coverImage') as HTMLInputElement).files?.[0];
 
     startTransition(async () => {
-      let coverImage = editingMaterial?.coverImage || (level === 100 ? '/images/med-x 100lvl ebook cover.jpeg' : '/images/MED-X logo.jpeg');
+      let coverImage = editingMaterial?.coverImage || (level === 100 ? '/images/med-x 100lvl ebook cover.jpeg' : '/images/med-x 200lvl ebook cover.jpeg');
       if (coverFile) {
         coverImage = await new Promise<string>((res, rej) => {
           const reader = new FileReader();
@@ -590,15 +590,15 @@ export default function AdminPage() {
             setIsAddingMaterial(false);
           }
         }}>
-          <DialogContent className="max-w-[95vw] sm:max-w-[500px]">
-            <DialogHeader>
+          <DialogContent className="max-w-[95vw] sm:max-w-[500px] max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader className="shrink-0">
               <DialogTitle>{editingMaterial ? 'Edit Content Resource' : 'Add New Material'}</DialogTitle>
               <DialogDescription>
                 {editingMaterial ? `Update details for "${editingMaterial.title}".` : 'Enter the details for the new resource.'}
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSaveMaterial} className="space-y-4">
-              <ScrollArea className="max-h-[60vh] pr-4">
+            <form onSubmit={handleSaveMaterial} className="flex flex-col flex-grow overflow-hidden gap-4 mt-4">
+              <ScrollArea className="flex-grow pr-4">
                 <div className="space-y-4 py-2">
                   <div className="space-y-2">
                     <Label>Title</Label>
@@ -658,7 +658,7 @@ export default function AdminPage() {
                 </div>
               </ScrollArea>
 
-              <DialogFooter className="pt-4">
+              <DialogFooter className="shrink-0 pt-4 border-t">
                 <Button type="button" variant="outline" onClick={() => { setEditingMaterial(null); setIsAddingMaterial(false); }}>Cancel</Button>
                 <Button type="submit" disabled={isPending}>{isPending ? 'Saving...' : (editingMaterial ? 'Save Changes' : 'Publish Material')}</Button>
               </DialogFooter>
