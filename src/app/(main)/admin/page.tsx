@@ -60,6 +60,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -83,6 +93,7 @@ export default function AdminPage() {
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [editingMaterial, setEditingMaterial] = useState<MaterialWithCollection | null>(null);
   const [isAddingMaterial, setIsAddingMaterial] = useState(false);
+  const [materialToDelete, setMaterialToDelete] = useState<MaterialWithCollection | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -272,6 +283,13 @@ export default function AdminPage() {
     });
   };
 
+  const confirmDeleteMaterial = () => {
+    if (!firestore || !materialToDelete) return;
+    deleteDocumentNonBlocking(doc(firestore, materialToDelete.collection, materialToDelete.id));
+    setMaterialToDelete(null);
+    toast({ title: "Material Deleted", description: "Resource has been removed from the platform." });
+  };
+
   if (isProfileLoading) return <div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   if (userProfile?.role !== 'admin') return <div className="flex flex-col items-center justify-center h-[60vh]"><ShieldX className="h-16 w-16 text-destructive mb-4" /><h1 className="text-3xl font-bold">Access Denied</h1></div>;
 
@@ -430,7 +448,7 @@ export default function AdminPage() {
                         <TableHead>Level</TableHead>
                         <TableHead>Hits</TableHead>
                         <TableHead>Type</TableHead>
-                        <TableHead className="text-right">Edit</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -450,9 +468,14 @@ export default function AdminPage() {
                             </div>
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingMaterial(m)}>
-                              <Edit2 className="h-4 w-4" />
-                            </Button>
+                            <div className="flex justify-end gap-2">
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingMaterial(m)}>
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setMaterialToDelete(m)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -666,6 +689,24 @@ export default function AdminPage() {
             </form>
           </DialogContent>
         </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={!!materialToDelete} onOpenChange={(o) => !o && setMaterialToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete <span className="font-bold">"{materialToDelete?.title}"</span> from the platform. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDeleteMaterial} className="bg-destructive hover:bg-destructive/90">
+                Delete Material
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
     </div>
   );
 }
