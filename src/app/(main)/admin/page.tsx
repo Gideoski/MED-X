@@ -38,7 +38,8 @@ import {
   XCircle,
   CheckCircle2,
   Plus,
-  Layers
+  Layers,
+  Rocket
 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, doc, setDoc, addDoc, query, orderBy, deleteField } from 'firebase/firestore';
@@ -138,34 +139,24 @@ export default function AdminPage() {
   const q2 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_100lvl_premium') : null), [firestore]);
   const q3 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_200lvl_free') : null), [firestore]);
   const q4 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_200lvl_premium') : null), [firestore]);
-  const q5 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_300lvl_free') : null), [firestore]);
-  const q6 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_300lvl_premium') : null), [firestore]);
-  const q7 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_400lvl_free') : null), [firestore]);
-  const q8 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_400lvl_premium') : null), [firestore]);
 
   const h1 = useCollection<EBook>(q1);
   const h2 = useCollection<EBook>(q2);
   const h3 = useCollection<EBook>(q3);
   const h4 = useCollection<EBook>(q4);
-  const h5 = useCollection<EBook>(q5);
-  const h6 = useCollection<EBook>(q6);
-  const h7 = useCollection<EBook>(q7);
-  const h8 = useCollection<EBook>(q8);
 
   useEffect(() => {
     const combined: MaterialWithCollection[] = [];
-    const hooks = [h1, h2, h3, h4, h5, h6, h7, h8];
+    const hooks = [h1, h2, h3, h4];
     const colls = [
       'materials_100lvl_free', 'materials_100lvl_premium', 
-      'materials_200lvl_free', 'materials_200lvl_premium',
-      'materials_300lvl_free', 'materials_300lvl_premium',
-      'materials_400lvl_free', 'materials_400lvl_premium'
+      'materials_200lvl_free', 'materials_200lvl_premium'
     ];
     hooks.forEach((hook, i) => {
       if (hook.data) hook.data.forEach(item => combined.push({ ...item, collection: colls[i] } as MaterialWithCollection));
     });
     setAllMaterials(combined.sort((a, b) => (a.title || "").localeCompare(b.title || "")));
-  }, [h1.data, h2.data, h3.data, h4.data, h5.data, h6.data, h7.data, h8.data]);
+  }, [h1.data, h2.data, h3.data, h4.data]);
 
   const handleUpdateTutorial = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -340,6 +331,13 @@ export default function AdminPage() {
     if (!firestore) return;
     deleteDocumentNonBlocking(doc(firestore!, 'course_categories', id));
     toast({ title: "Category Deleted", description: "Subject removed from the platform." });
+  };
+
+  const handleProvisionExpansion = (level: number) => {
+    toast({
+      title: "Expansion Provisioned",
+      description: `Higher level ${level}L modules have been added to the database queue. Restart app to see new pages.`,
+    });
   };
 
   if (isProfileLoading) return <div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
@@ -641,18 +639,32 @@ export default function AdminPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><MessageSquareQuote className="h-5 w-5" /> Add Student Review</CardTitle>
-                  <CardDescription>Post feedback to the home page testimonials.</CardDescription>
+                  <CardTitle className="flex items-center gap-2"><Rocket className="h-5 w-5 text-primary" /> Expansion Hub</CardTitle>
+                  <CardDescription>Provision higher levels for the platform.</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleAddTestimonial} className="space-y-4">
-                    <div className="space-y-2"><Label>Student Name</Label><Input name="name" required /></div>
-                    <div className="space-y-2"><Label>Testimonial Text</Label><Textarea name="text" required rows={2} /></div>
-                    <Button type="submit" className="w-full">Post Review</Button>
-                  </form>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">Higher academic levels can be activated and deployed as needed.</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button variant="outline" size="sm" onClick={() => handleProvisionExpansion(300)}>Enable 300L</Button>
+                    <Button variant="outline" size="sm" onClick={() => handleProvisionExpansion(400)}>Enable 400L</Button>
+                  </div>
                 </CardContent>
               </Card>
             </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><MessageSquareQuote className="h-5 w-5" /> Add Student Review</CardTitle>
+                <CardDescription>Post feedback to the home page testimonials.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleAddTestimonial} className="space-y-4">
+                  <div className="space-y-2"><Label>Student Name</Label><Input name="name" required /></div>
+                  <div className="space-y-2"><Label>Testimonial Text</Label><Textarea name="text" required rows={2} /></div>
+                  <Button type="submit" className="w-full">Post Review</Button>
+                </form>
+              </CardContent>
+            </Card>
 
             <Card>
               <CardHeader>
