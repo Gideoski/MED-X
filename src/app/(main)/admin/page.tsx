@@ -218,6 +218,8 @@ export default function AdminPage() {
     const description = formData.get('description') as string;
     const isPremium = formData.get('access') === 'premium';
     const level = parseInt(formData.get('level') as string);
+    // Standard checkbox/switch 'on' check for FormData
+    const isFeatured = formData.get('isFeatured') === 'on';
 
     startTransition(async () => {
       const oldCollection = editingMaterial.collection;
@@ -228,6 +230,7 @@ export default function AdminPage() {
         description,
         isPremium,
         level,
+        isFeatured,
         lastUpdateDate: new Date().toISOString()
       };
 
@@ -408,9 +411,14 @@ export default function AdminPage() {
                           <TableCell><Badge variant="outline">{m.level}L</Badge></TableCell>
                           <TableCell><Badge variant="secondary">{m.downloads || 0}</Badge></TableCell>
                           <TableCell>
-                            <Badge variant={m.isPremium ? 'destructive' : 'default'} className="text-[10px] uppercase">
-                              {m.isPremium ? 'Premium' : 'Free'}
-                            </Badge>
+                            <div className="flex gap-1">
+                              <Badge variant={m.isPremium ? 'destructive' : 'default'} className="text-[10px] uppercase">
+                                {m.isPremium ? 'Premium' : 'Free'}
+                              </Badge>
+                              {m.isFeatured && (
+                                <Badge variant="secondary" className="text-[10px] uppercase bg-amber-100 text-amber-700">Featured</Badge>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell className="text-right">
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingMaterial(m)}>
@@ -583,6 +591,16 @@ export default function AdminPage() {
                   </RadioGroup>
                 </div>
               </div>
+              
+              {/* RESTORED EDITOR'S CHOICE FEATURE */}
+              <div className="flex items-center justify-between rounded-lg border p-4 bg-muted/20">
+                <div className="space-y-0.5">
+                  <Label>Editor's Choice</Label>
+                  <p className="text-xs text-muted-foreground">Feature this on the Home page spotlight.</p>
+                </div>
+                <Switch name="isFeatured" defaultChecked={editingMaterial?.isFeatured} />
+              </div>
+
               <DialogFooter className="pt-4">
                 <Button type="button" variant="outline" onClick={() => setEditingMaterial(null)}>Cancel</Button>
                 <Button type="submit" disabled={isPending}>{isPending ? 'Saving...' : 'Save Changes'}</Button>

@@ -50,10 +50,34 @@ export default function HomePage() {
   const testimonialsRef = useMemoFirebase(() => (firestore ? query(collection(firestore, 'testimonials'), orderBy('order', 'asc')) : null), [firestore]);
   const { data: testimonials } = useCollection<{ name: string; text: string; role: string }>(testimonialsRef);
 
-  const f100q = useMemoFirebase(() => (firestore ? query(collection(firestore, 'materials_100lvl_free'), orderBy('title', 'asc')) : null), [firestore]);
-  const { data: featured } = useCollection<EBook & { isFeatured?: boolean }>(f100q);
+  // FETCH ALL COLLECTIONS TO FIND FEATURED ITEMS PLATFORM-WIDE
+  const q1 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_100lvl_free') : null), [firestore]);
+  const q2 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_100lvl_premium') : null), [firestore]);
+  const q3 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_200lvl_free') : null), [firestore]);
+  const q4 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_200lvl_premium') : null), [firestore]);
 
-  const featuredMaterials = useMemo(() => featured?.filter(e => e.isFeatured === true) || [], [featured]);
+  const h1 = useCollection<EBook>(q1);
+  const h2 = useCollection<EBook>(q2);
+  const h3 = useCollection<EBook>(q3);
+  const h4 = useCollection<EBook>(q4);
+
+  const featuredMaterials = useMemo(() => {
+    const combined: (EBook & { collection: string })[] = [];
+    const hooks = [h1, h2, h3, h4];
+    const colls = ['materials_100lvl_free', 'materials_100lvl_premium', 'materials_200lvl_free', 'materials_200lvl_premium'];
+    
+    hooks.forEach((hook, i) => {
+      if (hook.data) {
+        hook.data.forEach(item => {
+          if (item.isFeatured) {
+            combined.push({ ...item, collection: colls[i] });
+          }
+        });
+      }
+    });
+    
+    return combined.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+  }, [h1.data, h2.data, h3.data, h4.data]);
 
   useEffect(() => {
     if (!api) return;
@@ -95,7 +119,7 @@ export default function HomePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {featuredMaterials.map((ebook, idx) => (
               <ScrollReveal key={ebook.id} delay={idx * 100}>
-                <EBookCard ebook={ebook as EBook} collection="materials_100lvl_free" isUserPremium={false} />
+                <EBookCard ebook={ebook} collection={ebook.collection} isUserPremium={false} />
               </ScrollReveal>
             ))}
           </div>
