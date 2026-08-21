@@ -563,15 +563,19 @@ export default function AdminPage() {
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSendEmail} className="space-y-4">
-              <Alert variant="secondary" className="bg-primary/5 border-primary/20 py-2">
-                <CheckCircle2 className="h-4 w-4 text-primary" />
-                <AlertTitle className="text-xs font-bold">Verified Domain Active</AlertTitle>
-                <AlertDescription className="text-[10px] leading-tight">
-                  Emails will be sent from <strong>support@medxstudy.com</strong>.
-                </AlertDescription>
-              </Alert>
-              <div className="space-y-2"><Label>Subject</Label><Input name="subject" required placeholder="Important Update" /></div>
-              <div className="space-y-2"><Label>Message</Label><Textarea name="message" required rows={4} placeholder="Type your message here..." /></div>
+              <ScrollArea className="max-h-[60vh] pr-4">
+                <div className="space-y-4 py-2">
+                  <Alert variant="secondary" className="bg-primary/5 border-primary/20 py-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary" />
+                    <AlertTitle className="text-xs font-bold">Verified Domain Active</AlertTitle>
+                    <AlertDescription className="text-[10px] leading-tight">
+                      Emails will be sent from <strong>support@medxstudy.com</strong>.
+                    </AlertDescription>
+                  </Alert>
+                  <div className="space-y-2"><Label>Subject</Label><Input name="subject" required placeholder="Important Update" /></div>
+                  <div className="space-y-2"><Label>Message</Label><Textarea name="message" required rows={4} placeholder="Type your message here..." /></div>
+                </div>
+              </ScrollArea>
               <DialogFooter>
                 <Button type="submit" disabled={isPending} className="w-full sm:w-auto">{isPending ? 'Sending...' : 'Send Notification'}</Button>
               </DialogFooter>
@@ -594,61 +598,65 @@ export default function AdminPage() {
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSaveMaterial} className="space-y-4">
-              <div className="space-y-2">
-                <Label>Title</Label>
-                <Input name="title" defaultValue={editingMaterial?.title} required />
-              </div>
-              <div className="space-y-2">
-                <Label>Description</Label>
-                <Textarea name="description" defaultValue={editingMaterial?.description} rows={3} required />
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Cover Image</Label>
-                <Input name="coverImage" type="file" accept="image/*" />
-                <p className="text-[10px] text-muted-foreground">
-                  {editingMaterial ? 'Leave empty to keep existing cover.' : 'Recommended for professional appearance.'}
-                </p>
-              </div>
+              <ScrollArea className="max-h-[60vh] pr-4">
+                <div className="space-y-4 py-2">
+                  <div className="space-y-2">
+                    <Label>Title</Label>
+                    <Input name="title" defaultValue={editingMaterial?.title} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Description</Label>
+                    <Textarea name="description" defaultValue={editingMaterial?.description} rows={3} required />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Cover Image</Label>
+                    <Input name="coverImage" type="file" accept="image/*" />
+                    <p className="text-[10px] text-muted-foreground">
+                      {editingMaterial ? 'Leave empty to keep existing cover.' : 'Recommended for professional appearance.'}
+                    </p>
+                  </div>
 
-              <div className="space-y-2">
-                <Label>PDF/E-book Link</Label>
-                <Input name="filePath" defaultValue={editingMaterial?.filePath} placeholder="https://drive.google.com/..." required={!editingMaterial} />
-              </div>
+                  <div className="space-y-2">
+                    <Label>PDF/E-book Link</Label>
+                    <Input name="filePath" defaultValue={editingMaterial?.filePath} placeholder="https://drive.google.com/..." required={!editingMaterial} />
+                  </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Level</Label>
-                  <Select name="level" defaultValue={editingMaterial?.level.toString() || "100"}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="100">100 Level</SelectItem>
-                      <SelectItem value="200">200 Level</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Access Type</Label>
-                  <RadioGroup name="access" defaultValue={editingMaterial?.isPremium ? 'premium' : 'free'} className="flex h-10 items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="free" id="edit-free" />
-                      <Label htmlFor="edit-free">Free</Label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Level</Label>
+                      <Select name="level" defaultValue={editingMaterial?.level.toString() || "100"}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="100">100 Level</SelectItem>
+                          <SelectItem value="200">200 Level</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="premium" id="edit-premium" />
-                      <Label htmlFor="edit-premium">Premium</Label>
+                    <div className="space-y-2">
+                      <Label>Access Type</Label>
+                      <RadioGroup name="access" defaultValue={editingMaterial?.isPremium ? 'premium' : 'free'} className="flex h-10 items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <RadioGroupItem value="free" id="edit-free" />
+                          <Label htmlFor="edit-free">Free</Label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <RadioGroupItem value="premium" id="edit-premium" />
+                          <Label htmlFor="edit-premium">Premium</Label>
+                        </div>
+                      </RadioGroup>
                     </div>
-                  </RadioGroup>
+                  </div>
+                  
+                  <div className="flex items-center justify-between rounded-lg border p-4 bg-muted/20">
+                    <div className="space-y-0.5">
+                      <Label>Editor's Choice</Label>
+                      <p className="text-xs text-muted-foreground">Feature this on the Home page spotlight.</p>
+                    </div>
+                    <Switch name="isFeatured" defaultChecked={editingMaterial?.isFeatured} />
+                  </div>
                 </div>
-              </div>
-              
-              <div className="flex items-center justify-between rounded-lg border p-4 bg-muted/20">
-                <div className="space-y-0.5">
-                  <Label>Editor's Choice</Label>
-                  <p className="text-xs text-muted-foreground">Feature this on the Home page spotlight.</p>
-                </div>
-                <Switch name="isFeatured" defaultChecked={editingMaterial?.isFeatured} />
-              </div>
+              </ScrollArea>
 
               <DialogFooter className="pt-4">
                 <Button type="button" variant="outline" onClick={() => { setEditingMaterial(null); setIsAddingMaterial(false); }}>Cancel</Button>
