@@ -37,10 +37,11 @@ import {
   Edit2,
   XCircle,
   CheckCircle2,
-  Plus
+  Plus,
+  Layers
 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { collection, doc, setDoc, addDoc, query, orderBy, deleteField } from 'firebase/firestore';
+import { collection, doc, setDoc, addDoc, query, orderBy, deleteField, updateDoc } from 'firebase/firestore';
 import { useState, useEffect, useMemo, useTransition, useRef } from 'react';
 import type { EBook } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
@@ -78,6 +79,7 @@ type MaterialWithCollection = EBook & { id: string; collection: string };
 type UserData = { id: string, email: string, isPremium: boolean, role: string, subscriptionExpiresAt?: string | null, lastLoginAt?: string };
 type Testimonial = { id: string, name: string, text: string, role: string, order: number };
 type AppConfig = { tutorialLink: string; tutorialStatus: string };
+type CourseCategory = { id: string; name: string; level: number; order: number };
 
 export default function AdminPage() {
   const firestore = useFirestore();
@@ -95,6 +97,10 @@ export default function AdminPage() {
   const [isAddingMaterial, setIsAddingMaterial] = useState(false);
   const [materialToDelete, setMaterialToDelete] = useState<MaterialWithCollection | null>(null);
 
+  // States for Category management
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<CourseCategory | null>(null);
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -111,10 +117,14 @@ export default function AdminPage() {
   const configRef = useMemoFirebase(() => (firestore ? doc(firestore, 'config', 'global') : null), [firestore]);
   const { data: appConfig } = useDoc<AppConfig>(configRef);
 
+  const catRef = useMemoFirebase(() => (firestore ? query(collection(firestore, 'course_categories'), orderBy('order', 'asc')) : null), [firestore]);
+  const { data: categories } = useCollection<CourseCategory>(catRef);
+
   const filteredUsers = useMemo(() => {
     if (!usersData) return [];
     return usersData.filter(u => 
-      u.email?.toLowerCase().includes(userSearchQuery.toLowerCase())
+      u.email?.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+      u.id.includes(userSearchQuery)
     );
   }, [usersData, userSearchQuery]);
 
@@ -232,6 +242,7 @@ export default function AdminPage() {
     const isPremium = formData.get('access') === 'premium';
     const level = parseInt(formData.get('level') as string);
     const isFeatured = formData.get('isFeatured') === 'on';
+    const categoryId = formData.get('categoryId') as string;
     const filePath = formData.get('filePath') as string;
     const coverFile = (e.currentTarget.elements.namedItem('coverImage') as HTMLInputElement).files?.[0];
 
@@ -255,6 +266,7 @@ export default function AdminPage() {
         level,
         isFeatured,
         coverImage,
+        categoryId: categoryId || '',
         lastUpdateDate: new Date().toISOString(),
         filePath: filePath || editingMaterial?.filePath || '',
         author: 'MED-X',
@@ -288,6 +300,33 @@ export default function AdminPage() {
     deleteDocumentNonBlocking(doc(firestore, materialToDelete.collection, materialToDelete.id));
     setMaterialToDelete(null);
     toast({ title: "Material Deleted", description: "Resource has been removed from the platform." });
+  };
+
+  const handleSaveCategory = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!firestore) return;
+    const formData = new FormData(e.currentTarget);
+    const name = formData.get('name') as string;
+    const level = parseInt(formData.get('level') as string);
+    const order = parseInt(formData.get('order') as string) || 0;
+
+    startTransition(async () => {
+      if (editingCategory) {
+        await setDoc(doc(firestore!, 'course_categories', editingCategory.id), { name, level, order }, { merge: true });
+        setEditingCategory(null);
+        toast({ title: "Category Updated", description: `"${name}" subject modified.` });
+      } else {
+        await addDoc(collection(firestore!, 'course_categories'), { name, level, order });
+        setIsAddingCategory(false);
+        toast({ title: "Category Added", description: `New ${level}L subject created.` });
+      }
+    });
+  };
+
+  const handleDeleteCategory = (id: string) => {
+    if (!firestore) return;
+    deleteDocumentNonBlocking(doc(firestore!, 'course_categories', id));
+    toast({ title: "Category Deleted", description: "Subject removed from the platform." });
   };
 
   if (isProfileLoading) return <div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
@@ -332,11 +371,12 @@ export default function AdminPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 lg:w-[800px]">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
-            <TabsTrigger value="content">Content</TabsTrigger>
-            <TabsTrigger value="live">Live & Reviews</TabsTrigger>
+            <TabsTrigger value="content">Materials</TabsTrigger>
+            <TabsTrigger value="categories">Categories</TabsTrigger>
+            <TabsTrigger value="live">Misc</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -486,6 +526,58 @@ export default function AdminPage() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="categories">
+            <Card>
+              <CardHeader className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Levels & Subjects</CardTitle>
+                  <CardDescription>Manage the academic structure of the platform.</CardDescription>
+                </div>
+                <Button size="sm" onClick={() => setIsAddingCategory(true)}>
+                  <Plus className="mr-2 h-4 w-4" /> Add Category
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Subject Name</TableHead>
+                        <TableHead>Level</TableHead>
+                        <TableHead>Order</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {categories?.map(cat => (
+                        <TableRow key={cat.id}>
+                          <TableCell className="font-bold">{cat.name}</TableCell>
+                          <TableCell><Badge variant="outline">{cat.level} Level</Badge></TableCell>
+                          <TableCell>{cat.order}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingCategory(cat)}>
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteCategory(cat.id)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {!categories?.length && (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center py-8 text-muted-foreground italic">No categories defined. Start by adding a subject.</TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="live" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card>
@@ -574,7 +666,7 @@ export default function AdminPage() {
 
         {/* Email Dialog */}
         <Dialog open={!!selectedUserEmail} onOpenChange={(o) => !o && setSelectedUserEmail(null)}>
-          <DialogContent className="max-w-[95vw] sm:max-w-[425px] h-[90dvh] flex flex-col p-0">
+          <DialogContent className="max-w-[95vw] sm:max-w-[425px] max-h-[90dvh] flex flex-col p-0 overflow-hidden shadow-2xl">
             <DialogHeader className="p-6 pb-2 shrink-0">
               <DialogTitle className="flex items-center gap-2">
                 {selectedUserEmail === 'ALL_USERS' ? 'Broadcast Notification' : 'Direct Notification'}
@@ -585,9 +677,9 @@ export default function AdminPage() {
                   : `Send a direct notification to ${selectedUserEmail}.`}
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSendEmail} className="flex-1 flex flex-col min-h-0 overflow-hidden">
-              <ScrollArea className="flex-1 px-6">
-                <div className="space-y-4 py-2">
+            <form onSubmit={handleSendEmail} className="flex-1 flex flex-col min-h-0">
+              <div className="flex-1 overflow-y-auto px-6 py-4">
+                <div className="space-y-4">
                   <Alert variant="secondary" className="bg-primary/5 border-primary/20 py-2">
                     <CheckCircle2 className="h-4 w-4 text-primary" />
                     <AlertTitle className="text-xs font-bold">Verified Domain Active</AlertTitle>
@@ -596,10 +688,10 @@ export default function AdminPage() {
                     </AlertDescription>
                   </Alert>
                   <div className="space-y-2"><Label>Subject</Label><Input name="subject" required placeholder="Important Update" /></div>
-                  <div className="space-y-2"><Label>Message</Label><Textarea name="message" required rows={6} placeholder="Type your message here..." /></div>
+                  <div className="space-y-2"><Label>Message</Label><Textarea name="message" required rows={8} placeholder="Type your message here..." /></div>
                 </div>
-              </ScrollArea>
-              <DialogFooter className="p-6 pt-2 shrink-0 border-t">
+              </div>
+              <DialogFooter className="p-6 pt-2 shrink-0 border-t bg-muted/20">
                 <Button type="submit" disabled={isPending} className="w-full sm:w-auto">{isPending ? 'Sending...' : 'Send Notification'}</Button>
               </DialogFooter>
             </form>
@@ -613,29 +705,29 @@ export default function AdminPage() {
             setIsAddingMaterial(false);
           }
         }}>
-          <DialogContent className="max-w-[95vw] sm:max-w-[500px] h-[90dvh] flex flex-col p-0 overflow-hidden">
-            <DialogHeader className="p-6 pb-2 shrink-0">
+          <DialogContent className="max-w-[95vw] sm:max-w-[500px] max-h-[90dvh] flex flex-col p-0 overflow-hidden shadow-2xl">
+            <DialogHeader className="p-6 pb-2 shrink-0 bg-background">
               <DialogTitle>{editingMaterial ? 'Edit Content Resource' : 'Add New Material'}</DialogTitle>
               <DialogDescription>
                 {editingMaterial ? `Update details for "${editingMaterial.title}".` : 'Enter the details for the new resource.'}
               </DialogDescription>
             </DialogHeader>
             
-            <form onSubmit={handleSaveMaterial} className="flex-1 flex flex-col min-h-0 overflow-hidden">
-              <ScrollArea className="flex-1 px-6">
-                <div className="space-y-4 py-4">
+            <form onSubmit={handleSaveMaterial} className="flex-1 flex flex-col min-h-0">
+              <div className="flex-1 overflow-y-auto px-6 py-4">
+                <div className="space-y-6">
                   <div className="space-y-2">
                     <Label>Title</Label>
-                    <Input name="title" defaultValue={editingMaterial?.title} required />
+                    <Input name="title" defaultValue={editingMaterial?.title} required placeholder="Title of textbook/summary" />
                   </div>
                   <div className="space-y-2">
                     <Label>Description</Label>
-                    <Textarea name="description" defaultValue={editingMaterial?.description} rows={3} required />
+                    <Textarea name="description" defaultValue={editingMaterial?.description} rows={4} required placeholder="High-yield description..." />
                   </div>
                   
                   <div className="space-y-2">
                     <Label>Cover Image</Label>
-                    <Input name="coverImage" type="file" accept="image/*" />
+                    <Input name="coverImage" type="file" accept="image/*" className="cursor-pointer" />
                     <p className="text-[10px] text-muted-foreground">
                       {editingMaterial ? 'Leave empty to keep existing cover.' : 'Recommended for professional appearance.'}
                     </p>
@@ -646,45 +738,94 @@ export default function AdminPage() {
                     <Input name="filePath" defaultValue={editingMaterial?.filePath} placeholder="https://drive.google.com/..." required={!editingMaterial} />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Level</Label>
+                      <Label>Study Level</Label>
                       <Select name="level" defaultValue={editingMaterial?.level.toString() || "100"}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="100">100 Level</SelectItem>
                           <SelectItem value="200">200 Level</SelectItem>
+                          <SelectItem value="300">300 Level</SelectItem>
+                          <SelectItem value="400">400 Level</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label>Access Type</Label>
-                      <RadioGroup name="access" defaultValue={editingMaterial?.isPremium ? 'premium' : 'free'} className="flex h-10 items-center gap-4">
-                        <div className="flex items-center gap-2">
-                          <RadioGroupItem value="free" id="edit-free" />
-                          <Label htmlFor="edit-free">Free</Label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <RadioGroupItem value="premium" id="edit-premium" />
-                          <Label htmlFor="edit-premium">Premium</Label>
-                        </div>
-                      </RadioGroup>
+                      <Label>Category / Subject</Label>
+                      <Select name="categoryId" defaultValue={editingMaterial?.categoryId}>
+                        <SelectTrigger><SelectValue placeholder="Select Subject" /></SelectTrigger>
+                        <SelectContent>
+                          {categories?.map(cat => (
+                            <SelectItem key={cat.id} value={cat.id}>{cat.name} ({cat.level}L)</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center justify-between rounded-lg border p-4 bg-muted/20">
-                    <div className="space-y-0.5">
-                      <Label>Editor's Choice</Label>
-                      <p className="text-xs text-muted-foreground">Feature this on the Home page spotlight.</p>
+
+                  <div className="space-y-3 p-4 rounded-xl border bg-muted/10">
+                    <Label className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Access & Visibility</Label>
+                    <div className="flex flex-col gap-4">
+                        <div className="flex items-center justify-between">
+                            <Label className="text-sm font-medium">Access Tier</Label>
+                            <RadioGroup name="access" defaultValue={editingMaterial?.isPremium ? 'premium' : 'free'} className="flex items-center gap-4">
+                                <div className="flex items-center gap-2"><RadioGroupItem value="free" id="edit-free" /><Label htmlFor="edit-free" className="text-xs">Free</Label></div>
+                                <div className="flex items-center gap-2"><RadioGroupItem value="premium" id="edit-premium" /><Label htmlFor="edit-premium" className="text-xs">Premium</Label></div>
+                            </RadioGroup>
+                        </div>
+                        <div className="flex items-center justify-between border-t pt-4">
+                            <div className="space-y-0.5">
+                              <Label className="text-sm">Editor's Choice</Label>
+                              <p className="text-[10px] text-muted-foreground italic">Highlight on home page.</p>
+                            </div>
+                            <Switch name="isFeatured" defaultChecked={editingMaterial?.isFeatured} />
+                        </div>
                     </div>
-                    <Switch name="isFeatured" defaultChecked={editingMaterial?.isFeatured} />
                   </div>
                 </div>
-              </ScrollArea>
+              </div>
 
-              <DialogFooter className="p-6 pt-2 shrink-0 border-t bg-background">
+              <DialogFooter className="p-6 pt-4 shrink-0 border-t bg-muted/20">
                 <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => { setEditingMaterial(null); setIsAddingMaterial(false); }}>Cancel</Button>
                 <Button type="submit" className="w-full sm:w-auto" disabled={isPending}>{isPending ? 'Saving...' : (editingMaterial ? 'Save Changes' : 'Publish Material')}</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Category Add/Edit Dialog */}
+        <Dialog open={isAddingCategory || !!editingCategory} onOpenChange={(o) => { if (!o) { setIsAddingCategory(false); setEditingCategory(null); } }}>
+          <DialogContent className="max-w-md shadow-2xl">
+            <DialogHeader>
+              <DialogTitle>{editingCategory ? 'Edit Category' : 'Add New Category'}</DialogTitle>
+              <DialogDescription>Define a new subject or course category.</DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSaveCategory} className="space-y-6 py-4">
+              <div className="space-y-2">
+                <Label>Subject Name</Label>
+                <Input name="name" defaultValue={editingCategory?.name} required placeholder="e.g. Gross Anatomy" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Level</Label>
+                  <Select name="level" defaultValue={editingCategory?.level.toString() || "100"}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="100">100 Level</SelectItem>
+                      <SelectItem value="200">200 Level</SelectItem>
+                      <SelectItem value="300">300 Level</SelectItem>
+                      <SelectItem value="400">400 Level</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Display Order</Label>
+                  <Input name="order" type="number" defaultValue={editingCategory?.order || 0} />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="submit" disabled={isPending}>{isPending ? 'Saving...' : 'Save Category'}</Button>
               </DialogFooter>
             </form>
           </DialogContent>
