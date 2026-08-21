@@ -59,7 +59,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/dialog";
+} from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
