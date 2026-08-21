@@ -15,19 +15,19 @@ import { Resend } from 'resend';
 export async function sendEmailNotification(email: string, subject: string, message: string): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
   
-  // Simulation mode if key is missing or is the default placeholder
+  // Simulation mode if key is missing
   if (!apiKey || apiKey === 'your_resend_api_key_here' || apiKey.length < 10) {
     console.warn('[SIMULATION] No valid Resend API Key found. Message logged to console.');
     console.log(`To: ${email}\nSubject: ${subject}\nMessage: ${message}`);
     return true;
   }
 
-  // Initialize Resend inside the action to ensure it picks up the latest env var
+  // Initialize Resend inside the action
   const resend = new Resend(apiKey);
 
   try {
     const { error } = await resend.emails.send({
-      from: 'MED-X Support <onboarding@resend.dev>',
+      from: 'MED-X Support <support@medxstudy.com>',
       to: email,
       subject: subject,
       text: message,
@@ -35,7 +35,6 @@ export async function sendEmailNotification(email: string, subject: string, mess
 
     if (error) {
       console.error('Resend Delivery Error:', error.message);
-      // NOTE: Resend trial accounts only send to the verified owner's email.
       return false;
     }
 
@@ -61,14 +60,15 @@ export async function sendBulkEmailNotification(emails: string[], subject: strin
   const resend = new Resend(apiKey);
 
   try {
-    // Resend batch has a limit of 100 per call, but for MVP we send all
+    // Map emails to Resend batch format
     const batch = emails.map(email => ({
-      from: 'MED-X Broadcast <onboarding@resend.dev>',
+      from: 'MED-X Broadcast <support@medxstudy.com>',
       to: email,
       subject: subject,
       text: message,
     }));
 
+    // Resend batch sends up to 100 emails per call
     const { error } = await resend.batch.send(batch);
 
     if (error) {

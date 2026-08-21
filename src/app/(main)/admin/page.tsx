@@ -36,7 +36,7 @@ import {
   Trash2,
   Edit2,
   XCircle,
-  AlertCircle
+  CheckCircle2
 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, doc, setDoc, query, orderBy, deleteField } from 'firebase/firestore';
@@ -189,7 +189,7 @@ export default function AdminPage() {
         } else {
           toast({ 
             title: "Delivery Error", 
-            description: "Failed to broadcast message. Ensure your API key is correct and students are verified recipients.", 
+            description: "Failed to broadcast message. Please check Resend dashboard.", 
             variant: "destructive" 
           });
         }
@@ -200,7 +200,7 @@ export default function AdminPage() {
         } else {
           toast({ 
             title: "Delivery Error", 
-            description: "Failed to send email. If using a trial account, you can only send to your own registered email.", 
+            description: "Failed to send email. Ensure the student's email is valid.", 
             variant: "destructive" 
           });
         }
@@ -526,11 +526,11 @@ export default function AdminPage() {
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSendEmail} className="space-y-4">
-              <Alert variant="secondary" className="bg-muted/50 border-none py-2">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle className="text-xs font-bold">Important Note</AlertTitle>
+              <Alert variant="secondary" className="bg-primary/5 border-primary/20 py-2">
+                <CheckCircle2 className="h-4 w-4 text-primary" />
+                <AlertTitle className="text-xs font-bold">Verified Domain Active</AlertTitle>
                 <AlertDescription className="text-[10px] leading-tight">
-                  If using a Resend trial account, you can only send emails to your own registered address. Broadcasts to others will fail.
+                  Emails will be sent from <strong>support@medxstudy.com</strong>.
                 </AlertDescription>
               </Alert>
               <div className="space-y-2"><Label>Subject</Label><Input name="subject" required placeholder="Important Update" /></div>
