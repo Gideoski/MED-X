@@ -344,17 +344,22 @@ export default function AdminPage() {
     toast({ title: "Category Deleted", description: "Subject removed from the platform." });
   };
 
-  const handleProvisionExpansion = (level: number) => {
+  const handleToggleLevel = (level: number, currentlyEnabled: boolean) => {
     if (!firestore || !configRef) return;
 
     startTransition(async () => {
+      const currentLevels = appConfig?.enabledLevels || [];
+      const newLevels = currentlyEnabled 
+        ? currentLevels.filter(l => l !== level)
+        : [...currentLevels, level];
+
       await setDoc(configRef, { 
-        enabledLevels: arrayUnion(level) 
+        enabledLevels: newLevels 
       }, { merge: true });
       
       toast({
-        title: "Expansion Provisioned",
-        description: `${level}L has been enabled in the sidebar for all students.`,
+        title: currentlyEnabled ? "Level Disabled" : "Level Enabled",
+        description: `${level}L has been ${currentlyEnabled ? 'removed from' : 'added to'} the navigation for all students.`,
       });
     });
   };
@@ -659,26 +664,26 @@ export default function AdminPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2"><Rocket className="h-5 w-5 text-primary" /> Expansion Hub</CardTitle>
-                  <CardDescription>Provision higher levels for the platform.</CardDescription>
+                  <CardDescription>Enable or disable higher academic levels.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">Higher academic levels can be activated and displayed in the sidebar instantly.</p>
+                  <p className="text-sm text-muted-foreground">Toggle study levels in the navigation for all students.</p>
                   <div className="grid grid-cols-2 gap-2">
                     <Button 
-                      variant="outline" 
+                      variant={appConfig?.enabledLevels?.includes(300) ? "default" : "outline"} 
                       size="sm" 
-                      onClick={() => handleProvisionExpansion(300)}
-                      disabled={appConfig?.enabledLevels?.includes(300)}
+                      onClick={() => handleToggleLevel(300, appConfig?.enabledLevels?.includes(300) || false)}
+                      disabled={isPending}
                     >
-                      {appConfig?.enabledLevels?.includes(300) ? '300L Active' : 'Enable 300L'}
+                      {appConfig?.enabledLevels?.includes(300) ? 'Disable 300L' : 'Enable 300L'}
                     </Button>
                     <Button 
-                      variant="outline" 
+                      variant={appConfig?.enabledLevels?.includes(400) ? "default" : "outline"} 
                       size="sm" 
-                      onClick={() => handleProvisionExpansion(400)}
-                      disabled={appConfig?.enabledLevels?.includes(400)}
+                      onClick={() => handleToggleLevel(400, appConfig?.enabledLevels?.includes(400) || false)}
+                      disabled={isPending}
                     >
-                      {appConfig?.enabledLevels?.includes(400) ? '400L Active' : 'Enable 400L'}
+                      {appConfig?.enabledLevels?.includes(400) ? 'Disable 400L' : 'Enable 400L'}
                     </Button>
                   </div>
                 </CardContent>

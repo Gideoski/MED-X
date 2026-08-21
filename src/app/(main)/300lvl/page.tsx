@@ -4,13 +4,14 @@
 import { useState, useMemo } from 'react';
 import { EBookCard } from "@/components/ebook-card";
 import { Input } from "@/components/ui/input";
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, Rocket } from "lucide-react";
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, doc, query, orderBy } from 'firebase/firestore';
 import type { EBook } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { isAfter } from 'date-fns';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 type EBookData = Omit<EBook, 'id'>;
 
@@ -29,6 +30,9 @@ export default function Level300Page() {
     !userProfile.subscriptionExpiresAt || 
     isAfter(new Date(userProfile.subscriptionExpiresAt), new Date())
   );
+
+  const configRef = useMemoFirebase(() => (firestore ? doc(firestore, 'config', 'global') : null), [firestore]);
+  const { data: appConfig, isLoading: isConfigLoading } = useDoc<{ enabledLevels?: number[] }>(configRef);
 
   const catQuery = useMemoFirebase(() => (firestore ? query(collection(firestore, 'course_categories'), orderBy('order', 'asc')) : null), [firestore]);
   const { data: categories } = useCollection<{ id: string; name: string; level: number }>(catQuery);
@@ -54,7 +58,31 @@ export default function Level300Page() {
     })
     .sort((a, b) => (a.title || "").localeCompare(b.title || ""));
 
-  const isLoading = isUserLoading || isLoadingFree || isLoadingPremium;
+  const isEnabled = appConfig?.enabledLevels?.includes(300);
+  const isLoading = isUserLoading || isLoadingFree || isLoadingPremium || isConfigLoading;
+
+  if (!isConfigLoading && !isEnabled) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 text-center">
+        <Card className="max-w-md w-full border-border/50 shadow-sm">
+          <CardHeader>
+            <div className="mx-auto bg-primary/10 p-4 rounded-full w-16 h-16 flex items-center justify-center mb-4">
+              <Rocket className="h-8 w-8 text-primary" />
+            </div>
+            <CardTitle className="text-2xl">300-Level Coming Soon</CardTitle>
+            <CardDescription>
+              We are currently curating the best clinical materials for the third year curriculum.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              Stay tuned! 300-level resources, clinical guides, and case studies will be available once the admin enables access.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 pb-12">
