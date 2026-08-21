@@ -58,7 +58,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/components/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -218,10 +218,20 @@ export default function AdminPage() {
     const description = formData.get('description') as string;
     const isPremium = formData.get('access') === 'premium';
     const level = parseInt(formData.get('level') as string);
-    // Standard checkbox/switch 'on' check for FormData
     const isFeatured = formData.get('isFeatured') === 'on';
+    const coverFile = (e.currentTarget.elements.namedItem('coverImage') as HTMLInputElement).files?.[0];
 
     startTransition(async () => {
+      let coverImage = editingMaterial.coverImage;
+      if (coverFile) {
+        coverImage = await new Promise<string>((res, rej) => {
+          const reader = new FileReader();
+          reader.onload = () => res(reader.result as string);
+          reader.onerror = rej;
+          reader.readAsDataURL(coverFile);
+        });
+      }
+
       const oldCollection = editingMaterial.collection;
       const newCollection = `materials_${level}lvl_${isPremium ? 'premium' : 'free'}`;
       
@@ -231,6 +241,7 @@ export default function AdminPage() {
         isPremium,
         level,
         isFeatured,
+        coverImage,
         lastUpdateDate: new Date().toISOString()
       };
 
@@ -566,6 +577,13 @@ export default function AdminPage() {
                 <Label>Description</Label>
                 <Textarea name="description" defaultValue={editingMaterial?.description} rows={3} required />
               </div>
+              
+              <div className="space-y-2">
+                <Label>Cover Image</Label>
+                <Input name="coverImage" type="file" accept="image/*" />
+                <p className="text-[10px] text-muted-foreground">Leave empty to keep existing cover.</p>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Level</Label>
@@ -592,7 +610,6 @@ export default function AdminPage() {
                 </div>
               </div>
               
-              {/* RESTORED EDITOR'S CHOICE FEATURE */}
               <div className="flex items-center justify-between rounded-lg border p-4 bg-muted/20">
                 <div className="space-y-0.5">
                   <Label>Editor's Choice</Label>
