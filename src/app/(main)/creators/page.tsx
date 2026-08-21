@@ -218,7 +218,15 @@ export default function CreatorsPage() {
                 <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-2">
                         <Label>Level</Label>
-                        <Select value={level} onValueChange={setLevel}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="100">100 Level</SelectItem><SelectItem value="200">200 Level</SelectItem></SelectContent></Select>
+                        <Select value={level} onValueChange={setLevel}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="100">100 Level</SelectItem>
+                            <SelectItem value="200">200 Level</SelectItem>
+                            <SelectItem value="300">300 Level</SelectItem>
+                            <SelectItem value="400">400 Level</SelectItem>
+                          </SelectContent>
+                        </Select>
                     </div>
                     <div className="space-y-2">
                         <Label>Subject</Label>

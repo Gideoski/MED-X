@@ -99,7 +99,7 @@ export interface EBook {
   title: string;
   description: string;
   author: string;
-  level: 100 | 200;
+  level: 100 | 200 | 300 | 400;
   isPremium: boolean;
   coverImage: string;
   imageHint: string;
