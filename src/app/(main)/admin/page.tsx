@@ -36,10 +36,11 @@ import {
   Trash2,
   Edit2,
   XCircle,
-  CheckCircle2
+  CheckCircle2,
+  Plus
 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { collection, doc, setDoc, query, orderBy, deleteField } from 'firebase/firestore';
+import { collection, doc, setDoc, addDoc, query, orderBy, deleteField } from 'firebase/firestore';
 import { useState, useEffect, useMemo, useTransition, useRef } from 'react';
 import type { EBook } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
@@ -81,6 +82,7 @@ export default function AdminPage() {
   const [selectedUserEmail, setSelectedUserEmail] = useState<string | null>(null);
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [editingMaterial, setEditingMaterial] = useState<MaterialWithCollection | null>(null);
+  const [isAddingMaterial, setIsAddingMaterial] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -209,9 +211,9 @@ export default function AdminPage() {
     });
   };
 
-  const handleEditMaterial = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveMaterial = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!editingMaterial || !firestore) return;
+    if (!firestore || !user) return;
 
     const formData = new FormData(e.currentTarget);
     const title = formData.get('title') as string;
@@ -219,10 +221,11 @@ export default function AdminPage() {
     const isPremium = formData.get('access') === 'premium';
     const level = parseInt(formData.get('level') as string);
     const isFeatured = formData.get('isFeatured') === 'on';
+    const filePath = formData.get('filePath') as string;
     const coverFile = (e.currentTarget.elements.namedItem('coverImage') as HTMLInputElement).files?.[0];
 
     startTransition(async () => {
-      let coverImage = editingMaterial.coverImage;
+      let coverImage = editingMaterial?.coverImage || (level === 100 ? '/images/med-x 100lvl ebook cover.jpeg' : '/images/MED-X logo.jpeg');
       if (coverFile) {
         coverImage = await new Promise<string>((res, rej) => {
           const reader = new FileReader();
@@ -232,7 +235,6 @@ export default function AdminPage() {
         });
       }
 
-      const oldCollection = editingMaterial.collection;
       const newCollection = `materials_${level}lvl_${isPremium ? 'premium' : 'free'}`;
       
       const updateData = {
@@ -242,20 +244,31 @@ export default function AdminPage() {
         level,
         isFeatured,
         coverImage,
-        lastUpdateDate: new Date().toISOString()
+        lastUpdateDate: new Date().toISOString(),
+        filePath: filePath || editingMaterial?.filePath || '',
+        author: 'MED-X',
+        downloads: editingMaterial?.downloads || 0,
+        type: 'E-Book',
+        uploadDate: editingMaterial?.uploadDate || new Date().toISOString()
       };
 
-      if (oldCollection === newCollection) {
-        updateDocumentNonBlocking(doc(firestore!, oldCollection, editingMaterial.id), updateData);
+      if (editingMaterial) {
+        const oldCollection = editingMaterial.collection;
+        if (oldCollection === newCollection) {
+          updateDocumentNonBlocking(doc(firestore!, oldCollection, editingMaterial.id), updateData);
+        } else {
+          const fullData = { ...editingMaterial, ...updateData };
+          delete (fullData as any).collection; 
+          await setDoc(doc(firestore!, newCollection, editingMaterial.id), fullData);
+          deleteDocumentNonBlocking(doc(firestore!, oldCollection, editingMaterial.id));
+        }
+        setEditingMaterial(null);
+        toast({ title: "Material Updated", description: "Changes saved to the study hub." });
       } else {
-        const fullData = { ...editingMaterial, ...updateData };
-        delete (fullData as any).collection; 
-        await setDoc(doc(firestore!, newCollection, editingMaterial.id), fullData);
-        deleteDocumentNonBlocking(doc(firestore!, oldCollection, editingMaterial.id));
+        await addDoc(collection(firestore!, newCollection), updateData);
+        setIsAddingMaterial(false);
+        toast({ title: "Material Added", description: "New resource published successfully." });
       }
-
-      setEditingMaterial(null);
-      toast({ title: "Material Updated", description: "Changes saved to the study hub." });
     });
   };
 
@@ -402,7 +415,12 @@ export default function AdminPage() {
 
           <TabsContent value="content">
             <Card>
-              <CardHeader><CardTitle>Material Library</CardTitle></CardHeader>
+              <CardHeader className="flex items-center justify-between">
+                <CardTitle>Material Library</CardTitle>
+                <Button size="sm" onClick={() => setIsAddingMaterial(true)}>
+                  <Plus className="mr-2 h-4 w-4" /> Add Material
+                </Button>
+              </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
                   <Table>
@@ -561,14 +579,21 @@ export default function AdminPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Edit Material Dialog */}
-        <Dialog open={!!editingMaterial} onOpenChange={(o) => !o && setEditingMaterial(null)}>
+        {/* Edit/Add Material Dialog */}
+        <Dialog open={!!editingMaterial || isAddingMaterial} onOpenChange={(o) => {
+          if (!o) {
+            setEditingMaterial(null);
+            setIsAddingMaterial(false);
+          }
+        }}>
           <DialogContent className="max-w-[95vw] sm:max-w-[500px]">
             <DialogHeader>
-              <DialogTitle>Edit Content Resource</DialogTitle>
-              <DialogDescription>Update details for "{editingMaterial?.title}".</DialogDescription>
+              <DialogTitle>{editingMaterial ? 'Edit Content Resource' : 'Add New Material'}</DialogTitle>
+              <DialogDescription>
+                {editingMaterial ? `Update details for "${editingMaterial.title}".` : 'Enter the details for the new resource.'}
+              </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleEditMaterial} className="space-y-4">
+            <form onSubmit={handleSaveMaterial} className="space-y-4">
               <div className="space-y-2">
                 <Label>Title</Label>
                 <Input name="title" defaultValue={editingMaterial?.title} required />
@@ -581,13 +606,20 @@ export default function AdminPage() {
               <div className="space-y-2">
                 <Label>Cover Image</Label>
                 <Input name="coverImage" type="file" accept="image/*" />
-                <p className="text-[10px] text-muted-foreground">Leave empty to keep existing cover.</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {editingMaterial ? 'Leave empty to keep existing cover.' : 'Recommended for professional appearance.'}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>PDF/E-book Link</Label>
+                <Input name="filePath" defaultValue={editingMaterial?.filePath} placeholder="https://drive.google.com/..." required={!editingMaterial} />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Level</Label>
-                  <Select name="level" defaultValue={editingMaterial?.level.toString()}>
+                  <Select name="level" defaultValue={editingMaterial?.level.toString() || "100"}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="100">100 Level</SelectItem>
@@ -619,8 +651,8 @@ export default function AdminPage() {
               </div>
 
               <DialogFooter className="pt-4">
-                <Button type="button" variant="outline" onClick={() => setEditingMaterial(null)}>Cancel</Button>
-                <Button type="submit" disabled={isPending}>{isPending ? 'Saving...' : 'Save Changes'}</Button>
+                <Button type="button" variant="outline" onClick={() => { setEditingMaterial(null); setIsAddingMaterial(false); }}>Cancel</Button>
+                <Button type="submit" disabled={isPending}>{isPending ? 'Saving...' : (editingMaterial ? 'Save Changes' : 'Publish Material')}</Button>
               </DialogFooter>
             </form>
           </DialogContent>
