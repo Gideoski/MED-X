@@ -551,8 +551,8 @@ export default function AdminPage() {
 
         {/* Email Dialog */}
         <Dialog open={!!selectedUserEmail} onOpenChange={(o) => !o && setSelectedUserEmail(null)}>
-          <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
-            <DialogHeader>
+          <DialogContent className="max-w-[95vw] sm:max-w-[425px] h-[90dvh] flex flex-col p-0">
+            <DialogHeader className="p-6 pb-2 shrink-0">
               <DialogTitle className="flex items-center gap-2">
                 {selectedUserEmail === 'ALL_USERS' ? 'Broadcast Notification' : 'Direct Notification'}
               </DialogTitle>
@@ -562,8 +562,8 @@ export default function AdminPage() {
                   : `Send a direct notification to ${selectedUserEmail}.`}
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSendEmail} className="space-y-4">
-              <ScrollArea className="max-h-[60vh] pr-4">
+            <form onSubmit={handleSendEmail} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              <ScrollArea className="flex-1 px-6">
                 <div className="space-y-4 py-2">
                   <Alert variant="secondary" className="bg-primary/5 border-primary/20 py-2">
                     <CheckCircle2 className="h-4 w-4 text-primary" />
@@ -573,10 +573,10 @@ export default function AdminPage() {
                     </AlertDescription>
                   </Alert>
                   <div className="space-y-2"><Label>Subject</Label><Input name="subject" required placeholder="Important Update" /></div>
-                  <div className="space-y-2"><Label>Message</Label><Textarea name="message" required rows={4} placeholder="Type your message here..." /></div>
+                  <div className="space-y-2"><Label>Message</Label><Textarea name="message" required rows={6} placeholder="Type your message here..." /></div>
                 </div>
               </ScrollArea>
-              <DialogFooter>
+              <DialogFooter className="p-6 pt-2 shrink-0 border-t">
                 <Button type="submit" disabled={isPending} className="w-full sm:w-auto">{isPending ? 'Sending...' : 'Send Notification'}</Button>
               </DialogFooter>
             </form>
@@ -590,16 +590,17 @@ export default function AdminPage() {
             setIsAddingMaterial(false);
           }
         }}>
-          <DialogContent className="max-w-[95vw] sm:max-w-[500px] max-h-[90vh] overflow-hidden flex flex-col">
-            <DialogHeader className="shrink-0">
+          <DialogContent className="max-w-[95vw] sm:max-w-[500px] h-[90dvh] flex flex-col p-0 overflow-hidden">
+            <DialogHeader className="p-6 pb-2 shrink-0">
               <DialogTitle>{editingMaterial ? 'Edit Content Resource' : 'Add New Material'}</DialogTitle>
               <DialogDescription>
                 {editingMaterial ? `Update details for "${editingMaterial.title}".` : 'Enter the details for the new resource.'}
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSaveMaterial} className="flex flex-col flex-grow overflow-hidden gap-4 mt-4">
-              <ScrollArea className="flex-grow pr-4">
-                <div className="space-y-4 py-2">
+            
+            <form onSubmit={handleSaveMaterial} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              <ScrollArea className="flex-1 px-6">
+                <div className="space-y-4 py-4">
                   <div className="space-y-2">
                     <Label>Title</Label>
                     <Input name="title" defaultValue={editingMaterial?.title} required />
@@ -658,9 +659,9 @@ export default function AdminPage() {
                 </div>
               </ScrollArea>
 
-              <DialogFooter className="shrink-0 pt-4 border-t">
-                <Button type="button" variant="outline" onClick={() => { setEditingMaterial(null); setIsAddingMaterial(false); }}>Cancel</Button>
-                <Button type="submit" disabled={isPending}>{isPending ? 'Saving...' : (editingMaterial ? 'Save Changes' : 'Publish Material')}</Button>
+              <DialogFooter className="p-6 pt-2 shrink-0 border-t bg-background">
+                <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => { setEditingMaterial(null); setIsAddingMaterial(false); }}>Cancel</Button>
+                <Button type="submit" className="w-full sm:w-auto" disabled={isPending}>{isPending ? 'Saving...' : (editingMaterial ? 'Save Changes' : 'Publish Material')}</Button>
               </DialogFooter>
             </form>
           </DialogContent>
