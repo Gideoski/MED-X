@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -42,7 +43,7 @@ import {
   Rocket
 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { collection, doc, setDoc, addDoc, query, orderBy, deleteField } from 'firebase/firestore';
+import { collection, doc, setDoc, addDoc, query, orderBy, deleteField, arrayUnion } from 'firebase/firestore';
 import { useState, useEffect, useMemo, useTransition, useRef } from 'react';
 import type { EBook } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
@@ -79,7 +80,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 type MaterialWithCollection = EBook & { id: string; collection: string };
 type UserData = { id: string, email: string, isPremium: boolean, role: string, subscriptionExpiresAt?: string | null, lastLoginAt?: string };
 type Testimonial = { id: string, name: string, text: string, role: string, order: number };
-type AppConfig = { tutorialLink: string; tutorialStatus: string };
+type AppConfig = { tutorialLink: string; tutorialStatus: string; enabledLevels?: number[] };
 type CourseCategory = { id: string; name: string; level: number; order: number };
 
 export default function AdminPage() {
@@ -139,24 +140,34 @@ export default function AdminPage() {
   const q2 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_100lvl_premium') : null), [firestore]);
   const q3 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_200lvl_free') : null), [firestore]);
   const q4 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_200lvl_premium') : null), [firestore]);
+  const q5 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_300lvl_free') : null), [firestore]);
+  const q6 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_300lvl_premium') : null), [firestore]);
+  const q7 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_400lvl_free') : null), [firestore]);
+  const q8 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_400lvl_premium') : null), [firestore]);
 
   const h1 = useCollection<EBook>(q1);
   const h2 = useCollection<EBook>(q2);
   const h3 = useCollection<EBook>(q3);
   const h4 = useCollection<EBook>(q4);
+  const h5 = useCollection<EBook>(q5);
+  const h6 = useCollection<EBook>(q6);
+  const h7 = useCollection<EBook>(q7);
+  const h8 = useCollection<EBook>(q8);
 
   useEffect(() => {
     const combined: MaterialWithCollection[] = [];
-    const hooks = [h1, h2, h3, h4];
+    const hooks = [h1, h2, h3, h4, h5, h6, h7, h8];
     const colls = [
       'materials_100lvl_free', 'materials_100lvl_premium', 
-      'materials_200lvl_free', 'materials_200lvl_premium'
+      'materials_200lvl_free', 'materials_200lvl_premium',
+      'materials_300lvl_free', 'materials_300lvl_premium',
+      'materials_400lvl_free', 'materials_400lvl_premium'
     ];
     hooks.forEach((hook, i) => {
       if (hook.data) hook.data.forEach(item => combined.push({ ...item, collection: colls[i] } as MaterialWithCollection));
     });
     setAllMaterials(combined.sort((a, b) => (a.title || "").localeCompare(b.title || "")));
-  }, [h1.data, h2.data, h3.data, h4.data]);
+  }, [h1.data, h2.data, h3.data, h4.data, h5.data, h6.data, h7.data, h8.data]);
 
   const handleUpdateTutorial = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -334,9 +345,17 @@ export default function AdminPage() {
   };
 
   const handleProvisionExpansion = (level: number) => {
-    toast({
-      title: "Expansion Provisioned",
-      description: `Higher level ${level}L modules have been added to the database queue. Restart app to see new pages.`,
+    if (!firestore || !configRef) return;
+
+    startTransition(async () => {
+      await setDoc(configRef, { 
+        enabledLevels: arrayUnion(level) 
+      }, { merge: true });
+      
+      toast({
+        title: "Expansion Provisioned",
+        description: `${level}L has been enabled in the sidebar for all students.`,
+      });
     });
   };
 
@@ -643,10 +662,24 @@ export default function AdminPage() {
                   <CardDescription>Provision higher levels for the platform.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">Higher academic levels can be activated and deployed as needed.</p>
+                  <p className="text-sm text-muted-foreground">Higher academic levels can be activated and displayed in the sidebar instantly.</p>
                   <div className="grid grid-cols-2 gap-2">
-                    <Button variant="outline" size="sm" onClick={() => handleProvisionExpansion(300)}>Enable 300L</Button>
-                    <Button variant="outline" size="sm" onClick={() => handleProvisionExpansion(400)}>Enable 400L</Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleProvisionExpansion(300)}
+                      disabled={appConfig?.enabledLevels?.includes(300)}
+                    >
+                      {appConfig?.enabledLevels?.includes(300) ? '300L Active' : 'Enable 300L'}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleProvisionExpansion(400)}
+                      disabled={appConfig?.enabledLevels?.includes(400)}
+                    >
+                      {appConfig?.enabledLevels?.includes(400) ? '400L Active' : 'Enable 400L'}
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

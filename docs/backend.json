@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -57,10 +58,14 @@
     "AppConfig": {
       "title": "AppConfig",
       "type": "object",
-      "description": "Global settings like the current live tutorial link.",
+      "description": "Global settings like the current live tutorial link and active levels.",
       "properties": {
         "tutorialLink": { "type": "string" },
-        "tutorialStatus": { "type": "string" }
+        "tutorialStatus": { "type": "string" },
+        "enabledLevels": {
+          "type": "array",
+          "items": { "type": "number" }
+        }
       }
     }
   },
