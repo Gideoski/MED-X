@@ -45,8 +45,8 @@ export default function Level400Page() {
   const { data: premiumEbooks, isLoading: isLoadingPremium } = useCollection<EBookData>(premiumRef);
   
   const allEbooks = useMemo(() => {
-    const free = freeEbooks ? freeEbooks.map(e => ({ ...e, collection: 'materials_400lvl_free' })) : [];
-    const prem = premiumEbooks ? premiumEbooks.map(e => ({ ...e, collection: 'materials_400lvl_premium' })) : [];
+    const free = freeEbooks ? freeEbooks.map(e => ({ ...e, id: e.title, collection: 'materials_400lvl_free' })) : [];
+    const prem = premiumEbooks ? premiumEbooks.map(e => ({ ...e, id: e.title, collection: 'materials_400lvl_premium' })) : [];
     return [...free, ...prem] as (EBook & { collection: string })[];
   }, [freeEbooks, premiumEbooks]);
 

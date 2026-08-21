@@ -22,10 +22,10 @@
  
  const navItems = [
    { href: "/home", icon: Home, label: "Home" },
-   { href: "/100lvl", icon: Book, label: "100 Level", level: 100 },
-   { href: "/200lvl", icon: GraduationCap, label: "200 Level", level: 200 },
-   { href: "/300lvl", icon: Book, label: "300 Level", level: 300 },
-   { href: "/400lvl", icon: GraduationCap, label: "400 Level", level: 400 },
+   { href: "/100lvl", icon: Book, label: "100 Level" },
+   { href: "/200lvl", icon: GraduationCap, label: "200 Level" },
+   { href: "/300lvl", icon: Book, label: "300 Level" },
+   { href: "/400lvl", icon: GraduationCap, label: "400 Level" },
    { href: "/tutorials", icon: Video, label: "Live Tutorials" },
    { href: "/request-ebook", icon: Pencil, label: "Request E-Book" },
    { href: "/creators", icon: Users, label: "Creators" },
@@ -54,9 +54,6 @@
    const { data: userProfile } = useDoc<{ role: string }>(userDocRef);
    const isAdmin = userProfile?.role === 'admin';
 
-   const configRef = useMemoFirebase(() => (firestore ? doc(firestore, 'config', 'global') : null), [firestore]);
-   const { data: appConfig } = useDoc<{ enabledLevels?: number[] }>(configRef);
-
    const handleLinkClick = () => {
      if (isMobile) {
        setOpenMobile(false);
@@ -68,13 +65,6 @@
      router.push('/login');
      handleLinkClick();
    };
-
-   const isLevelEnabled = (level?: number) => {
-     if (!level) return true;
-     // 100 and 200 are enabled by default for legacy
-     if (level === 100 || level === 200) return true;
-     return appConfig?.enabledLevels?.includes(level) || false;
-   }
  
    return (
      <Sidebar collapsible="offcanvas">
@@ -91,8 +81,7 @@
        <SidebarContent className="p-2">
          <SidebarMenu>
            {navItems.map((item) => (
-            (item.href === "/admin" && !isAdmin) ? null : 
-            (!isLevelEnabled(item.level) && !isAdmin) ? null : (
+            (item.href === "/admin" && !isAdmin) ? null : (
              <SidebarMenuItem key={item.href}>
                <SidebarMenuButton
                  asChild
