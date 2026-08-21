@@ -41,7 +41,7 @@ import {
   Layers
 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { collection, doc, setDoc, addDoc, query, orderBy, deleteField, updateDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, addDoc, query, orderBy, deleteField } from 'firebase/firestore';
 import { useState, useEffect, useMemo, useTransition, useRef } from 'react';
 import type { EBook } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
@@ -336,10 +336,12 @@ export default function AdminPage() {
     <div className="space-y-8 max-w-6xl mx-auto pb-12">
         <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <ShieldAlert className="h-10 w-10 text-primary" />
+            <div className="bg-primary/10 p-3 rounded-2xl">
+              <ShieldAlert className="h-8 w-8 text-primary" />
+            </div>
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">Admin Console</h1>
-                <p className="text-muted-foreground">Manage users, tutorials, and content resources.</p>
+                <h1 className="text-3xl font-extrabold tracking-tight">Admin Console</h1>
+                <p className="text-muted-foreground text-sm">Platform management and content command center.</p>
             </div>
           </div>
         </header>
@@ -371,12 +373,22 @@ export default function AdminPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 lg:w-[800px]">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="users">Users</TabsTrigger>
-            <TabsTrigger value="content">Materials</TabsTrigger>
-            <TabsTrigger value="categories">Categories</TabsTrigger>
-            <TabsTrigger value="live">Misc</TabsTrigger>
+          <TabsList className="flex h-auto p-1 bg-muted/50 border rounded-xl mb-6 w-full lg:w-max overflow-x-auto no-scrollbar">
+            <TabsTrigger value="overview" className="flex-1 lg:flex-none gap-2 px-4 py-2.5 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+              <Activity className="h-4 w-4" /> Overview
+            </TabsTrigger>
+            <TabsTrigger value="users" className="flex-1 lg:flex-none gap-2 px-4 py-2.5 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+              <UsersIcon className="h-4 w-4" /> Users
+            </TabsTrigger>
+            <TabsTrigger value="content" className="flex-1 lg:flex-none gap-2 px-4 py-2.5 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+              <BookOpen className="h-4 w-4" /> Materials
+            </TabsTrigger>
+            <TabsTrigger value="categories" className="flex-1 lg:flex-none gap-2 px-4 py-2.5 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+              <Layers className="h-4 w-4" /> Categories
+            </TabsTrigger>
+            <TabsTrigger value="live" className="flex-1 lg:flex-none gap-2 px-4 py-2.5 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg">
+              <Video className="h-4 w-4" /> System
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
