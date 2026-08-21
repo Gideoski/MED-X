@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -75,9 +74,7 @@ export default function Level300Page() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              Stay tuned! 300-level resources, clinical guides, and case studies will be available once the admin enables access.
-            </p>
+            {/* Specific placeholder text removed as requested */}
           </CardContent>
         </Card>
       </div>

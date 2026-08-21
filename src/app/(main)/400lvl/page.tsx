@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -75,9 +74,7 @@ export default function Level400Page() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              Final year resources will appear here once the academic level is officially enabled by the MED-X team.
-            </p>
+            {/* Specific placeholder text removed as requested */}
           </CardContent>
         </Card>
       </div>
