@@ -138,21 +138,34 @@ export default function AdminPage() {
   const q2 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_100lvl_premium') : null), [firestore]);
   const q3 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_200lvl_free') : null), [firestore]);
   const q4 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_200lvl_premium') : null), [firestore]);
+  const q5 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_300lvl_free') : null), [firestore]);
+  const q6 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_300lvl_premium') : null), [firestore]);
+  const q7 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_400lvl_free') : null), [firestore]);
+  const q8 = useMemoFirebase(() => (firestore ? collection(firestore, 'materials_400lvl_premium') : null), [firestore]);
 
   const h1 = useCollection<EBook>(q1);
   const h2 = useCollection<EBook>(q2);
   const h3 = useCollection<EBook>(q3);
   const h4 = useCollection<EBook>(q4);
+  const h5 = useCollection<EBook>(q5);
+  const h6 = useCollection<EBook>(q6);
+  const h7 = useCollection<EBook>(q7);
+  const h8 = useCollection<EBook>(q8);
 
   useEffect(() => {
     const combined: MaterialWithCollection[] = [];
-    const hooks = [h1, h2, h3, h4];
-    const colls = ['materials_100lvl_free', 'materials_100lvl_premium', 'materials_200lvl_free', 'materials_200lvl_premium'];
+    const hooks = [h1, h2, h3, h4, h5, h6, h7, h8];
+    const colls = [
+      'materials_100lvl_free', 'materials_100lvl_premium', 
+      'materials_200lvl_free', 'materials_200lvl_premium',
+      'materials_300lvl_free', 'materials_300lvl_premium',
+      'materials_400lvl_free', 'materials_400lvl_premium'
+    ];
     hooks.forEach((hook, i) => {
       if (hook.data) hook.data.forEach(item => combined.push({ ...item, collection: colls[i] } as MaterialWithCollection));
     });
     setAllMaterials(combined.sort((a, b) => (a.title || "").localeCompare(b.title || "")));
-  }, [h1.data, h2.data, h3.data, h4.data]);
+  }, [h1.data, h2.data, h3.data, h4.data, h5.data, h6.data, h7.data, h8.data]);
 
   const handleUpdateTutorial = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

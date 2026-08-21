@@ -1,4 +1,3 @@
-
 "use client"
  
  import {
@@ -11,7 +10,7 @@
    SidebarFooter,
    useSidebar,
  } from "@/components/ui/sidebar"
- import { Home, Book, GraduationCap, Pencil, Shield, Users, User, Settings, MessageSquare, LogOut, Video } from "lucide-react"
+ import { Home, Book, GraduationCap, Pencil, Shield, Users, User, Settings, MessageSquare, LogOut, Video, BookOpen } from "lucide-react"
  import Logo from "../logo"
  import Link from "next/link"
  import { usePathname } from "next/navigation"
@@ -24,6 +23,7 @@
    { href: "/home", icon: Home, label: "Home" },
    { href: "/100lvl", icon: Book, label: "100 Level" },
    { href: "/200lvl", icon: GraduationCap, label: "200 Level" },
+   { href: "/300lvl", icon: BookOpen, label: "300 Level" },
    { href: "/tutorials", icon: Video, label: "Live Tutorials" },
    { href: "/request-ebook", icon: Pencil, label: "Request E-Book" },
    { href: "/creators", icon: Users, label: "Creators" },
@@ -67,12 +67,14 @@
    return (
      <Sidebar collapsible="offcanvas">
        <SidebarHeader>
-         <Link href="/home" className="flex items-center gap-2.5 whitespace-nowrap" onClick={handleLinkClick}>
-           <Logo className="h-8 w-8 text-primary" />
-           <h1 className="text-xl font-bold tracking-tighter text-primary">
-             <em className="not-italic">MED-X</em>
-           </h1>
-         </Link>
+         <div className="p-2">
+            <Link href="/home" className="flex items-center gap-2.5 whitespace-nowrap" onClick={handleLinkClick}>
+                <Logo className="h-8 w-8 text-primary" />
+                <h1 className="text-xl font-bold tracking-tighter text-primary">
+                    <em className="not-italic">MED-X</em>
+                </h1>
+            </Link>
+         </div>
        </SidebarHeader>
        <SidebarContent className="p-2">
          <SidebarMenu>
