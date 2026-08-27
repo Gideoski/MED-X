@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -43,7 +42,7 @@ import {
   Rocket
 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from '@/firebase';
-import { collection, doc, setDoc, addDoc, query, orderBy, deleteField, arrayUnion } from 'firebase/firestore';
+import { collection, doc, setDoc, addDoc, query, orderBy, deleteField } from 'firebase/firestore';
 import { useState, useEffect, useMemo, useTransition, useRef } from 'react';
 import type { EBook } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
@@ -124,10 +123,30 @@ export default function AdminPage() {
 
   const filteredUsers = useMemo(() => {
     if (!usersData) return [];
-    return usersData.filter(u => 
-      u.email?.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
-      u.id.includes(userSearchQuery)
-    );
+
+    // Deduplicate by Email to handle redundant accounts
+    const uniqueUsersMap = new Map<string, UserData>();
+    usersData.forEach(u => {
+      const emailKey = u.email?.toLowerCase() || u.id;
+      // If duplicate exists, keep the one that is Premium or has a role, or just the first one found
+      if (!uniqueUsersMap.has(emailKey)) {
+        uniqueUsersMap.set(emailKey, u);
+      } else {
+        const existing = uniqueUsersMap.get(emailKey)!;
+        if (!existing.isPremium && u.isPremium) {
+          uniqueUsersMap.set(emailKey, u);
+        }
+      }
+    });
+
+    const uniqueUsers = Array.from(uniqueUsersMap.values());
+
+    return uniqueUsers
+      .filter(u => 
+        u.email?.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+        u.id.includes(userSearchQuery)
+      )
+      .sort((a, b) => (a.email || "").localeCompare(b.email || ""));
   }, [usersData, userSearchQuery]);
 
   const dauCount = useMemo(() => {
